@@ -7,6 +7,12 @@
         "forceConsistentCasingInFileNames": true,
         "strict": true,
         "noImplicitOverride": true,
+        "paths": {
+          "ilpn-components": [
+            "dist/ilpn-components/ilpn-components",
+            "dist/ilpn-components"
+          ]
+        },
         "noPropertyAccessFromIndexSignature": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
