@@ -2,12 +2,8 @@ import {Component, OnInit} from '@angular/core';
 
 @Component({
     selector: 'ilpn-ilpn-components',
-    template: `
-        <p>
-            ilpn-components works!
-        </p>
-    `,
-    styles: []
+    templateUrl: 'ilpn-components.component.html',
+    styleUrls: ['ilpn-components.component.scss']
 })
 export class IlpnComponentsComponent implements OnInit {
 
