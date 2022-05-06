@@ -1,10 +1,18 @@
 import {NgModule} from '@angular/core';
+import {FooterComponent} from './layout/footer/footer.component';
+import {PageLayoutComponent} from './layout/page-layout/page-layout.component';
 
 
 @NgModule({
-    declarations: [],
+    declarations: [
+        FooterComponent,
+        PageLayoutComponent
+    ],
     imports: [],
-    exports: []
+    exports: [
+        FooterComponent,
+        PageLayoutComponent
+    ]
 })
 export class IlpnComponentsModule {
 }
