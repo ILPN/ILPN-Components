@@ -37,16 +37,7 @@ export class FileUploadComponent implements OnDestroy {
 
     hoverEnd(e: MouseEvent, drop = false) {
         this.prevent(e);
-        let div;
-        if ((e.relatedTarget as HTMLElement)?.localName === 'mat-icon' || (e.target as HTMLElement)?.localName === 'mat-icon') {
-            if (!drop) {
-                return;
-            }
-            div = (e.target as HTMLElement).parentElement;
-        } else {
-            div = e.target;
-        }
-        (div as HTMLElement).classList.remove('file-hover');
+        (e.target as HTMLElement).classList.remove('file-hover');
     }
 
     fileDrop(e: DragEvent) {
