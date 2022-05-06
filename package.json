@@ -3,6 +3,7 @@
     "version": "0.1.0",
     "peerDependencies": {
         "@angular/common": "^13.1.0",
+        "@angular/cdk": "^13.3.6",
         "@angular/core": "^13.1.0",
         "@angular/flex-layout": "^13.0.0-beta.36",
         "rxjs": "~7.4.0"

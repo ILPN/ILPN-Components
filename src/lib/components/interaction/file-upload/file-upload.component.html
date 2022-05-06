@@ -1,0 +1,18 @@
+<div fxLayout="column" fxLayoutAlign="start center">
+    <span [class.hidden]="!showText">{{descriptionText}}</span>
+    <div class="interactive-square" fxLayout="row" fxLayoutAlign="center center"
+         (drag)="prevent($event)"
+         (dragstart)="prevent($event)"
+         (dragover)="hoverStart($event)"
+         (dragenter)="hoverStart($event)"
+         (dragleave)="hoverEnd($event)"
+         (dragend)="hoverEnd($event)"
+         (drop)="fileDrop($event)">
+        <span class="larger-icon"
+                  (dragenter)="prevent($event)"
+                  (dragover)="prevent($event)"
+                  (dragleave)="prevent($event)">
+            {{squareContent}}
+        </span>
+    </div>
+</div>
