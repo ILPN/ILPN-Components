@@ -1,0 +1,9 @@
+<div fxLayout="column" fxLayoutAlign="start center">
+    <span [class.hidden]="!showText || disabled">{{descriptionText}}</span>
+    <div class="interactive-square larger-icon" [class.disabled]="disabled" fxLayout="row" fxLayoutAlign="center center"
+         (click)="download()"
+         (mouseenter)="hoverStart($event)"
+         (mouseleave)="hoverEnd($event)">
+        {{squareContent}}
+    </div>
+</div>
