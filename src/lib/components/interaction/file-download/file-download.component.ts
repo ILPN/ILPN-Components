@@ -49,6 +49,7 @@ export class FileDownloadComponent {
             saveAs(new Blob([file.content], {type: 'text/plain;charset=utf-8'}), file.name);
         } else {
             // multiple files
+            // TODO JSZip throws error when used like this in a library
             const zip = new JSZip();
             for (const file of this.files) {
                 zip.file(file.name, file.content);

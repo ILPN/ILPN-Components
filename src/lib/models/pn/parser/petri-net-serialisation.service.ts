@@ -31,7 +31,7 @@ export class PetriNetSerialisationService {
     private serialiseTransitions(transitions: Array<Transition>): string {
         let result = `${BlockType.TRANSITIONS}\n`;
         transitions.forEach(t => {
-            result += `${t.id} ${t.label ?? ''}\n`;
+            result += `${this.removeSpaces(t.id, t.id)} ${this.removeSpaces(t.label ?? '', t.id)}\n`;
         });
         return result;
     }
@@ -39,7 +39,7 @@ export class PetriNetSerialisationService {
     private serialisePlaces(places: Array<Place>): string {
         let result = `${BlockType.PLACES}\n`;
         places.forEach(p => {
-            result += `${p.id} ${p.marking}\n`;
+            result += `${this.removeSpaces(p.id, p.id)} ${p.marking}\n`;
         });
         return result;
     }
@@ -47,12 +47,22 @@ export class PetriNetSerialisationService {
     private serialiseArcs(arcs: Array<Arc>): string {
         let result = `${BlockType.ARCS}\n`;
         arcs.forEach(a => {
-            result += `${a.sourceId} ${a.destinationId}`;
+            result += `${this.removeSpaces(a.sourceId, a.id)} ${this.removeSpaces(a.destinationId, a.id)}`;
             if (a.weight > 1) {
                 result += ` ${a.weight}`;
             }
             result += '\n';
         });
         return result;
+    }
+
+    private removeSpaces(str: string, id: string): string {
+        if (str.includes(' ')) {
+            console.warn(`Petri net element with id '${id}' contains a spaces in its definition! Replacing spaces with underscores, no uniqueness check is performed!`)
+            return str.replace(/ /g, '_');
+        }
+        else {
+            return str;
+        }
     }
 }
