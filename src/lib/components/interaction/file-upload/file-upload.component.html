@@ -1,5 +1,5 @@
 <div fxLayout="column" fxLayoutAlign="start center">
-    <span [class.hidden]="!showText">{{descriptionText}}</span>
+    <span [class.hidden]="!showText && !isHovered">{{descriptionText}}</span>
     <div class="interactive-square larger-icon" fxLayout="row" fxLayoutAlign="center center"
          (drag)="prevent($event)"
          (dragstart)="prevent($event)"

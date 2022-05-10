@@ -16,6 +16,8 @@ export class FileUploadComponent implements OnDestroy {
     @Input() squareContent: string = '?';
     @Input() showText = true;
 
+    isHovered = false;
+
     constructor(private _fileReader: FileReaderService) {
         this.fileContentEmitter = new EventEmitter<Array<DropFile>>();
     }
@@ -33,11 +35,13 @@ export class FileUploadComponent implements OnDestroy {
         this.prevent(e);
         const target = (e.target as HTMLElement);
         target.classList.add('hover');
+        this.isHovered = true;
     }
 
     hoverEnd(e: MouseEvent, drop = false) {
         this.prevent(e);
         (e.target as HTMLElement).classList.remove('hover');
+        this.isHovered = false;
     }
 
     fileDrop(e: DragEvent) {

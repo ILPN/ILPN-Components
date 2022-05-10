@@ -1,7 +1,7 @@
 .interactive-square {
     width: 100px;
     height: 100px;
-    border-color: dimgrey;
+    border-color: gray;
     border-width: 5px;
     border-style: solid;
     margin-top: 14px;
@@ -13,11 +13,6 @@
 
 .larger-icon {
     font-size: 50px;
-    color: dimgrey;
-}
-
-.hover .larger-icon {
-    color: black;
 }
 
 .hidden {

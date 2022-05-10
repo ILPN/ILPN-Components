@@ -2,6 +2,7 @@ import {Component, Input} from '@angular/core';
 import {DropFile} from '../../../utility/drop-file';
 import {saveAs} from 'file-saver';
 import * as JSZip from 'jszip';
+import {FileDisplay} from '../../layout/file-display';
 
 @Component({
     selector: 'ilpn-file-download',
@@ -16,6 +17,7 @@ export class FileDownloadComponent {
     @Input() disabled = false;
     @Input() files: DropFile | Array<DropFile> = [];
     @Input() zipFileName = 'results';
+    @Input() fileDisplay: FileDisplay | undefined;
 
     constructor() {
     }
@@ -58,6 +60,20 @@ export class FileDownloadComponent {
                 saveAs(content, `${this.zipFileName}.zip`);
             });
         }
+    }
+
+    resolveSquareContent(): string {
+        if (this.fileDisplay !== undefined) {
+            return this.fileDisplay.icon;
+        }
+        return this.squareContent;
+    }
+
+    resolveSquareColor(): string {
+        if (this.fileDisplay !== undefined) {
+            return this.fileDisplay.color;
+        }
+        return 'black';
     }
 
 }
