@@ -36,4 +36,11 @@ export class DescriptiveLinkComponent {
         return this.squareContent;
     }
 
+    resolveSquareColor(): string {
+        if (this.fileDisplay !== undefined) {
+            return this.fileDisplay.color;
+        }
+        return 'black';
+    }
+
 }
