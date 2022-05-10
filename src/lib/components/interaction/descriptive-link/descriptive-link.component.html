@@ -1,0 +1,12 @@
+<a class="link" [href]="resolveLink()" [attr.download]="download ? '' : null">
+    <div class="border" fxLayout="row" fxLayoutAlign="start top">
+        <div class="square-border" fxLayout="row" fxLayoutAlign="center center" fxFlex="nogrow">
+            {{resolveSquareContent()}}
+        </div>
+        <div class="description" fxLayout="column" fxLayoutAlign="top center" fxFlex>
+            <span>{{title}}</span>
+            <hr class="width100">
+            <span>{{description}}</span>
+        </div>
+    </div>
+</a>

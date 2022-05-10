@@ -4,6 +4,7 @@ import {PageLayoutComponent} from './layout/page-layout/page-layout.component';
 import {FileUploadComponent} from './interaction/file-upload/file-upload.component';
 import {FlexLayoutModule} from '@angular/flex-layout';
 import {FileDownloadComponent} from './interaction/file-download/file-download.component';
+import {DescriptiveLinkComponent} from './interaction/descriptive-link/descriptive-link.component';
 
 
 @NgModule({
@@ -11,7 +12,8 @@ import {FileDownloadComponent} from './interaction/file-download/file-download.c
         FooterComponent,
         PageLayoutComponent,
         FileUploadComponent,
-        FileDownloadComponent
+        FileDownloadComponent,
+        DescriptiveLinkComponent
     ],
     imports: [
         FlexLayoutModule
@@ -21,6 +23,7 @@ import {FileDownloadComponent} from './interaction/file-download/file-download.c
         PageLayoutComponent,
         FileUploadComponent,
         FileDownloadComponent,
+        DescriptiveLinkComponent,
     ]
 })
 export class IlpnComponentsModule {
