@@ -25,6 +25,14 @@ export class Node extends IdPoint {
         return this._outgoingArcs;
     }
 
+    get ingoingArcWeights(): Map<string, number> {
+        return this._ingoingArcWeights;
+    }
+
+    get outgoingArcWeights(): Map<string, number> {
+        return this._outgoingArcWeights;
+    }
+
     public addOutgoingArc(arc: Arc) {
         this._outgoingArcs.push(arc);
         this._outgoingArcWeights.set(arc.destinationId, arc.weight);

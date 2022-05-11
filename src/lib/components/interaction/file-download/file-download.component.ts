@@ -15,7 +15,7 @@ export class FileDownloadComponent {
     @Input() squareContent: string = '?';
     @Input() showText = true;
     @Input() disabled = false;
-    @Input() files: DropFile | Array<DropFile> = [];
+    @Input() files: undefined | DropFile | Array<DropFile> = [];
     @Input() zipFileName = 'results';
     @Input() fileDisplay: FileDisplay | undefined;
 
@@ -40,6 +40,9 @@ export class FileDownloadComponent {
 
     download() {
         if (this.disabled) {
+            return;
+        }
+        if (this.files === undefined) {
             return;
         }
         if (Array.isArray(this.files) && this.files.length === 0) {

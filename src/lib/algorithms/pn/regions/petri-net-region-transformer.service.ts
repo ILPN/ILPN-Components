@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {Result} from 'glpk.js';
-import {PetriNet} from '../../models/pn/model/petri-net';
+import {PetriNet} from '../../../models/pn/model/petri-net';
 
 @Injectable({
     providedIn: 'root'

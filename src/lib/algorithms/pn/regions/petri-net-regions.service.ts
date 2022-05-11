@@ -1,16 +1,16 @@
 import {Injectable} from '@angular/core';
-import {IncrementingCounter} from '../../utility/incrementing-counter';
+import {IncrementingCounter} from '../../../utility/incrementing-counter';
 import {BehaviorSubject, Observable, ReplaySubject, switchMap, take} from 'rxjs';
 import {GLPK, LP, Result} from 'glpk.js';
-import {PetriNet} from '../../models/pn/model/petri-net';
+import {PetriNet} from '../../../models/pn/model/petri-net';
 import {ProblemSolution} from './problem-solution';
-import {Constraint, Goal, MessageLevel, Solution} from '../../models/glpk/glpk-constants';
-import {SubjectTo} from '../../models/glpk/subject-to';
-import {Arc} from '../../models/pn/model/arc';
-import {Transition} from '../../models/pn/model/transition';
-import {Variable} from '../../models/glpk/variable';
+import {Constraint, Goal, MessageLevel, Solution} from '../../../models/glpk/glpk-constants';
+import {SubjectTo} from '../../../models/glpk/subject-to';
+import {Arc} from '../../../models/pn/model/arc';
+import {Transition} from '../../../models/pn/model/transition';
+import {Variable} from '../../../models/glpk/variable';
 import {NewVariableWithConstraint} from './new-variable-with-constraint';
-import {Bound} from '../../models/glpk/bound';
+import {Bound} from '../../../models/glpk/bound';
 import {PetriNetRegionTransformerService} from './petri-net-region-transformer.service';
 
 @Injectable({
