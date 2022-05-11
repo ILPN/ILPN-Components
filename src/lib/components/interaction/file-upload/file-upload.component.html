@@ -1,6 +1,7 @@
 <div fxLayout="column" fxLayoutAlign="start center">
     <span [class.hidden]="!showText && !isHovered">{{descriptionText}}</span>
     <div class="interactive-square larger-icon" fxLayout="row" fxLayoutAlign="center center"
+         [ngStyle]="{'color': resolveSquareColor()}"
          (drag)="prevent($event)"
          (dragstart)="prevent($event)"
          (dragover)="hoverStart($event)"
@@ -8,6 +9,6 @@
          (dragleave)="hoverEnd($event)"
          (dragend)="hoverEnd($event)"
          (drop)="fileDrop($event)">
-            {{squareContent}}
+            {{resolveSquareContent()}}
     </div>
 </div>

@@ -2,6 +2,7 @@ import {Component, EventEmitter, Input, OnDestroy, Output} from '@angular/core';
 import {FileReaderService} from '../../../utility/file-reader.service';
 import {take} from 'rxjs';
 import {DropFile} from '../../../utility/drop-file';
+import {FileDisplay} from '../../layout/file-display';
 
 @Component({
     selector: 'ilpn-file-upload',
@@ -15,6 +16,7 @@ export class FileUploadComponent implements OnDestroy {
     @Input() descriptionText: string = '';
     @Input() squareContent: string = '?';
     @Input() showText = true;
+    @Input() fileDisplay: FileDisplay | undefined;
 
     isHovered = false;
 
@@ -51,5 +53,19 @@ export class FileUploadComponent implements OnDestroy {
                 this.fileContentEmitter.emit(result);
             }
         });
+    }
+
+    resolveSquareContent(): string {
+        if (this.fileDisplay !== undefined) {
+            return this.fileDisplay.icon;
+        }
+        return this.squareContent;
+    }
+
+    resolveSquareColor(): string {
+        if (this.fileDisplay !== undefined) {
+            return this.fileDisplay.color;
+        }
+        return 'black';
     }
 }
