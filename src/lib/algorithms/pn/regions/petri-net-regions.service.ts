@@ -12,6 +12,7 @@ import {Variable} from '../../../models/glpk/variable';
 import {NewVariableWithConstraint} from './classes/new-variable-with-constraint';
 import {Bound} from '../../../models/glpk/bound';
 import {PetriNetRegionTransformerService} from './petri-net-region-transformer.service';
+import {CombinationResult} from './classes/combination-result';
 
 @Injectable({
     providedIn: 'root'
@@ -47,13 +48,15 @@ export class PetriNetRegionsService {
         });
     }
 
-    public computeRegions(net: PetriNet, oneBound: boolean): Observable<PetriNet> {
+    public computeRegions(nets: Array<PetriNet>, oneBound: boolean): Observable<PetriNet> {
         const regions$ = new ReplaySubject<PetriNet>();
 
-        const ilp$ = new BehaviorSubject(this.setUpInitialILP(net, oneBound));
+        const combined = this.combineInputNets(nets);
+
+        const ilp$ = new BehaviorSubject(this.setUpInitialILP(combined, oneBound));
         ilp$.pipe(switchMap(ilp => this.solveILP(ilp))).subscribe((ps: ProblemSolution) => {
             if (ps.solution.result.status === Solution.OPTIMAL) {
-                const region = this._regionTransformer.displayRegionInNet(ps.solution, net);
+                const region = this._regionTransformer.displayRegionInNet(ps.solution, combined.net);
 
                 // TODO check if the region is new and we are not trapped in a loop
 
@@ -70,7 +73,28 @@ export class PetriNetRegionsService {
         return regions$.asObservable();
     }
 
-    private setUpInitialILP(net: PetriNet, oneBound: boolean): LP {
+    private combineInputNets(nets: Array<PetriNet>): CombinationResult {
+        if (nets.length === 0) {
+            throw new Error('Synthesis must be performed on at least one input net!');
+        }
+
+        let result = nets[0];
+        const inputs: Array<Set<string>> = [result.inputPlaces];
+        const outputs: Array<Set<string>> = [result.outputPlaces];
+
+        for (let i = 1; i < nets.length; i++) {
+            const union = PetriNet.netUnion(result, nets[i]);
+            result = union.net;
+            inputs.push(union.inputPlacesB);
+            outputs.push(union.outputPlacesB);
+        }
+
+        return {net: result, inputs, outputs};
+    }
+
+    private setUpInitialILP(combined: CombinationResult, oneBound: boolean): LP {
+        const net = combined.net;
+
         this._placeVariables = new Set(net.getPlaces().map(p => p.id));
         this._allVariables = new Set<string>(this._placeVariables);
 
@@ -81,7 +105,7 @@ export class PetriNetRegionsService {
                 direction: Goal.MINIMUM,
                 vars: net.getPlaces().map(p => this.variable(p.id))
             },
-            subjectTo: this.createInitialConstraints(net),
+            subjectTo: this.createInitialConstraints(combined),
         };
 
         initial[oneBound ? 'binaries' : 'generals'] = Array.from(this._placeVariables);
@@ -89,8 +113,10 @@ export class PetriNetRegionsService {
         return initial;
     }
 
-    private createInitialConstraints(net: PetriNet): Array<SubjectTo> {
+    private createInitialConstraints(combined: CombinationResult): Array<SubjectTo> {
+        const net = combined.net;
         const result: Array<SubjectTo> = [];
+
         // only non-negative solutions
         result.push(...net.getPlaces().map(p => this.greaterEqualThan(this.variable(p.id), 0)));
 
@@ -98,11 +124,11 @@ export class PetriNetRegionsService {
         result.push(this.greaterEqualThan(net.getPlaces().map(p => this.variable(p.id)), 1));
 
         // initial markings must be the same
-        const startingPlaces = net.getPlaces().filter(p => p.ingoingArcs.length == 0);
-        if (startingPlaces.length > 1) {
-            const p1 = startingPlaces.splice(0, 1)[0];
-            for (const p2 of startingPlaces) {
-                result.push(this.sumEqualsZero(this.variable(p1.id, 1), this.variable(p2.id, -1)));
+        if (combined.inputs.length > 1) {
+            const inputsA = Array.from(combined.inputs[0]);
+            for (let i = 1; i < combined.inputs.length; i++) {
+                const inputsB = Array.from(combined.inputs[i]);
+                result.push(this.sumEqualsZero(...inputsA.map(id => this.variable(id, 1)), ...inputsB.map(id => this.variable(id, -1))));
             }
         }
 

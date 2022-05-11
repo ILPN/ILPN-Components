@@ -13,16 +13,18 @@ export class PetriNetRegionSynthesisService {
     constructor(private _regionService: PetriNetRegionsService) {
     }
 
-    public synthesise(input: PetriNet, oneBoundRegions: boolean, fileName: string = 'result'): Observable<SynthesisResult> {
+    public synthesise(input: PetriNet | Array<PetriNet>, oneBoundRegions: boolean, fileName: string = 'result'): Observable<SynthesisResult> {
         const result$ = new ReplaySubject<SynthesisResult>(1);
         const synthesiser = new RegionSynthesiser();
 
-        this._regionService.computeRegions(input, oneBoundRegions).subscribe({
+        const arrayInput = Array.isArray(input) ? input : [input];
+
+        this._regionService.computeRegions(arrayInput, oneBoundRegions).subscribe({
             next: region => {
                 synthesiser.addRegion(region);
             },
             complete: () => {
-                result$.next(new SynthesisResult(input, synthesiser.synthesise(), fileName));
+                result$.next(new SynthesisResult(arrayInput, synthesiser.synthesise(), fileName));
                 result$.complete();
             }
         });
