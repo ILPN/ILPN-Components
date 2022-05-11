@@ -4,3 +4,4 @@ export * from './model/transition';
 export * from './model/arc';
 
 export * from './parser/petri-net-serialisation.service';
+export * from './parser/petri-net-parser.service';
