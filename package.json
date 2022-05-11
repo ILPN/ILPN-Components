@@ -7,6 +7,7 @@
         "@angular/core": "^13.1.0",
         "@angular/flex-layout": "^13.0.0-beta.36",
         "file-saver": "^2.0.5",
+        "glpk.js": "^4.0.1",
         "jszip": "^3.9.1",
         "rxjs": "~7.4.0"
     },
