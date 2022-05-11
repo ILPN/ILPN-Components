@@ -57,18 +57,13 @@ export class PetriNet {
         const placeMap = new Map<string, string>();
         const transitionMap = new Map<string, string>();
 
-        const inputPlacesB = new Set<string>();
-        const outputPlacesB = new Set<string>();
-
         b.getPlaces().forEach(p => {
             let mappedId = p.id;
             while (result.getPlace(mappedId) !== undefined) {
                 mappedId = p.id + counter.next();
             }
             placeMap.set(p.id, mappedId);
-            const newP = new Place(mappedId, p.x, p.y, p.marking);
-            result.addPlace(newP);
-            PetriNet.determineInOut(newP, inputPlacesB, outputPlacesB);
+            result.addPlace(new Place(mappedId, p.x, p.y, p.marking));
         });
 
         b.getTransitions().forEach(t => {
@@ -91,6 +86,16 @@ export class PetriNet {
                 result.addArc(new Arc(arcId, result.getTransition(transitionMap.get(arc.sourceId) as string) as Transition, result.getPlace(placeMap.get(arc.destinationId) as string) as Place, arc.weight));
             }
         });
+
+        const inputPlacesB = new Set<string>(result._inputPlaces);
+        const outputPlacesB = new Set<string>(result._outputPlaces);
+
+        a.inputPlaces.forEach(p => {
+            inputPlacesB.delete(p);
+        })
+        a.outputPlaces.forEach(p => {
+            outputPlacesB.delete(p)
+        })
 
         return {net: result, inputPlacesB, outputPlacesB};
     }

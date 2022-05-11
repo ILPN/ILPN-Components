@@ -13,6 +13,7 @@ import {NewVariableWithConstraint} from './classes/new-variable-with-constraint'
 import {Bound} from '../../../models/glpk/bound';
 import {PetriNetRegionTransformerService} from './petri-net-region-transformer.service';
 import {CombinationResult} from './classes/combination-result';
+import {Region} from './classes/region';
 
 @Injectable({
     providedIn: 'root'
@@ -48,8 +49,8 @@ export class PetriNetRegionsService {
         });
     }
 
-    public computeRegions(nets: Array<PetriNet>, oneBound: boolean): Observable<PetriNet> {
-        const regions$ = new ReplaySubject<PetriNet>();
+    public computeRegions(nets: Array<PetriNet>, oneBound: boolean): Observable<Region> {
+        const regions$ = new ReplaySubject<Region>();
 
         const combined = this.combineInputNets(nets);
 
@@ -60,7 +61,7 @@ export class PetriNetRegionsService {
 
                 // TODO check if the region is new and we are not trapped in a loop
 
-                regions$.next(region);
+                regions$.next({net: region, inputs: Array.from(combined.inputs[0])});
                 ilp$.next(this.addConstraintsToILP(ps));
             } else {
                 // we are done, there are no more regions

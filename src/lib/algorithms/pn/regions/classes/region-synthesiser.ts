@@ -4,16 +4,17 @@ import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
 import {Arc} from '../../../../models/pn/model/arc';
 import {Node} from '../../../../models/pn/model/node';
+import {Region} from './region';
 
 export class RegionSynthesiser {
 
-    private _regions: Array<PetriNet> = [];
+    private _regions: Array<Region> = [];
     private _counter = new IncrementingCounter();
 
     constructor() {
     }
 
-    public addRegion(region: PetriNet) {
+    public addRegion(region: Region) {
         this._regions.push(region);
     }
 
@@ -22,7 +23,7 @@ export class RegionSynthesiser {
             throw new Error(`You must provide regions via the 'addRegion' method before you can run the synthesis!`);
         }
 
-        const region = this._regions[0];
+        const region = this._regions[0].net;
         const uniqueTransitionLabels = new Set<string>();
         for (const t of region.getTransitions()) {
             const label = t.label;
@@ -40,10 +41,10 @@ export class RegionSynthesiser {
 
         // extract places and arcs from regions
         for (const region of this._regions) {
-            const place = this.place();
+            const place = this.place(region.inputs.reduce((sum, id) => sum + region.net.getPlace(id)!.marking, 0));
 
             const gradients = new Map<string, number>();
-            for (const t of region.getTransitions()) {
+            for (const t of region.net.getTransitions()) {
                 const gradient = this.computeGradient(t);
                 const label = <string>t.label;
                 const existingGradient = gradients.get(label);
@@ -70,8 +71,8 @@ export class RegionSynthesiser {
         return new Transition(label, 0, 0, label);
     }
 
-    private place(): Place {
-        return new Place('p' + this._counter.next(), 0, 0, 0);
+    private place(marking: number): Place {
+        return new Place('p' + this._counter.next(), 0, 0, marking);
     }
 
     private arc(source: Node, destination: Node, weight: number): Arc {
