@@ -14,6 +14,7 @@ import {Bound} from '../../../models/glpk/bound';
 import {PetriNetRegionTransformerService} from './petri-net-region-transformer.service';
 import {CombinationResult} from './classes/combination-result';
 import {Region} from './classes/region';
+import {RegionsConfiguration} from './classes/regions-configuration';
 
 @Injectable({
     providedIn: 'root'
@@ -49,12 +50,12 @@ export class PetriNetRegionsService {
         });
     }
 
-    public computeRegions(nets: Array<PetriNet>, oneBound: boolean): Observable<Region> {
+    public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration): Observable<Region> {
         const regions$ = new ReplaySubject<Region>();
 
         const combined = this.combineInputNets(nets);
 
-        const ilp$ = new BehaviorSubject(this.setUpInitialILP(combined, oneBound));
+        const ilp$ = new BehaviorSubject(this.setUpInitialILP(combined, config));
         ilp$.pipe(switchMap(ilp => this.solveILP(ilp))).subscribe((ps: ProblemSolution) => {
             if (ps.solution.result.status === Solution.OPTIMAL) {
                 const region = this._regionTransformer.displayRegionInNet(ps.solution, combined.net);
@@ -93,7 +94,7 @@ export class PetriNetRegionsService {
         return {net: result, inputs, outputs};
     }
 
-    private setUpInitialILP(combined: CombinationResult, oneBound: boolean): LP {
+    private setUpInitialILP(combined: CombinationResult, config: RegionsConfiguration): LP {
         const net = combined.net;
 
         this._placeVariables = new Set(net.getPlaces().map(p => p.id));
@@ -106,15 +107,15 @@ export class PetriNetRegionsService {
                 direction: Goal.MINIMUM,
                 vars: net.getPlaces().map(p => this.variable(p.id))
             },
-            subjectTo: this.createInitialConstraints(combined),
+            subjectTo: this.createInitialConstraints(combined, config),
         };
 
-        initial[oneBound ? 'binaries' : 'generals'] = Array.from(this._placeVariables);
+        initial[config.oneBoundRegions ? 'binaries' : 'generals'] = Array.from(this._placeVariables);
 
         return initial;
     }
 
-    private createInitialConstraints(combined: CombinationResult): Array<SubjectTo> {
+    private createInitialConstraints(combined: CombinationResult, config: RegionsConfiguration): Array<SubjectTo> {
         const net = combined.net;
         const result: Array<SubjectTo> = [];
 
@@ -131,6 +132,11 @@ export class PetriNetRegionsService {
                 const inputsB = Array.from(combined.inputs[i]);
                 result.push(this.sumEqualsZero(...inputsA.map(id => this.variable(id, 1)), ...inputsB.map(id => this.variable(id, -1))));
             }
+        }
+
+        // places with no post-set should be empty
+        if (config.noOutputPlaces) {
+            result.push(...net.getPlaces().filter(p => p.outgoingArcs.length === 0).map(p => this.lessEqualThan(this.variable(p.id), 0)));
         }
 
         // gradient constraints
@@ -283,9 +289,9 @@ export class PetriNetRegionsService {
         );
     }
 
-    private lessEqualThan(variables: Array<Variable>, upperBound: number): SubjectTo {
+    private lessEqualThan(variables: Variable | Array<Variable>, upperBound: number): SubjectTo {
         return this.constrain(
-            variables,
+            Array.isArray(variables) ? variables : [variables],
             {type: Constraint.UPPER_BOUND, ub: upperBound, lb: 0}
         );
     }
