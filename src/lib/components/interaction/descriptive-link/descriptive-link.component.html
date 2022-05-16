@@ -1,12 +1,13 @@
-<a class="link" [href]="resolveLink()" [attr.download]="download ? '' : null">
-    <div class="border" fxLayout="row" fxLayoutAlign="start top">
-        <div class="square" [ngStyle]="{'color': resolveSquareColor()}" fxLayout="row" fxLayoutAlign="center center" fxFlex="nogrow">
-            {{resolveSquareContent()}}
-        </div>
-        <div class="description" fxLayout="column" fxLayoutAlign="top center" fxFlex>
-            <span>{{title}}</span>
-            <hr class="width100">
-            <span>{{description}}</span>
-        </div>
-    </div>
-</a>
+<ng-template [ngIf]="isAnchor()" [ngIfElse]="button">
+    <!-- single link -->
+    <a class="link" [href]="resolveAnchorLink()" [attr.download]="download ? '' : null">
+        <ilpn-info-card [fileDisplay]="fileDisplay" [squareContent]="squareContent" [description]="description" [title]="title"></ilpn-info-card>
+    </a>
+</ng-template>
+
+<!-- multiple links -->
+<ng-template #button>
+    <button class="buttonStyle" (click)="buttonClick()">
+        <ilpn-info-card [fileDisplay]="fileDisplay" [squareContent]="squareContent" [description]="description" [title]="title"></ilpn-info-card>
+    </button>
+</ng-template>

@@ -5,6 +5,8 @@ import {FileUploadComponent} from './interaction/file-upload/file-upload.compone
 import {FlexLayoutModule} from '@angular/flex-layout';
 import {FileDownloadComponent} from './interaction/file-download/file-download.component';
 import {DescriptiveLinkComponent} from './interaction/descriptive-link/descriptive-link.component';
+import { InfoCardComponent } from './interaction/info-card/info-card.component';
+import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 
 
 @NgModule({
@@ -13,11 +15,13 @@ import {DescriptiveLinkComponent} from './interaction/descriptive-link/descripti
         PageLayoutComponent,
         FileUploadComponent,
         FileDownloadComponent,
-        DescriptiveLinkComponent
+        DescriptiveLinkComponent,
+        InfoCardComponent
     ],
-    imports: [
-        FlexLayoutModule
-    ],
+	imports: [
+		FlexLayoutModule,
+		BrowserAnimationsModule
+	],
     exports: [
         FooterComponent,
         PageLayoutComponent,
