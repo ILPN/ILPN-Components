@@ -62,6 +62,17 @@ export abstract class AbstractParser<T> {
 
     protected abstract resolveBlockParser(block: string): undefined | ((lines: Array<string>, result: T) => void);
 
+    protected parseEachLine(lines: Array<string>, partParser: (parts: Array<string>, line: string) => void) {
+        for (let i = 0; i < lines.length; i++) {
+            const line = this.getLineTrimEnd(lines, i);
+            if (line.length === 0) {
+                continue;
+            }
+            const parts = line.split(' ');
+            partParser(parts, line);
+        }
+    }
+
     protected getLineTrimEnd(lines: Array<string>, index: number): string {
         return lines[index].trimEnd();
     }

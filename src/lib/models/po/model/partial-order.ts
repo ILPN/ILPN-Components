@@ -26,8 +26,13 @@ export class PartialOrder {
             throw new Error(`An event with id '${event.id}' already exists in this partial order!`);
         }
         this._events.set(event.id, event);
-        if (event.previousEvents.size === 0) {
-            this._initialEvents.add(event);
+    }
+
+    public determineInitialEvents() {
+        for (const e of this._events.values()) {
+            if (e.previousEvents.size === 0) {
+                this._initialEvents.add(e);
+            }
         }
     }
 }
