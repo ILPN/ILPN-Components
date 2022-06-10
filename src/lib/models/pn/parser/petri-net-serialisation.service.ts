@@ -4,6 +4,7 @@ import {Transition} from '../model/transition';
 import {Place} from '../model/place';
 import {Arc} from '../model/arc';
 import {BlockType} from '../block-type';
+import {AbstractParser} from '../../../utility/abstract-parser';
 
 @Injectable({
     providedIn: 'root'
@@ -14,7 +15,7 @@ export class PetriNetSerialisationService {
     }
 
     public serialise(net: PetriNet): string {
-        return `${BlockType.TYPE} pn\n`
+        return `${AbstractParser.TYPE_BLOCK} pn\n`
         + this.serialiseFrequency(net.frequency)
         + this.serialiseTransitions(net.getTransitions())
         + this.serialisePlaces(net.getPlaces())

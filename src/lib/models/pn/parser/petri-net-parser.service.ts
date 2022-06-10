@@ -1,85 +1,45 @@
 import {Injectable} from '@angular/core';
 import {PetriNet} from '../model/petri-net';
-import {Blocks} from './blocks';
 import {Place} from '../model/place';
 import {Transition} from '../model/transition';
 import {Arc} from '../model/arc';
 import {SourceAndDestination} from './source-and-destination';
 import {Node} from '../model/node';
+import {AbstractParser} from '../../../utility/abstract-parser';
+import {BlockType} from '../block-type';
 
 @Injectable({
     providedIn: 'root'
 })
-export class PetriNetParserService {
+export class PetriNetParserService extends AbstractParser<PetriNet> {
 
     constructor() {
+        super(
+            'pn',
+            [BlockType.PLACES, BlockType.TRANSITIONS, BlockType.ARCS]
+        );
     }
 
-    parse(text: string): PetriNet | undefined {
-        const lines = text.split('\n');
-        if (lines[0].trimEnd() !== `${Blocks.TYPE} pn`) {
-            console.debug('bad file type')
-            return;
-        }
-
-        const result = new PetriNet();
-
-        let currentBlock: Blocks | undefined = undefined;
-        let blockStart = -1;
-        try {
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trimEnd();
-                if (!line.startsWith('.')) {
-                    continue;
-                }
-                if (line.startsWith(Blocks.TRANSITIONS)) {
-                    if (currentBlock !== undefined) {
-                        this.parseBlock(lines.slice(blockStart, i), result, currentBlock);
-                    }
-                    blockStart = i + 1;
-                    currentBlock = Blocks.TRANSITIONS;
-                } else if (line.startsWith(Blocks.PLACES)) {
-                    if (currentBlock !== undefined) {
-                        this.parseBlock(lines.slice(blockStart, i), result, currentBlock);
-                    }
-                    blockStart = i + 1;
-                    currentBlock = Blocks.PLACES;
-                } else if (line.startsWith(Blocks.ARCS)) {
-                    if (currentBlock !== undefined) {
-                        this.parseBlock(lines.slice(blockStart, i), result, currentBlock);
-                    }
-                    blockStart = i + 1;
-                    currentBlock = Blocks.ARCS;
-                }
-            }
-            if (currentBlock !== undefined) {
-                this.parseBlock(lines.slice(blockStart), result, currentBlock);
-            }
-        } catch (e) {
-            console.error((e as Error).message);
-            return undefined;
-        }
-
-        return result;
+    protected newResult(): PetriNet {
+        return new PetriNet();
     }
 
-    private parseBlock(lines: Array<string>, net:PetriNet, block: Blocks) {
+    protected resolveBlockParser(block: string): ((lines: Array<string>, result: PetriNet) => void) | undefined {
         switch (block) {
-            case Blocks.PLACES:
-                this.parsePlaces(lines, net);
-                return;
-            case Blocks.TRANSITIONS:
-                this.parseTransitions(lines, net);
-                return
-            case Blocks.ARCS:
-                this.parseArcs(lines, net);
-                return;
+            case BlockType.PLACES:
+                return (lines, result) => this.parsePlaces(lines, result);
+            case BlockType.TRANSITIONS:
+                return (lines, result) => this.parseTransitions(lines, result);
+            case BlockType.ARCS:
+                return (lines, result) => this.parseArcs(lines, result);
+            default:
+                return undefined;
         }
     }
 
     private parsePlaces(lines: Array<string>, net: PetriNet) {
         for (let i = 0; i < lines.length; i++) {
-            const line = this.prepareLine(lines, i);
+            const line = this.getLineTrimEnd(lines, i);
             if (line.length === 0) {
                 continue;
             }
@@ -104,7 +64,7 @@ export class PetriNetParserService {
 
     private parseTransitions(lines: Array<string>, net: PetriNet) {
         for (let i = 0; i < lines.length; i++) {
-            const line = this.prepareLine(lines, i);
+            const line = this.getLineTrimEnd(lines, i);
             if (line.length === 0) {
                 continue;
             }
@@ -121,7 +81,7 @@ export class PetriNetParserService {
 
     private parseArcs(lines: Array<string>, net: PetriNet) {
         for (let i = 0; i < lines.length; i++) {
-            const line = this.prepareLine(lines, i);
+            const line = this.getLineTrimEnd(lines, i);
             if (line.length === 0) {
                 continue;
             }
@@ -163,9 +123,5 @@ export class PetriNetParserService {
             return {source, destination};
         }
         throw new Error(`line '${line}' arc source or destination is invalid! Arc must reference existing net elements and connect a place with a transition or a transition with a place!`);
-    }
-
-    private prepareLine(lines: Array<string>, index: number): string {
-        return lines[index].trimEnd();
     }
 }
