@@ -11,7 +11,7 @@ export class PartialOrderParserService extends AbstractParser<PartialOrder> {
 
     constructor() {
         super(
-            ['run', 'po', 'ps'],
+            ['run', 'po', 'ps', 'log'],
             [BlockType.EVENTS, BlockType.ARCS]
         );
     }
@@ -33,7 +33,7 @@ export class PartialOrderParserService extends AbstractParser<PartialOrder> {
             case BlockType.EVENTS:
                 return (lines, result) => this.parseEvents(lines, result);
             case BlockType.ARCS:
-                return (lines, result) => this.parseEvents(lines, result);
+                return (lines, result) => this.parseArcs(lines, result);
             default:
                 return undefined;
         }
@@ -61,8 +61,8 @@ export class PartialOrderParserService extends AbstractParser<PartialOrder> {
             if (first === undefined || second === undefined) {
                 throw new Error(`line ${line} specifies an arc between at least one event that does not exist in the partial order!`);
             }
-            first.nextEvents.add(second);
-            second.previousEvents.add(first);
+            first.addNextEvent(second);
+            second.addPreviousEvent(first);
         });
     }
 

@@ -16,7 +16,7 @@ export abstract class AbstractParser<T> {
             console.debug('file does not specify type in first line');
             return;
         }
-        if (this._allowedTypes.includes(lines[0].trimEnd().slice(AbstractParser.TYPE_BLOCK.length + 1))) {
+        if (!this._allowedTypes.includes(lines[0].trimEnd().slice(AbstractParser.TYPE_BLOCK.length + 1))) {
             console.debug('bad file type')
             return;
         }
@@ -39,17 +39,12 @@ export abstract class AbstractParser<T> {
                     continue;
                 }
 
-                if (currentBlock !== undefined) {
-                    const blockParser = this.resolveBlockParser(currentBlock);
-                    if (blockParser === undefined) {
-                        throw new Error(`block type '${newBlock}' is suppoerted but no block parser could be resolved!`);
-                    }
-                    blockParser(lines.slice(blockStart, i), result);
-                }
+                this.parseBlock(currentBlock, blockStart, i, lines, result);
 
                 blockStart = i + 1;
                 currentBlock = newBlock;
             }
+            this.parseBlock(currentBlock, blockStart, lines.length, lines, result);
         } catch (e) {
             console.error((e as Error).message);
             return undefined;
@@ -75,5 +70,15 @@ export abstract class AbstractParser<T> {
 
     protected getLineTrimEnd(lines: Array<string>, index: number): string {
         return lines[index].trimEnd();
+    }
+
+    private parseBlock(currentBlock: string | undefined, blockStart: number, blockEnd: number, lines: Array<string>, result: T) {
+        if (currentBlock !== undefined) {
+            const blockParser = this.resolveBlockParser(currentBlock);
+            if (blockParser === undefined) {
+                throw new Error(`block type '${currentBlock}' is suppoerted but no block parser could be resolved!`);
+            }
+            blockParser(lines.slice(blockStart, blockEnd), result);
+        }
     }
 }
