@@ -3,6 +3,7 @@ import {PartialOrder} from '../../../models/po/model/partial-order';
 import {MaxFlowPreflowN3} from '../../flow-network/max-flow-preflow-n3';
 import {Transition} from '../../../models/pn/model/transition';
 import {Place} from '../../../models/pn/model/place';
+import {Event} from '../../../models/po/model/event';
 
 export class LpoFlowValidator {
 
@@ -11,7 +12,18 @@ export class LpoFlowValidator {
 
     constructor(petriNet: PetriNet, lpo: PartialOrder) {
         this._petriNet = petriNet;
-        this._lpo = lpo;
+        this._lpo = lpo.clone();
+
+        const initial = new Event('initial marking', undefined);
+        const final = new Event('final marking', undefined);
+        for (const e of this._lpo.initialEvents) {
+            initial.addNextEvent(e);
+        }
+        for (const e of this._lpo.finalEvents) {
+            e.addNextEvent(final);
+        }
+        this._lpo.addEvent(initial);
+        this._lpo.addEvent(final);
 
         for (const e of lpo.events) {
             for (const t of petriNet.getTransitions()) {
@@ -23,8 +35,7 @@ export class LpoFlowValidator {
     }
 
     validate(): Array<boolean> {
-        const flow = new Array<boolean>(this._petriNet.getPlaces().length);
-        flow.fill(false);
+        const flow = new Array<boolean>(this._petriNet.getPlaces().length).fill(false);
 
         const places = this._petriNet.getPlaces();
         const events = this._lpo.events;
@@ -66,7 +77,10 @@ export class LpoFlowValidator {
             for (let ii = 0; ii < n; ii++) {
                 need += network.getCap(ii, n-1);
             }
-            flow[i] = (need === network.maxFlow(0, n-1));
+            const f = network.maxFlow(0, n-1);
+            console.log(`flow ${place.id} ${f}`);
+            console.log(`need ${place.id} ${need}`);
+            flow[i] = (need === f);
         }
 
         return flow;

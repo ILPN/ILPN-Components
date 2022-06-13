@@ -6,7 +6,7 @@ export class MaxFlowPreflowN3 {
         this.n = n;
         this.cap = [];
         for (let i = 0; i < n; i++) {
-            this.cap.push(new Array<number>(n));
+            this.cap.push(new Array<number>(n).fill(0));
         }
     }
 
@@ -15,7 +15,7 @@ export class MaxFlowPreflowN3 {
     }
 
     public setUnbounded(i: number, j: number) {
-        this.setCap(i, j, Number.POSITIVE_INFINITY);
+        this.setCap(i, j, 20000);
     }
 
     public getCap(i: number, j: number): number {
@@ -23,15 +23,15 @@ export class MaxFlowPreflowN3 {
     }
 
     public maxFlow(s: number, t: number): number {
-        const h = new Array<number>(this.n);
+        const h = new Array<number>(this.n).fill(0);
         h[s] = this.n - 1;
 
-        const maxh = new Array<number>(this.n);
-        const f = new Array<Array<number>>(this.n);
-        const e = new Array<number>(this.n);
+        const maxh = new Array<number>(this.n).fill(0);
+        const f: Array<Array<number>> = [];
         for (let i = 0; i < this.n; i++) {
-            f.push(new Array<number>(this.n));
+            f.push(new Array<number>(this.n).fill(0));
         }
+        const e = new Array<number>(this.n).fill(0);
 
         for (let i = 0; i < this.n; i++) {
             f[s][i] = this.cap[s][i];
@@ -46,7 +46,7 @@ export class MaxFlowPreflowN3 {
                         if (sz !== 0 && h[i] > h[maxh[0]]) {
                             sz = 0;
                         }
-                        maxh[sz++] = 1;
+                        maxh[sz++] = i;
                     }
                 }
             }
@@ -70,7 +70,7 @@ export class MaxFlowPreflowN3 {
                     }
                 }
                 if (!pushed) {
-                    h[i] = Number.POSITIVE_INFINITY;
+                    h[i] = 20000;
                     for (let j = 0; j < this.n; j++) {
                         if (h[i] > h[j] + 1 && this.cap[i][j] - f[i][j] > 0) {
                             h[i] = h[j] + 1;

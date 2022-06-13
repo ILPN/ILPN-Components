@@ -2,13 +2,13 @@ import {Transition} from '../../pn/model/transition';
 
 export class Event {
     private readonly _id: string;
-    private readonly _label: string;
+    private readonly _label: string | undefined;
     private readonly _nextEvents: Set<Event>;
     private readonly _previousEvents: Set<Event>;
 
     private _transition: undefined | Transition;
 
-    constructor(id: string, label: string) {
+    constructor(id: string, label?: string) {
         this._id = id;
         this._label = label;
         this._nextEvents = new Set<Event>();
@@ -19,7 +19,7 @@ export class Event {
         return this._id;
     }
 
-    get label(): string {
+    get label(): string | undefined {
         return this._label;
     }
 
@@ -41,9 +41,10 @@ export class Event {
 
     public addNextEvent(event: Event) {
         this._nextEvents.add(event);
+        event.addPreviousEvent(this);
     }
 
-    public addPreviousEvent(event: Event) {
+    protected addPreviousEvent(event: Event) {
         this._previousEvents.add(event);
     }
 }

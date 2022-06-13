@@ -19,7 +19,7 @@ export class PartialOrderParserService extends AbstractParser<PartialOrder> {
     override parse(text: string): PartialOrder | undefined {
         const po = super.parse(text);
         if (po !== undefined) {
-            po.determineInitialEvents();
+            po.determineInitialAndFinalEvents();
         }
         return po;
     }
@@ -62,7 +62,6 @@ export class PartialOrderParserService extends AbstractParser<PartialOrder> {
                 throw new Error(`line ${line} specifies an arc between at least one event that does not exist in the partial order!`);
             }
             first.addNextEvent(second);
-            second.addPreviousEvent(first);
         });
     }
 
