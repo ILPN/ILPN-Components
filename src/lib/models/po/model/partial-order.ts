@@ -13,8 +13,8 @@ export class PartialOrder {
         return this._initialEvents;
     }
 
-    get events(): IterableIterator<Event> {
-        return this._events.values();
+    get events(): Array<Event> {
+        return Array.from(this._events.values());
     }
 
     public getEvent(id: string): Event | undefined {

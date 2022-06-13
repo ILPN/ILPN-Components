@@ -18,6 +18,10 @@ export class MaxFlowPreflowN3 {
         this.setCap(i, j, Number.POSITIVE_INFINITY);
     }
 
+    public getCap(i: number, j: number): number {
+        return this.cap[i][j];
+    }
+
     public maxFlow(s: number, t: number): number {
         const h = new Array<number>(this.n);
         h[s] = this.n - 1;

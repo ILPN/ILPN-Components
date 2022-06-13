@@ -1,8 +1,12 @@
+import {Transition} from '../../pn/model/transition';
+
 export class Event {
     private readonly _id: string;
     private readonly _label: string;
     private readonly _nextEvents: Set<Event>;
     private readonly _previousEvents: Set<Event>;
+
+    private _transition: undefined | Transition;
 
     constructor(id: string, label: string) {
         this._id = id;
@@ -25,6 +29,14 @@ export class Event {
 
     get previousEvents(): Set<Event> {
         return this._previousEvents;
+    }
+
+    get transition(): Transition | undefined {
+        return this._transition;
+    }
+
+    set transition(value: Transition | undefined) {
+        this._transition = value;
     }
 
     public addNextEvent(event: Event) {
