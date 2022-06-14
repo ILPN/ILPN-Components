@@ -80,8 +80,8 @@ export class LpoFlowValidator {
                 need += network.getCap(ii, SINK);
             }
             const f = network.maxFlow(SOURCE, SINK);
-            console.log(`flow ${place.id} ${f}`);
-            console.log(`need ${place.id} ${need}`);
+            console.debug(`flow ${place.id} ${f}`);
+            console.debug(`need ${place.id} ${need}`);
             flow[i] = (need === f);
         }
 
