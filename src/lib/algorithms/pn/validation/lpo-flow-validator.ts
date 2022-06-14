@@ -25,7 +25,7 @@ export class LpoFlowValidator {
         this._lpo.addEvent(initial);
         this._lpo.addEvent(final);
 
-        for (const e of lpo.events) {
+        for (const e of this._lpo.events) {
             for (const t of petriNet.getTransitions()) {
                 if (e.label === t.label) {
                     e.transition = t;
