@@ -9,6 +9,6 @@ export const FD_PETRI_NET: FileDisplay = {
 };
 
 export const FD_PARTIAL_ORDER: FileDisplay = {
-    icon: '★',
+    icon: '♠',
     color: 'black'
 }
