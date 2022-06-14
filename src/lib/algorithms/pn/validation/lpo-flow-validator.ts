@@ -18,13 +18,13 @@ export class LpoFlowValidator {
             for (const t of petriNet.getTransitions()) {
                 if (e.label === t.label) {
                     if (e.transition !== undefined) {
-                        throw new Error(`The algorithm does not support label-splited nets!`);
+                        throw new Error(`The algorithm does not support label-splitted nets`);
                     }
                     e.transition = t;
                 }
             }
             if (e.transition === undefined) {
-                throw new Error(`The net does not contain a transition with the label '${e.label}' of the event '${e.id}'!`);
+                throw new Error(`The net does not contain a transition with the label '${e.label}' of the event '${e.id}'`);
             }
         }
 
