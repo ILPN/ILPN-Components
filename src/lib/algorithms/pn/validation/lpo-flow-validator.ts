@@ -14,6 +14,20 @@ export class LpoFlowValidator {
         this._petriNet = petriNet;
         this._lpo = lpo.clone();
 
+        for (const e of this._lpo.events) {
+            for (const t of petriNet.getTransitions()) {
+                if (e.label === t.label) {
+                    if (e.transition !== undefined) {
+                        throw new Error(`The algorithm does not support label-splited nets!`);
+                    }
+                    e.transition = t;
+                }
+            }
+            if (e.transition === undefined) {
+                throw new Error(`The net does not contain a transition with the label '${e.label}' of the event '${e.id}'!`);
+            }
+        }
+
         const initial = new Event('initial marking', undefined);
         const final = new Event('final marking', undefined);
         for (const e of this._lpo.initialEvents) {
@@ -24,14 +38,6 @@ export class LpoFlowValidator {
         }
         this._lpo.addEvent(initial);
         this._lpo.addEvent(final);
-
-        for (const e of this._lpo.events) {
-            for (const t of petriNet.getTransitions()) {
-                if (e.label === t.label) {
-                    e.transition = t;
-                }
-            }
-        }
     }
 
     validate(): Array<boolean> {
