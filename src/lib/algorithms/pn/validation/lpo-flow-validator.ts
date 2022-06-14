@@ -41,49 +41,59 @@ export class LpoFlowValidator {
         const events = this._lpo.events;
         const n = events.length * 2 + 2;
 
+        const SOURCE = 0;
+        const SINK = n - 1;
+
         for (let i = 0; i < places.length; i++) {
             const place = places[i];
             const network = new MaxFlowPreflowN3(n);
 
             for (let eIndex = 0; eIndex < events.length; eIndex++) {
-                network.setUnbounded(eIndex * 2 + 1, eIndex * 2 + 2);
-            }
-            for (let eIndex = 0; eIndex < events.length; eIndex++) {
+                network.setUnbounded(this.eventStart(eIndex), this.eventEnd(eIndex));
+
                 const event = events[eIndex];
                 if (event.transition === undefined) {
                     if (place.marking > 0) {
-                        network.setCap(0, eIndex * 2 + 2, place.marking);
+                        network.setCap(SOURCE, this.eventEnd(eIndex), place.marking);
                     }
                 } else {
                     for (const outArc of (event.transition as unknown as Transition).outgoingArcs) {
                         const postPlace = outArc.destination as Place;
                         if (postPlace === place) {
-                            network.setCap(0, eIndex * 2 + 2, outArc.weight);
+                            network.setCap(SOURCE, this.eventEnd(eIndex), outArc.weight);
                         }
                     }
                     for (const inArc of (event.transition as unknown as Transition).ingoingArcs) {
                         const prePlace = inArc.source as Place;
                         if (prePlace === place) {
-                            network.setCap(eIndex * 2 + 1, n - 1, inArc.weight);
+                            network.setCap(this.eventStart(eIndex), SINK, inArc.weight);
                         }
                     }
                 }
                 for (const postEvent of event.nextEvents) {
-                    network.setUnbounded(eIndex, events.findIndex(e => e === postEvent) * 2 + 1);
+                    network.setUnbounded(this.eventEnd(eIndex), this.eventStart(events.findIndex(e => e === postEvent)));
                 }
             }
 
             let need = 0;
             for (let ii = 0; ii < n; ii++) {
-                need += network.getCap(ii, n-1);
+                need += network.getCap(ii, SINK);
             }
-            const f = network.maxFlow(0, n-1);
+            const f = network.maxFlow(SOURCE, SINK);
             console.log(`flow ${place.id} ${f}`);
             console.log(`need ${place.id} ${need}`);
             flow[i] = (need === f);
         }
 
         return flow;
+    }
+
+    private eventStart(eventIndex: number): number {
+        return eventIndex * 2 + 1;
+    }
+
+    private eventEnd(eventIndex: number): number {
+        return eventIndex * 2 + 2;
     }
 
 }
