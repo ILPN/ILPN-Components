@@ -1,13 +1,13 @@
-import {LpoValidator} from './classes/lpo-validator';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {PartialOrder} from '../../../models/po/model/partial-order';
 import {Event} from '../../../models/po/model/event';
 import {Place} from '../../../models/pn/model/place';
-import {ValidationResult} from './classes/validation-result';
+import {ValidationPhase, ValidationResult} from './classes/validation-result';
 import {Arc} from '../../../models/pn/model/arc';
 import {Transition} from '../../../models/pn/model/transition';
+import {LpoFlowValidator} from './lpo-flow-validator';
 
-export class LpoFireValidator extends LpoValidator {
+export class LpoFireValidator extends LpoFlowValidator {
 
     private readonly _places: Array<Place>;
 
@@ -21,7 +21,7 @@ export class LpoFireValidator extends LpoValidator {
         this._lpo.determineInitialAndFinalEvents();
     }
 
-    validate(): Array<ValidationResult> {
+    override validate(): Array<ValidationResult> {
         const totalOrder = this.buildTotalOrdering();
         totalOrder.forEach(e => e.initializeLocalMarking(this._places.length));
 
@@ -68,9 +68,27 @@ export class LpoFireValidator extends LpoValidator {
         this.fireBackwards(queue, backwardsValidPlaces, backwardsComplexPlaces);
 
         // Rest with flow
+        const flow = this.newBoolArray(false);
+        for (let i = 0; i < this._places.length; i++) {
+            if (!validPlaces[i] && complexPlaces[i] && !notValidPlaces[i] && !backwardsValidPlaces[i]) {
+                flow[i] = this.checkFlowForPlace(this._places[i], this._lpo.events);
+            }
+        }
 
+        // TODO timing 3
 
-        return [];
+        // TODO stats?
+        return this._places.map((p, i) => {
+            if (validPlaces[i]) {
+                return new ValidationResult(true, ValidationPhase.FORWARDS);
+            } else if (backwardsValidPlaces[i]) {
+                return new ValidationResult(true, ValidationPhase.BACKWARDS);
+            } else if (flow[i]) {
+                return new ValidationResult(true, ValidationPhase.FLOW);
+            } else {
+                return new ValidationResult(false, ValidationPhase.FLOW); // TODO distinguish phase?
+            }
+        });
     }
 
     private buildTotalOrdering(): Array<Event> {
