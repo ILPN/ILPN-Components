@@ -85,8 +85,10 @@ export class LpoFireValidator extends LpoFlowValidator {
                 return new ValidationResult(true, ValidationPhase.BACKWARDS);
             } else if (flow[i]) {
                 return new ValidationResult(true, ValidationPhase.FLOW);
+            } else if (notValidPlaces[i]) {
+                return new ValidationResult(false, ValidationPhase.FORWARDS);
             } else {
-                return new ValidationResult(false, ValidationPhase.FLOW); // TODO distinguish phase?
+                return new ValidationResult(false, ValidationPhase.FLOW);
             }
         });
     }

@@ -35,6 +35,8 @@ export class PartialOrder {
     }
 
     public determineInitialAndFinalEvents() {
+        this._initialEvents.clear();
+        this._finalEvents.clear();
         for (const e of this._events.values()) {
             if (e.previousEvents.size === 0) {
                 this._initialEvents.add(e);
