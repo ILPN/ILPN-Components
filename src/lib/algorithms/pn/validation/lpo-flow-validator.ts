@@ -3,45 +3,17 @@ import {PartialOrder} from '../../../models/po/model/partial-order';
 import {MaxFlowPreflowN3} from '../../flow-network/max-flow-preflow-n3';
 import {Transition} from '../../../models/pn/model/transition';
 import {Place} from '../../../models/pn/model/place';
-import {Event} from '../../../models/po/model/event';
+import {LpoValidator} from './classes/lpo-validator';
+import {ValidationPhase, ValidationResult} from './classes/validation-result';
 
-export class LpoFlowValidator {
-
-    private readonly _petriNet: PetriNet;
-    private readonly _lpo: PartialOrder;
+export class LpoFlowValidator extends LpoValidator {
 
     constructor(petriNet: PetriNet, lpo: PartialOrder) {
-        this._petriNet = petriNet;
-        this._lpo = lpo.clone();
-
-        for (const e of this._lpo.events) {
-            for (const t of petriNet.getTransitions()) {
-                if (e.label === t.label) {
-                    if (e.transition !== undefined) {
-                        throw new Error(`The algorithm does not support label-splitted nets`);
-                    }
-                    e.transition = t;
-                }
-            }
-            if (e.transition === undefined) {
-                throw new Error(`The net does not contain a transition with the label '${e.label}' of the event '${e.id}'`);
-            }
-        }
-
-        const initial = new Event('initial marking', undefined);
-        const final = new Event('final marking', undefined);
-        for (const e of this._lpo.initialEvents) {
-            initial.addNextEvent(e);
-        }
-        for (const e of this._lpo.finalEvents) {
-            e.addNextEvent(final);
-        }
-        this._lpo.addEvent(initial);
-        this._lpo.addEvent(final);
+        super(petriNet, lpo);
     }
 
-    validate(): Array<boolean> {
-        const flow = new Array<boolean>(this._petriNet.getPlaces().length).fill(false);
+    validate(): Array<ValidationResult> {
+        const flow: Array<ValidationResult> = [];
 
         const places = this._petriNet.getPlaces();
         const events = this._lpo.events;
@@ -88,7 +60,7 @@ export class LpoFlowValidator {
             const f = network.maxFlow(SOURCE, SINK);
             console.debug(`flow ${place.id} ${f}`);
             console.debug(`need ${place.id} ${need}`);
-            flow[i] = (need === f);
+            flow[i] = new ValidationResult(need === f, ValidationPhase.FLOW);
         }
 
         return flow;
