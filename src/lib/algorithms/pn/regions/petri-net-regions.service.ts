@@ -278,6 +278,40 @@ export class PetriNetRegionsService {
         ];
     }
 
+    private xAbsoluteOfA(x: string, a: string): Array<SubjectTo> {
+        /*
+         * As per https://blog.adamfurmanek.pl/2015/09/19/ilp-part-5/
+         *
+         * x >= -a
+         * x >= a
+         * (x + a is 0) or (x - a is 0)
+         *
+         */
+
+        return [
+            // x - a >= 0
+            this.greaterEqualThan([this.variable(x), this.variable(a, -1)], 0),
+            // x + a >= 0
+            this.greaterEqualThan([this.variable(x), this.variable(a)],0)
+            // TODO
+        ];
+    }
+
+    private xAorB(x: string, a: string, b: string): Array<SubjectTo> {
+        /*
+            As per http://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
+            a,b,x binary
+
+            -1 <= a + b - 2x <= 0
+         */
+        return [
+            // a + b -2x >= -1
+            this.greaterEqualThan([this.variable(a), this.variable(b), this.variable(x, -2)], -1),
+            // a + b -2x <= 0
+            this.lessEqualThan([this.variable(a), this.variable(b), this.variable(x, -2)], 0)
+        ];
+    }
+
     private variable(name: string, coefficient: number = 1): Variable {
         return {name, coef: coefficient};
     }
