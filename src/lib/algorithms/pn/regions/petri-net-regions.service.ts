@@ -327,8 +327,28 @@ export class PetriNetRegionsService {
         ];
     }
 
+    private xNotA(x: string, a: string): Array<SubjectTo> {
+        /*
+            As per http://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
+            a,x binary
+
+            x = 1 - a
+         */
+        return [
+            // x + a = 1
+            this.equal([this.variable(x), this.variable(a)], 1),
+        ];
+    }
+
     private variable(name: string, coefficient: number = 1): Variable {
         return {name, coef: coefficient};
+    }
+
+    private equal(variables: Variable | Array<Variable>, value: number): SubjectTo {
+        return this.constrain(
+            Array.isArray(variables) ? variables : [variables],
+            {type: Constraint.DOUBLE_BOUND, ub: value, lb: value}
+        );
     }
 
     private greaterEqualThan(variables: Variable | Array<Variable>, lowerBound: number): SubjectTo {
