@@ -297,6 +297,21 @@ export class PetriNetRegionsService {
         ];
     }
 
+    private xAandB(x: string, a: string, b: string): Array<SubjectTo> {
+        /*
+            As per http://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
+            a,b,x binary
+
+            0 <= a + b - 2x <= 1
+         */
+        return [
+            // a + b -2x >= 0
+            this.greaterEqualThan([this.variable(a), this.variable(b), this.variable(x, -2)], 0),
+            // a + b -2x <= 1
+            this.lessEqualThan([this.variable(a), this.variable(b), this.variable(x, -2)], 1)
+        ];
+    }
+
     private xAorB(x: string, a: string, b: string): Array<SubjectTo> {
         /*
             As per http://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
