@@ -1,6 +1,6 @@
 {
     "name": "ilpn-components",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "peerDependencies": {
         "@angular/common": "^13.1.0",
         "@angular/cdk": "^13.3.6",
