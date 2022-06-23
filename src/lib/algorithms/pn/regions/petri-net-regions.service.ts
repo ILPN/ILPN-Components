@@ -106,7 +106,7 @@ export class PetriNetRegionsService {
             objective: {
                 name: 'region',
                 direction: Goal.MINIMUM,
-                vars: net.getPlaces().map(p => this.variable(p.id))
+                vars: net.getPlaces().map(p => this.variable(p.id)),
             },
             subjectTo: [],
         };
@@ -144,7 +144,9 @@ export class PetriNetRegionsService {
         const labels = this.collectTransitionByLabel(net);
         const riseSumVariables: Array<Variable> = [];
         const absoluteRiseSumVariables: Array<Variable> = [];
+
         for (const [key, transitions] of labels.entries()) {
+            const transitionsWithSameLabel = transitions.length;
             const t1 = transitions.splice(0, 1)[0];
 
             if (config.obtainPartialOrders) {
@@ -160,13 +162,19 @@ export class PetriNetRegionsService {
                 const abs = this.helperVariableName();
                 const absoluteRise = this.xAbsoluteOfSumA(abs, singleRise);
 
+                if (ilp.generals === undefined) {
+                    ilp.generals = [];
+                }
+                if (ilp.binaries === undefined) {
+                    ilp.binaries = [];
+                }
                 ilp.generals!.push(abs);
                 ilp.binaries!.push(...absoluteRise.ids);
                 absoluteRiseSumVariables.push(this.variable(abs));
                 result.push(...absoluteRise.constraints);
             }
 
-            if (transitions.length === 1) {
+            if (transitionsWithSameLabel === 1) {
                 continue;
             }
 
@@ -548,7 +556,7 @@ export class PetriNetRegionsService {
     private equal(variables: Variable | Array<Variable>, value: number): SubjectTo {
         return this.constrain(
             arraify(variables),
-            {type: Constraint.DOUBLE_BOUND, ub: value, lb: value}
+            {type: Constraint.FIXED_VARIABLE, ub: value, lb: value}
         );
     }
 
