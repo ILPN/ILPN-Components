@@ -250,6 +250,25 @@ export class PetriNetRegionsService {
         return new NewVariableWithConstraint(helpVariableName, constrains);
     }
 
+    private xAbsoluteOfA(x: string, a: string): Array<SubjectTo> {
+        /*
+         * As per https://blog.adamfurmanek.pl/2015/09/19/ilp-part-5/
+         *
+         * x >= -a
+         * x >= a
+         * (x + a is 0) or (x - a is 0)
+         *
+         */
+
+        return [
+            // x - a >= 0
+            this.greaterEqualThan([this.variable(x), this.variable(a, -1)], 0),
+            // x + a >= 0
+            this.greaterEqualThan([this.variable(x), this.variable(a)],0)
+            // TODO
+        ];
+    }
+
     private yWhenAGreaterEqualB(y: string, a: string, b: number): Array<SubjectTo> {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/ and https://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
@@ -278,22 +297,23 @@ export class PetriNetRegionsService {
         ];
     }
 
-    private xAbsoluteOfA(x: string, a: string): Array<SubjectTo> {
+    private xWhenAGreaterB(x: string, a: string, b: string): Array<SubjectTo> {
         /*
-         * As per https://blog.adamfurmanek.pl/2015/09/19/ilp-part-5/
-         *
-         * x >= -a
-         * x >= a
-         * (x + a is 0) or (x - a is 0)
-         *
+            As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
+            a,b integer
+            |a|,|b| <= k
+            k = 2^n - 1, n natural
+            K = 2k + 1
+            x binary
+
+            0 <= b - a + Kx <= K - 1
          */
 
         return [
-            // x - a >= 0
-            this.greaterEqualThan([this.variable(x), this.variable(a, -1)], 0),
-            // x + a >= 0
-            this.greaterEqualThan([this.variable(x), this.variable(a)],0)
-            // TODO
+            // b - a + Kx >= 0
+            this.greaterEqualThan([this.variable(b), this.variable(a, -1), this.variable(x, PetriNetRegionsService.K)], 0),
+            // b - a + Kx <= K - 1
+            this.greaterEqualThan([this.variable(b), this.variable(a, -1), this.variable(x, PetriNetRegionsService.K)], PetriNetRegionsService.K - 1),
         ];
     }
 
