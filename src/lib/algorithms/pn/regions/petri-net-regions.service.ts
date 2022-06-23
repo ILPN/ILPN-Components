@@ -108,15 +108,15 @@ export class PetriNetRegionsService {
                 direction: Goal.MINIMUM,
                 vars: net.getPlaces().map(p => this.variable(p.id))
             },
-            subjectTo: this.createInitialConstraints(combined, config),
+            subjectTo: [],
         };
-
         initial[config.oneBoundRegions ? 'binaries' : 'generals'] = Array.from(this._placeVariables);
+        initial.subjectTo = this.createInitialConstraints(initial, combined, config);
 
         return initial;
     }
 
-    private createInitialConstraints(combined: CombinationResult, config: RegionsConfiguration): Array<SubjectTo> {
+    private createInitialConstraints(ilp: LP, combined: CombinationResult, config: RegionsConfiguration): Array<SubjectTo> {
         const net = combined.net;
         const result: Array<SubjectTo> = [];
 
@@ -142,12 +142,34 @@ export class PetriNetRegionsService {
 
         // gradient constraints
         const labels = this.collectTransitionByLabel(net);
+        const riseSumVariables: Array<Variable> = [];
+        const absoluteRiseSumVariables: Array<Variable> = [];
         for (const [key, transitions] of labels.entries()) {
+            const t1 = transitions.splice(0, 1)[0];
+
+            if (config.obtainPartialOrders) {
+                // t1 pre-set
+                riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1));
+                // t1 post-set
+                riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.ingoingArcs.map((a: Arc) => a.sourceId), -1));
+
+                const singleRiseVariables = this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1);
+                singleRiseVariables.push(...this.createVariablesFromPlaceIds(t1.ingoingArcs.map((a: Arc) => a.sourceId), -1));
+
+                const singleRise = this.combineCoefficients(singleRiseVariables);
+                const abs = this.helperVariableName();
+                const absoluteRise = this.xAbsoluteOfSumA(abs, singleRise);
+
+                ilp.generals!.push(abs);
+                ilp.binaries!.push(...absoluteRise.ids);
+                absoluteRiseSumVariables.push(this.variable(abs));
+                result.push(...absoluteRise.constraints);
+            }
+
             if (transitions.length === 1) {
                 continue;
             }
 
-            const t1 = transitions.splice(0, 1)[0];
             for (const t2 of transitions) {
                 // t1 post-set
                 let variables = this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1);
@@ -162,6 +184,13 @@ export class PetriNetRegionsService {
 
                 result.push(this.sumEqualsZero(...variables));
             }
+        }
+
+        if (config.obtainPartialOrders) {
+            // sum of rises should be 0
+            result.push(this.equal(this.combineCoefficients(riseSumVariables), 0));
+            // sum of absolute values of rises should be 2
+            result.push(this.equal(absoluteRiseSumVariables, 2));
         }
 
         return result;
@@ -255,7 +284,7 @@ export class PetriNetRegionsService {
         return helpVariableName;
     }
 
-    private xAbsoluteOfA(x: string, a: string): NewVariableWithConstraint {
+    private xAbsoluteOfSumA(x: string, a: Array<Variable>): NewVariableWithConstraint {
         /*
          * As per https://blog.adamfurmanek.pl/2015/09/19/ilp-part-5/
          *
@@ -279,8 +308,8 @@ export class PetriNetRegionsService {
                     this.equal(this.variable(x), 1)
                 ]
             ),
-            this.xWhenAEqualsB(y, [x, a], 0),
-            this.xWhenAEqualsB(z, [this.variable(x), this.variable(a, -1)], 0)
+            this.xWhenAEqualsB(y, [this.variable(x), ...a.map(a => this.createOrCopyVariable(a))], 0),
+            this.xWhenAEqualsB(z, [this.variable(x), ...a.map(a => this.createOrCopyVariable(a, -1))], 0)
         );
     }
 
@@ -356,7 +385,9 @@ export class PetriNetRegionsService {
         ]);
     }
 
-    private xWhenALessEqualB(x: string, a: string | Array<string>, b: string | number): NewVariableWithConstraint {
+    private xWhenALessEqualB(x: string,
+                             a: string | Array<string> | Array<Variable>,
+                             b: string | number): NewVariableWithConstraint {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
