@@ -240,14 +240,18 @@ export class PetriNetRegionsService {
     }
 
     private introduceHelpVariable(place: string, solution: number): NewVariableWithConstraint {
+        const helpVariable = this.nextHelpVariableName();
+        const constrains = this.yWhenAGreaterEqualB(helpVariable, place, solution);
+        return new NewVariableWithConstraint(helpVariable, constrains);
+    }
+
+    private nextHelpVariableName(): string {
         let helpVariableName;
         do {
             helpVariableName = `y${this._variableCounter.next()}`;
         } while (this._allVariables.has(helpVariableName));
         this._allVariables.add(helpVariableName);
-
-        const constrains = this.yWhenAGreaterEqualB(helpVariableName, place, solution);
-        return new NewVariableWithConstraint(helpVariableName, constrains);
+        return helpVariableName;
     }
 
     private xAbsoluteOfA(x: string, a: string): Array<SubjectTo> {
@@ -264,7 +268,7 @@ export class PetriNetRegionsService {
             // x - a >= 0
             this.greaterEqualThan([this.variable(x), this.variable(a, -1)], 0),
             // x + a >= 0
-            this.greaterEqualThan([this.variable(x), this.variable(a)],0)
+            this.greaterEqualThan([this.variable(x), this.variable(a)], 0)
             // TODO
         ];
     }
@@ -297,6 +301,40 @@ export class PetriNetRegionsService {
         ];
     }
 
+    private xWhenAGreaterEqualB(x: string, a: string, b: string): NewVariableWithConstraint {
+        /*
+            As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
+
+            a is greater equal b <=> not a less than b
+         */
+
+        const z = this.nextHelpVariableName();
+
+        return new NewVariableWithConstraint(z, [
+            // z when a less than b
+            ...this.xWhenALessB(z, a, b),
+            // x not z
+            ...this.xNotA(x, z)
+        ]);
+    }
+
+    private xWhenALessEqualB(x: string, a: string, b: string): NewVariableWithConstraint {
+        /*
+            As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
+
+            a is less equal b <=> not a greater than b
+         */
+
+        const z = this.nextHelpVariableName();
+
+        return new NewVariableWithConstraint(z, [
+            // z when a greater than b
+            ...this.xWhenAGreaterB(z, a, b),
+            // x not z
+            ...this.xNotA(x, z)
+        ]);
+    }
+
     private xWhenAGreaterB(x: string, a: string, b: string): Array<SubjectTo> {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
@@ -315,6 +353,15 @@ export class PetriNetRegionsService {
             // b - a + Kx <= K - 1
             this.greaterEqualThan([this.variable(b), this.variable(a, -1), this.variable(x, PetriNetRegionsService.K)], PetriNetRegionsService.K - 1),
         ];
+    }
+
+    private xWhenALessB(x: string, a: string, b: string): Array<SubjectTo> {
+        /*
+            As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
+
+            a is less than b <=> b is greater than a
+         */
+        return this.xWhenAGreaterB(x, b, a);
     }
 
     private xAandB(x: string, a: string, b: string): Array<SubjectTo> {
