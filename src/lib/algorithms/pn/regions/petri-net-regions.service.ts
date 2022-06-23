@@ -176,7 +176,7 @@ export class PetriNetRegionsService {
 
         const helpVariables: Array<string> = [];
         for (const variableWithConstraints of binaryGeqConstraints) {
-            helpVariables.push(variableWithConstraints.id);
+            helpVariables.push(...variableWithConstraints.ids);
             ilp.subjectTo.push(...variableWithConstraints.constraints);
         }
 
@@ -240,12 +240,12 @@ export class PetriNetRegionsService {
     }
 
     private introduceHelpVariable(place: string, solution: number): NewVariableWithConstraint {
-        const helpVariable = this.nextHelpVariableName();
+        const helpVariable = this.helperVariableName();
         const constrains = this.yWhenAGreaterEqualB(helpVariable, place, solution);
         return new NewVariableWithConstraint(helpVariable, constrains);
     }
 
-    private nextHelpVariableName(): string {
+    private helperVariableName(): string {
         let helpVariableName;
         do {
             helpVariableName = `y${this._variableCounter.next()}`;
@@ -271,6 +271,28 @@ export class PetriNetRegionsService {
             this.greaterEqualThan([this.variable(x), this.variable(a)], 0)
             // TODO
         ];
+    }
+
+    private xWhenAEqualsB(x: string, a: string, b: string): NewVariableWithConstraint {
+        /*
+             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
+
+             x is a equals b <=> a greater equal than b and a less equal than b
+         */
+
+        const y = this.helperVariableName();
+        const z = this.helperVariableName();
+
+        const aGreaterEqualB = this.xWhenAGreaterEqualB(y, a, b);
+        const aLessEqualB = this.xWhenALessEqualB(z, a, b);
+
+        return new NewVariableWithConstraint(
+            [y, z, ...aGreaterEqualB.ids, ...aLessEqualB.ids],
+            [
+                ...aGreaterEqualB.constraints,
+                ...aLessEqualB.constraints,
+                ...this.xAandB(x, y, z)
+            ]);
     }
 
     private yWhenAGreaterEqualB(y: string, a: string, b: number): Array<SubjectTo> {
@@ -308,7 +330,7 @@ export class PetriNetRegionsService {
             a is greater equal b <=> not a less than b
          */
 
-        const z = this.nextHelpVariableName();
+        const z = this.helperVariableName();
 
         return new NewVariableWithConstraint(z, [
             // z when a less than b
@@ -325,7 +347,7 @@ export class PetriNetRegionsService {
             a is less equal b <=> not a greater than b
          */
 
-        const z = this.nextHelpVariableName();
+        const z = this.helperVariableName();
 
         return new NewVariableWithConstraint(z, [
             // z when a greater than b
