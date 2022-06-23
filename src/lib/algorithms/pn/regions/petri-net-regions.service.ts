@@ -15,6 +15,7 @@ import {PetriNetRegionTransformerService} from './petri-net-region-transformer.s
 import {CombinationResult} from './classes/combination-result';
 import {Region} from './classes/region';
 import {RegionsConfiguration} from './classes/regions-configuration';
+import {arraify} from '../../../utility/arraify';
 
 @Injectable({
     providedIn: 'root'
@@ -258,29 +259,31 @@ export class PetriNetRegionsService {
         /*
          * As per https://blog.adamfurmanek.pl/2015/09/19/ilp-part-5/
          *
-         * x >= -a
-         * x >= a
-         * (x + a is 0) or (x - a is 0)
+         * x >= 0
+         * (x + a is 0) or (x - a is 0) = 1
          *
          */
 
         const y = this.helperVariableName();
         const z = this.helperVariableName();
+        const w = this.helperVariableName();
 
         return NewVariableWithConstraint.combine(
-            new NewVariableWithConstraint([],
+            new NewVariableWithConstraint(w,
                 [
-                    // x - a >= 0
-                    this.greaterEqualThan([this.variable(x), this.variable(a, -1)], 0),
-                    // x + a >= 0
-                    this.greaterEqualThan([this.variable(x), this.variable(a)], 0)
+                    // x >= 0
+                    this.greaterEqualThan(this.variable(x), 0),
+                    // w is y and z
+                    ...this.xAorB(w, y, z),
+                    // w is true
+                    this.equal(this.variable(x), 1)
                 ]
             ),
-            // TODO equals constant!
+            // TODO is equal 0 checks
         );
     }
 
-    private xWhenAEqualsB(x: string, a: string, b: string): NewVariableWithConstraint {
+    private xWhenAEqualsB(x: string, a: string | Array<string>, b: string | number): NewVariableWithConstraint {
         /*
              As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -331,7 +334,7 @@ export class PetriNetRegionsService {
         ];
     }
 
-    private xWhenAGreaterEqualB(x: string, a: string, b: string): NewVariableWithConstraint {
+    private xWhenAGreaterEqualB(x: string, a: string | Array<string>, b: string | number): NewVariableWithConstraint {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -348,7 +351,7 @@ export class PetriNetRegionsService {
         ]);
     }
 
-    private xWhenALessEqualB(x: string, a: string, b: string): NewVariableWithConstraint {
+    private xWhenALessEqualB(x: string, a: string | Array<string>, b: string | number): NewVariableWithConstraint {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -365,7 +368,7 @@ export class PetriNetRegionsService {
         ]);
     }
 
-    private xWhenAGreaterB(x: string, a: string, b: string): Array<SubjectTo> {
+    private xWhenAGreaterB(x: string, a: string | Array<string> | number, b: string | Array<string> | number): Array<SubjectTo> {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
             a,b integer
@@ -377,15 +380,64 @@ export class PetriNetRegionsService {
             0 <= b - a + Kx <= K - 1
          */
 
-        return [
-            // b - a + Kx >= 0
-            this.greaterEqualThan([this.variable(b), this.variable(a, -1), this.variable(x, PetriNetRegionsService.K)], 0),
-            // b - a + Kx <= K - 1
-            this.greaterEqualThan([this.variable(b), this.variable(a, -1), this.variable(x, PetriNetRegionsService.K)], PetriNetRegionsService.K - 1),
-        ];
+        let aIsVariable = false;
+        let bIsVariable = false;
+        if (typeof a === 'string' || Array.isArray(a)) {
+            aIsVariable = true;
+            a = arraify(a);
+        }
+        if (typeof b === 'string' || Array.isArray(b)) {
+            bIsVariable = true;
+            b = arraify(b);
+        }
+
+        if (aIsVariable && bIsVariable) {
+            return [
+                // b - a + Kx >= 0
+                this.greaterEqualThan([
+                    ...(b as Array<string>).map(b => this.variable(b)),
+                    ...(a as Array<string>).map(a => this.variable(a, -1)),
+                    this.variable(x, PetriNetRegionsService.K)
+                ], 0),
+                // b - a + Kx <= K - 1
+                this.greaterEqualThan([
+                    ...(b as Array<string>).map(b => this.variable(b)),
+                    ...(a as Array<string>).map(a => this.variable(a, -1)),
+                    this.variable(x, PetriNetRegionsService.K)
+                ], PetriNetRegionsService.K - 1),
+            ];
+        } else if (aIsVariable && !bIsVariable) {
+            return [
+                // -a + Kx >= -b
+                this.greaterEqualThan([
+                    ...(a as Array<string>).map(a => this.variable(a, -1)),
+                    this.variable(x, PetriNetRegionsService.K)
+                ], -b),
+                // -a + Kx <= K - b - 1
+                this.greaterEqualThan([
+                    ...(a as Array<string>).map(a => this.variable(a, -1)),
+                    this.variable(x, PetriNetRegionsService.K)
+                ], PetriNetRegionsService.K - (b as number) - 1),
+            ];
+        } else if (!aIsVariable && bIsVariable) {
+            return [
+                // b + Kx >= a
+                this.greaterEqualThan([
+                    ...(b as Array<string>).map(b => this.variable(b)),
+                    this.variable(x, PetriNetRegionsService.K)
+                ], a as number),
+                // b - a + Kx <= K + a - 1
+                this.greaterEqualThan([
+                    ...(b as Array<string>).map(b => this.variable(b)),
+                    this.variable(x, PetriNetRegionsService.K)
+                ], PetriNetRegionsService.K + (a as number) - 1),
+            ];
+        } else {
+            throw new Error(`unsupported comparison! x when ${a} > ${b}`);
+        }
     }
 
-    private xWhenALessB(x: string, a: string, b: string): Array<SubjectTo> {
+    private xWhenALessB(x: string, a: string | Array<string>, b: string | number): Array<SubjectTo> {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -443,21 +495,21 @@ export class PetriNetRegionsService {
 
     private equal(variables: Variable | Array<Variable>, value: number): SubjectTo {
         return this.constrain(
-            Array.isArray(variables) ? variables : [variables],
+            arraify(variables),
             {type: Constraint.DOUBLE_BOUND, ub: value, lb: value}
         );
     }
 
     private greaterEqualThan(variables: Variable | Array<Variable>, lowerBound: number): SubjectTo {
         return this.constrain(
-            Array.isArray(variables) ? variables : [variables],
+            arraify(variables),
             {type: Constraint.LOWER_BOUND, ub: 0, lb: lowerBound}
         );
     }
 
     private lessEqualThan(variables: Variable | Array<Variable>, upperBound: number): SubjectTo {
         return this.constrain(
-            Array.isArray(variables) ? variables : [variables],
+            arraify(variables),
             {type: Constraint.UPPER_BOUND, ub: upperBound, lb: 0}
         );
     }
