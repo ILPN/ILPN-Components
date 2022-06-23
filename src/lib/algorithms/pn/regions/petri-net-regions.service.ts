@@ -279,11 +279,14 @@ export class PetriNetRegionsService {
                     this.equal(this.variable(x), 1)
                 ]
             ),
-            // TODO is equal 0 checks
+            this.xWhenAEqualsB(y, [x, a], 0),
+            this.xWhenAEqualsB(z, [this.variable(x), this.variable(a, -1)], 0)
         );
     }
 
-    private xWhenAEqualsB(x: string, a: string | Array<string>, b: string | number): NewVariableWithConstraint {
+    private xWhenAEqualsB(x: string,
+                          a: string | Array<string> | Array<Variable>,
+                          b: string | number): NewVariableWithConstraint {
         /*
              As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -334,7 +337,9 @@ export class PetriNetRegionsService {
         ];
     }
 
-    private xWhenAGreaterEqualB(x: string, a: string | Array<string>, b: string | number): NewVariableWithConstraint {
+    private xWhenAGreaterEqualB(x: string,
+                                a: string | Array<string> | Array<Variable>,
+                                b: string | number): NewVariableWithConstraint {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -368,7 +373,9 @@ export class PetriNetRegionsService {
         ]);
     }
 
-    private xWhenAGreaterB(x: string, a: string | Array<string> | number, b: string | Array<string> | number): Array<SubjectTo> {
+    private xWhenAGreaterB(x: string,
+                           a: string | Array<string> | Array<Variable> | number,
+                           b: string | Array<string> | Array<Variable> | number): Array<SubjectTo> {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
             a,b integer
@@ -384,25 +391,29 @@ export class PetriNetRegionsService {
         let bIsVariable = false;
         if (typeof a === 'string' || Array.isArray(a)) {
             aIsVariable = true;
-            a = arraify(a);
+            if (typeof a === 'string') {
+                a = arraify(a);
+            }
         }
         if (typeof b === 'string' || Array.isArray(b)) {
             bIsVariable = true;
-            b = arraify(b);
+            if (typeof b === 'string') {
+                b = arraify(b);
+            }
         }
 
         if (aIsVariable && bIsVariable) {
             return [
                 // b - a + Kx >= 0
                 this.greaterEqualThan([
-                    ...(b as Array<string>).map(b => this.variable(b)),
-                    ...(a as Array<string>).map(a => this.variable(a, -1)),
+                    ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
+                    ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], 0),
                 // b - a + Kx <= K - 1
                 this.greaterEqualThan([
-                    ...(b as Array<string>).map(b => this.variable(b)),
-                    ...(a as Array<string>).map(a => this.variable(a, -1)),
+                    ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
+                    ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], PetriNetRegionsService.K - 1),
             ];
@@ -410,12 +421,12 @@ export class PetriNetRegionsService {
             return [
                 // -a + Kx >= -b
                 this.greaterEqualThan([
-                    ...(a as Array<string>).map(a => this.variable(a, -1)),
+                    ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], -b),
                 // -a + Kx <= K - b - 1
                 this.greaterEqualThan([
-                    ...(a as Array<string>).map(a => this.variable(a, -1)),
+                    ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], PetriNetRegionsService.K - (b as number) - 1),
             ];
@@ -423,12 +434,12 @@ export class PetriNetRegionsService {
             return [
                 // b + Kx >= a
                 this.greaterEqualThan([
-                    ...(b as Array<string>).map(b => this.variable(b)),
+                    ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], a as number),
                 // b - a + Kx <= K + a - 1
                 this.greaterEqualThan([
-                    ...(b as Array<string>).map(b => this.variable(b)),
+                    ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], PetriNetRegionsService.K + (a as number) - 1),
             ];
@@ -437,7 +448,9 @@ export class PetriNetRegionsService {
         }
     }
 
-    private xWhenALessB(x: string, a: string | Array<string>, b: string | number): Array<SubjectTo> {
+    private xWhenALessB(x: string,
+                        a: string | Array<string> | Array<Variable>,
+                        b: string | number): Array<SubjectTo> {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -487,6 +500,14 @@ export class PetriNetRegionsService {
             // x + a = 1
             this.equal([this.variable(x), this.variable(a)], 1),
         ];
+    }
+
+    private createOrCopyVariable(original: string | Variable, coefficient: number = 1): Variable {
+        if (typeof original === 'string') {
+            return this.variable(original, coefficient);
+        } else {
+            return this.variable(original.name, original.coef * coefficient);
+        }
     }
 
     private variable(name: string, coefficient: number = 1): Variable {
