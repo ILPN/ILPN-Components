@@ -254,7 +254,7 @@ export class PetriNetRegionsService {
         return helpVariableName;
     }
 
-    private xAbsoluteOfA(x: string, a: string): Array<SubjectTo> {
+    private xAbsoluteOfA(x: string, a: string): NewVariableWithConstraint {
         /*
          * As per https://blog.adamfurmanek.pl/2015/09/19/ilp-part-5/
          *
@@ -264,13 +264,20 @@ export class PetriNetRegionsService {
          *
          */
 
-        return [
-            // x - a >= 0
-            this.greaterEqualThan([this.variable(x), this.variable(a, -1)], 0),
-            // x + a >= 0
-            this.greaterEqualThan([this.variable(x), this.variable(a)], 0)
-            // TODO
-        ];
+        const y = this.helperVariableName();
+        const z = this.helperVariableName();
+
+        return NewVariableWithConstraint.combine(
+            new NewVariableWithConstraint([],
+                [
+                    // x - a >= 0
+                    this.greaterEqualThan([this.variable(x), this.variable(a, -1)], 0),
+                    // x + a >= 0
+                    this.greaterEqualThan([this.variable(x), this.variable(a)], 0)
+                ]
+            ),
+            // TODO equals constant!
+        );
     }
 
     private xWhenAEqualsB(x: string, a: string, b: string): NewVariableWithConstraint {
@@ -286,13 +293,14 @@ export class PetriNetRegionsService {
         const aGreaterEqualB = this.xWhenAGreaterEqualB(y, a, b);
         const aLessEqualB = this.xWhenALessEqualB(z, a, b);
 
-        return new NewVariableWithConstraint(
-            [y, z, ...aGreaterEqualB.ids, ...aLessEqualB.ids],
-            [
-                ...aGreaterEqualB.constraints,
-                ...aLessEqualB.constraints,
-                ...this.xAandB(x, y, z)
-            ]);
+        return NewVariableWithConstraint.combine(
+            aGreaterEqualB,
+            aLessEqualB,
+            new NewVariableWithConstraint(
+                [x, y],
+                this.xAandB(x, y, z)
+            )
+        );
     }
 
     private yWhenAGreaterEqualB(y: string, a: string, b: number): Array<SubjectTo> {

@@ -18,4 +18,17 @@ export class NewVariableWithConstraint {
     get constraints(): Array<SubjectTo> {
         return this._constraints;
     }
+
+    public static combine(...newVariablesWithConstraints: Array<NewVariableWithConstraint>): NewVariableWithConstraint {
+        return new NewVariableWithConstraint(
+            newVariablesWithConstraints.reduce((a, v) => {
+                a.push(...v.ids)
+                return a;
+            }, [] as Array<string>),
+            newVariablesWithConstraints.reduce((a, v) => {
+                a.push(...v.constraints)
+                return a;
+            }, [] as Array<SubjectTo>)
+        );
+    }
 }
