@@ -150,16 +150,16 @@ export class PetriNetRegionsService {
             const t1 = transitions.splice(0, 1)[0];
 
             if (config.obtainPartialOrders) {
-                // t1 pre-set
-                riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1));
                 // t1 post-set
+                riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1));
+                // t1 pre-set
                 riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.ingoingArcs.map((a: Arc) => a.sourceId), -1));
 
                 const singleRiseVariables = this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1);
                 singleRiseVariables.push(...this.createVariablesFromPlaceIds(t1.ingoingArcs.map((a: Arc) => a.sourceId), -1));
 
                 const singleRise = this.combineCoefficients(singleRiseVariables);
-                const abs = this.helperVariableName();
+                const abs = this.helperVariableName('abs');
                 const absoluteRise = this.xAbsoluteOfSumA(abs, singleRise);
 
                 if (ilp.generals === undefined) {
@@ -283,10 +283,10 @@ export class PetriNetRegionsService {
         return new NewVariableWithConstraint(helpVariable, constrains);
     }
 
-    private helperVariableName(): string {
+    private helperVariableName(prefix = 'y'): string {
         let helpVariableName;
         do {
-            helpVariableName = `y${this._variableCounter.next()}`;
+            helpVariableName = `${prefix}${this._variableCounter.next()}`;
         } while (this._allVariables.has(helpVariableName));
         this._allVariables.add(helpVariableName);
         return helpVariableName;
@@ -301,19 +301,19 @@ export class PetriNetRegionsService {
          *
          */
 
-        const y = this.helperVariableName();
-        const z = this.helperVariableName();
-        const w = this.helperVariableName();
+        const y = this.helperVariableName('yAbsSum'); // x + a is 0
+        const z = this.helperVariableName('zAbsSum'); // x - a is 0
+        const w = this.helperVariableName('wAbsSum'); // y or z
 
         return NewVariableWithConstraint.combine(
             new NewVariableWithConstraint(w,
                 [
                     // x >= 0
                     this.greaterEqualThan(this.variable(x), 0),
-                    // w is y and z
+                    // w is y or z
                     ...this.xAorB(w, y, z),
                     // w is true
-                    this.equal(this.variable(x), 1)
+                    this.equal(this.variable(w), 1)
                 ]
             ),
             this.xWhenAEqualsB(y, [this.variable(x), ...a.map(a => this.createOrCopyVariable(a))], 0),
@@ -330,8 +330,8 @@ export class PetriNetRegionsService {
              x is a equals b <=> a greater equal than b and a less equal than b
          */
 
-        const y = this.helperVariableName();
-        const z = this.helperVariableName();
+        const y = this.helperVariableName('yWhenEquals');
+        const z = this.helperVariableName('zWhenEquals');
 
         const aGreaterEqualB = this.xWhenAGreaterEqualB(y, a, b);
         const aLessEqualB = this.xWhenALessEqualB(z, a, b);
@@ -383,7 +383,7 @@ export class PetriNetRegionsService {
             a is greater equal b <=> not a less than b
          */
 
-        const z = this.helperVariableName();
+        const z = this.helperVariableName('zALessB');
 
         return new NewVariableWithConstraint(z, [
             // z when a less than b
@@ -402,7 +402,7 @@ export class PetriNetRegionsService {
             a is less equal b <=> not a greater than b
          */
 
-        const z = this.helperVariableName();
+        const z = this.helperVariableName('zAGreaterB');
 
         return new NewVariableWithConstraint(z, [
             // z when a greater than b
@@ -450,7 +450,7 @@ export class PetriNetRegionsService {
                     this.variable(x, PetriNetRegionsService.K)
                 ], 0),
                 // b - a + Kx <= K - 1
-                this.greaterEqualThan([
+                this.lessEqualThan([
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
                     this.variable(x, PetriNetRegionsService.K)
@@ -464,7 +464,7 @@ export class PetriNetRegionsService {
                     this.variable(x, PetriNetRegionsService.K)
                 ], -b),
                 // -a + Kx <= K - b - 1
-                this.greaterEqualThan([
+                this.lessEqualThan([
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], PetriNetRegionsService.K - (b as number) - 1),
@@ -476,8 +476,8 @@ export class PetriNetRegionsService {
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], a as number),
-                // b - a + Kx <= K + a - 1
-                this.greaterEqualThan([
+                // b + Kx <= K + a - 1
+                this.lessEqualThan([
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], PetriNetRegionsService.K + (a as number) - 1),
