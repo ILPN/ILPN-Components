@@ -9,7 +9,7 @@ import {SubjectTo} from '../../../models/glpk/subject-to';
 import {Arc} from '../../../models/pn/model/arc';
 import {Transition} from '../../../models/pn/model/transition';
 import {Variable} from '../../../models/glpk/variable';
-import {NewVariableWithConstraint} from './classes/new-variable-with-constraint';
+import {ConstraintsWithNewVariables} from './classes/constraints-with-new-variables';
 import {Bound} from '../../../models/glpk/bound';
 import {PetriNetRegionTransformerService} from './petri-net-region-transformer.service';
 import {CombinationResult} from './classes/combination-result';
@@ -111,14 +111,31 @@ export class PetriNetRegionsService {
             subjectTo: [],
         };
         initial[config.oneBoundRegions ? 'binaries' : 'generals'] = Array.from(this._placeVariables);
-        initial.subjectTo = this.createInitialConstraints(initial, combined, config);
+        this.applyConstraints(initial, this.createInitialConstraints(combined, config));
 
         return initial;
     }
 
-    private createInitialConstraints(ilp: LP, combined: CombinationResult, config: RegionsConfiguration): Array<SubjectTo> {
+    private applyConstraints(ilp: LP, constraints: ConstraintsWithNewVariables) {
+        if (ilp.subjectTo === undefined) {
+            ilp.subjectTo = [];
+        }
+        ilp.subjectTo.push(...constraints.constraints);
+
+        if (ilp.binaries === undefined) {
+            ilp.binaries = [];
+        }
+        ilp.binaries.push(...constraints.binaryVariables);
+
+        if (ilp.generals === undefined) {
+            ilp.generals = [];
+        }
+        ilp.generals.push(...constraints.integerVariables);
+    }
+
+    private createInitialConstraints(combined: CombinationResult, config: RegionsConfiguration): ConstraintsWithNewVariables {
         const net = combined.net;
-        const result: Array<SubjectTo> = [];
+        const result: Array<ConstraintsWithNewVariables> = [];
 
         // only non-negative solutions
         result.push(...net.getPlaces().map(p => this.greaterEqualThan(this.variable(p.id), 0)));
@@ -143,7 +160,7 @@ export class PetriNetRegionsService {
         // gradient constraints
         const labels = this.collectTransitionByLabel(net);
         const riseSumVariables: Array<Variable> = [];
-        const absoluteRiseSumVariables: Array<Variable> = [];
+        const absoluteRiseSumVariables: Array<string> = [];
 
         for (const [key, transitions] of labels.entries()) {
             const transitionsWithSameLabel = transitions.length;
@@ -160,18 +177,13 @@ export class PetriNetRegionsService {
 
                 const singleRise = this.combineCoefficients(singleRiseVariables);
                 const abs = this.helperVariableName('abs');
-                const absoluteRise = this.xAbsoluteOfSumA(abs, singleRise);
+                const absoluteRise = this.xAbsoluteOfSum(abs, singleRise);
 
-                if (ilp.generals === undefined) {
-                    ilp.generals = [];
-                }
-                if (ilp.binaries === undefined) {
-                    ilp.binaries = [];
-                }
-                ilp.generals!.push(abs);
-                ilp.binaries!.push(...absoluteRise.ids);
-                absoluteRiseSumVariables.push(this.variable(abs));
-                result.push(...absoluteRise.constraints);
+                absoluteRiseSumVariables.push(abs);
+                result.push(ConstraintsWithNewVariables.combineAndIntroduceVariables(
+                    undefined, abs,
+                    absoluteRise)
+                );
             }
 
             if (transitionsWithSameLabel === 1) {
@@ -195,13 +207,41 @@ export class PetriNetRegionsService {
         }
 
         if (config.obtainPartialOrders) {
-            // sum of rises should be 0
-            result.push(this.equal(this.combineCoefficients(riseSumVariables), 0));
-            // sum of absolute values of rises should be 2
-            result.push(this.equal(absoluteRiseSumVariables, 2));
+            /*
+                Sum of rises should be 0 AND Sum of absolute rises should be 2 (internal places)
+                OR
+                Sum of absolute rises should be 1 (initial and final places)
+             */
+
+            // sum of rises is 0
+            const riseSumIsZero = this.helperVariableName('riseEqualZero');
+            result.push(this.xWhenAEqualsB(riseSumIsZero, this.combineCoefficients(riseSumVariables), 0));
+            // sum of absolute values of rises is 2
+            const absRiseSumIsTwo = this.helperVariableName('absRiseSumTwo');
+            result.push(this.xWhenAEqualsB(absRiseSumIsTwo, absoluteRiseSumVariables, 2));
+            // sum is 0 AND sum absolute is 2
+            const internalPlace = this.helperVariableName('placeIsInternal');
+            result.push(ConstraintsWithNewVariables.combineAndIntroduceVariables(
+                [riseSumIsZero, absRiseSumIsTwo], undefined,
+                this.xAandB(internalPlace, riseSumIsZero, absRiseSumIsTwo)
+            ));
+
+            // sum of absolute values of rise is 1
+            const absRiseSumIsOne = this.helperVariableName('absRiseSumOne');
+            result.push(this.xWhenAEqualsB(absRiseSumIsOne, absoluteRiseSumVariables, 1));
+
+            // place is internal OR place is initial/final
+            const internalOrFinal = this.helperVariableName('internalOrFinal');
+            result.push(ConstraintsWithNewVariables.combineAndIntroduceVariables(
+               [internalPlace, absRiseSumIsOne, internalOrFinal], undefined,
+               this.xAorB(internalOrFinal, internalPlace, absRiseSumIsOne)
+            ));
+
+            // place is internal OR place is initial/final must be true
+            result.push(this.equal(this.variable(internalOrFinal), 1));
         }
 
-        return result;
+        return ConstraintsWithNewVariables.combine(...result);
     }
 
     private addConstraintsToILP(ps: ProblemSolution): LP {
@@ -210,24 +250,25 @@ export class PetriNetRegionsService {
         // no region that contains the new solution as subset
         const region = ps.solution.result.vars;
         const regionPlaces = Object.entries(region).filter(([k, v]) => v != 0 && this._placeVariables.has(k));
-        const binaryGeqConstraints = regionPlaces.map(([k, v]) => this.introduceHelpVariable(k, v));
+        const additionalConstraints = regionPlaces.map(([k, v]) => this.yWhenAGreaterEqualB(k, v));
 
-        const helpVariables: Array<string> = [];
-        for (const variableWithConstraints of binaryGeqConstraints) {
-            helpVariables.push(...variableWithConstraints.ids);
-            ilp.subjectTo.push(...variableWithConstraints.constraints);
-        }
-
-        if (ilp.binaries === undefined) {
-            ilp.binaries = [];
-        }
-        ilp.binaries.push(...helpVariables);
+        const yVariables =
+            additionalConstraints
+                .reduce(
+                    (arr, constraint) => {
+                        arr.push(...constraint.binaryVariables);
+                        return arr;
+                    }, [] as Array<string>)
+                .map(
+                    y => this.variable(y)
+                );
         /*
             Sum of x-es should be less than their number
             x = 1 - y
             Therefore sum of y should be greater than 0
          */
-        ilp.subjectTo.push(this.sumGreaterThan(helpVariables.map(y => this.variable(y)), 0));
+        additionalConstraints.push(this.sumGreaterThan(yVariables, 0));
+        this.applyConstraints(ilp, ConstraintsWithNewVariables.combine(...additionalConstraints));
 
         console.debug('solution', ps.solution.result.vars);
         console.debug('non-zero', regionPlaces);
@@ -277,12 +318,6 @@ export class PetriNetRegionsService {
         return result;
     }
 
-    private introduceHelpVariable(place: string, solution: number): NewVariableWithConstraint {
-        const helpVariable = this.helperVariableName();
-        const constrains = this.yWhenAGreaterEqualB(helpVariable, place, solution);
-        return new NewVariableWithConstraint(helpVariable, constrains);
-    }
-
     private helperVariableName(prefix = 'y'): string {
         let helpVariableName;
         do {
@@ -292,38 +327,37 @@ export class PetriNetRegionsService {
         return helpVariableName;
     }
 
-    private xAbsoluteOfSumA(x: string, a: Array<Variable>): NewVariableWithConstraint {
+    private xAbsoluteOfSum(x: string, sum: Array<Variable>): ConstraintsWithNewVariables {
         /*
          * As per https://blog.adamfurmanek.pl/2015/09/19/ilp-part-5/
          *
          * x >= 0
-         * (x + a is 0) or (x - a is 0) = 1
+         * (x + sum is 0) or (x - sum is 0) = 1
          *
          */
 
-        const y = this.helperVariableName('yAbsSum'); // x + a is 0
-        const z = this.helperVariableName('zAbsSum'); // x - a is 0
+        const y = this.helperVariableName('yAbsSum'); // x + sum is 0
+        const z = this.helperVariableName('zAbsSum'); // x - sym is 0
         const w = this.helperVariableName('wAbsSum'); // y or z
 
-        return NewVariableWithConstraint.combine(
-            new NewVariableWithConstraint(w,
-                [
-                    // x >= 0
-                    this.greaterEqualThan(this.variable(x), 0),
-                    // w is y or z
-                    ...this.xAorB(w, y, z),
-                    // w is true
-                    this.equal(this.variable(w), 1)
-                ]
-            ),
-            this.xWhenAEqualsB(y, [this.variable(x), ...a.map(a => this.createOrCopyVariable(a))], 0),
-            this.xWhenAEqualsB(z, [this.variable(x), ...a.map(a => this.createOrCopyVariable(a, -1))], 0)
+        return ConstraintsWithNewVariables.combineAndIntroduceVariables(
+            w, undefined,
+            // x >= 0
+            this.greaterEqualThan(this.variable(x), 0),
+            // w is y or z
+            this.xAorB(w, y, z),
+            // w is true
+            this.equal(this.variable(w), 1),
+            // x + sum is 0
+            this.xWhenAEqualsB(y, [this.variable(x), ...sum.map(a => this.createOrCopyVariable(a))], 0),
+            // x - sum is 0
+            this.xWhenAEqualsB(z, [this.variable(x), ...sum.map(a => this.createOrCopyVariable(a, -1))], 0)
         );
     }
 
     private xWhenAEqualsB(x: string,
                           a: string | Array<string> | Array<Variable>,
-                          b: string | number): NewVariableWithConstraint {
+                          b: string | number): ConstraintsWithNewVariables {
         /*
              As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -336,17 +370,15 @@ export class PetriNetRegionsService {
         const aGreaterEqualB = this.xWhenAGreaterEqualB(y, a, b);
         const aLessEqualB = this.xWhenALessEqualB(z, a, b);
 
-        return NewVariableWithConstraint.combine(
+        return ConstraintsWithNewVariables.combineAndIntroduceVariables(
+            [x, y], undefined,
             aGreaterEqualB,
             aLessEqualB,
-            new NewVariableWithConstraint(
-                [x, y],
-                this.xAandB(x, y, z)
-            )
+            this.xAandB(x, y, z),
         );
     }
 
-    private yWhenAGreaterEqualB(y: string, a: string, b: number): Array<SubjectTo> {
+    private yWhenAGreaterEqualB(a: string, b: number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/ and https://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
             x = a >= b can be defined as !(b > a)
@@ -362,21 +394,24 @@ export class PetriNetRegionsService {
             a + Ky >= b
             a + Ky <= K-1 + b
          */
+        const y = this.helperVariableName();
+
         if (b > PetriNetRegionsService.k) {
             console.debug("b", b);
             console.debug("k", PetriNetRegionsService.k);
             throw new Error("b > k. This implementation can only handle solutions that are at most k");
         }
 
-        return [
+        return ConstraintsWithNewVariables.combineAndIntroduceVariables(
+            [y], undefined,
             this.greaterEqualThan([this.variable(a), this.variable(y, PetriNetRegionsService.K)], b),
             this.lessEqualThan([this.variable(a), this.variable(y, PetriNetRegionsService.K)], PetriNetRegionsService.K - 1 + b)
-        ];
+        );
     }
 
     private xWhenAGreaterEqualB(x: string,
                                 a: string | Array<string> | Array<Variable>,
-                                b: string | number): NewVariableWithConstraint {
+                                b: string | number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -385,17 +420,17 @@ export class PetriNetRegionsService {
 
         const z = this.helperVariableName('zALessB');
 
-        return new NewVariableWithConstraint(z, [
+        return ConstraintsWithNewVariables.combineAndIntroduceVariables(z, undefined,
             // z when a less than b
-            ...this.xWhenALessB(z, a, b),
+            this.xWhenALessB(z, a, b),
             // x not z
-            ...this.xNotA(x, z)
-        ]);
+            this.xNotA(x, z)
+        );
     }
 
     private xWhenALessEqualB(x: string,
                              a: string | Array<string> | Array<Variable>,
-                             b: string | number): NewVariableWithConstraint {
+                             b: string | number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -404,17 +439,17 @@ export class PetriNetRegionsService {
 
         const z = this.helperVariableName('zAGreaterB');
 
-        return new NewVariableWithConstraint(z, [
+        return ConstraintsWithNewVariables.combineAndIntroduceVariables(z, undefined,
             // z when a greater than b
-            ...this.xWhenAGreaterB(z, a, b),
+            this.xWhenAGreaterB(z, a, b),
             // x not z
-            ...this.xNotA(x, z)
-        ]);
+            this.xNotA(x, z)
+        );
     }
 
     private xWhenAGreaterB(x: string,
                            a: string | Array<string> | Array<Variable> | number,
-                           b: string | Array<string> | Array<Variable> | number): Array<SubjectTo> {
+                           b: string | Array<string> | Array<Variable> | number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
             a,b integer
@@ -442,7 +477,7 @@ export class PetriNetRegionsService {
         }
 
         if (aIsVariable && bIsVariable) {
-            return [
+            return ConstraintsWithNewVariables.combine(
                 // b - a + Kx >= 0
                 this.greaterEqualThan([
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
@@ -455,9 +490,9 @@ export class PetriNetRegionsService {
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], PetriNetRegionsService.K - 1),
-            ];
+            );
         } else if (aIsVariable && !bIsVariable) {
-            return [
+            return ConstraintsWithNewVariables.combine(
                 // -a + Kx >= -b
                 this.greaterEqualThan([
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
@@ -468,9 +503,9 @@ export class PetriNetRegionsService {
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], PetriNetRegionsService.K - (b as number) - 1),
-            ];
+            );
         } else if (!aIsVariable && bIsVariable) {
-            return [
+            return ConstraintsWithNewVariables.combine(
                 // b + Kx >= a
                 this.greaterEqualThan([
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
@@ -481,7 +516,7 @@ export class PetriNetRegionsService {
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
                     this.variable(x, PetriNetRegionsService.K)
                 ], PetriNetRegionsService.K + (a as number) - 1),
-            ];
+            );
         } else {
             throw new Error(`unsupported comparison! x when ${a} > ${b}`);
         }
@@ -489,7 +524,7 @@ export class PetriNetRegionsService {
 
     private xWhenALessB(x: string,
                         a: string | Array<string> | Array<Variable>,
-                        b: string | number): Array<SubjectTo> {
+                        b: string | number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -498,47 +533,45 @@ export class PetriNetRegionsService {
         return this.xWhenAGreaterB(x, b, a);
     }
 
-    private xAandB(x: string, a: string, b: string): Array<SubjectTo> {
+    private xAandB(x: string, a: string, b: string): ConstraintsWithNewVariables {
         /*
             As per http://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
             a,b,x binary
 
             0 <= a + b - 2x <= 1
          */
-        return [
+        return ConstraintsWithNewVariables.combine(
             // a + b -2x >= 0
             this.greaterEqualThan([this.variable(a), this.variable(b), this.variable(x, -2)], 0),
             // a + b -2x <= 1
             this.lessEqualThan([this.variable(a), this.variable(b), this.variable(x, -2)], 1)
-        ];
+        );
     }
 
-    private xAorB(x: string, a: string, b: string): Array<SubjectTo> {
+    private xAorB(x: string, a: string, b: string): ConstraintsWithNewVariables {
         /*
             As per http://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
             a,b,x binary
 
             -1 <= a + b - 2x <= 0
          */
-        return [
+        return ConstraintsWithNewVariables.combine(
             // a + b -2x >= -1
             this.greaterEqualThan([this.variable(a), this.variable(b), this.variable(x, -2)], -1),
             // a + b -2x <= 0
             this.lessEqualThan([this.variable(a), this.variable(b), this.variable(x, -2)], 0)
-        ];
+        );
     }
 
-    private xNotA(x: string, a: string): Array<SubjectTo> {
+    private xNotA(x: string, a: string): ConstraintsWithNewVariables {
         /*
             As per http://blog.adamfurmanek.pl/2015/08/22/ilp-part-1/
             a,x binary
 
             x = 1 - a
          */
-        return [
-            // x + a = 1
-            this.equal([this.variable(x), this.variable(a)], 1),
-        ];
+        // x + a = 1
+        return this.equal([this.variable(x), this.variable(a)], 1);
     }
 
     private createOrCopyVariable(original: string | Variable, coefficient: number = 1): Variable {
@@ -553,35 +586,35 @@ export class PetriNetRegionsService {
         return {name, coef: coefficient};
     }
 
-    private equal(variables: Variable | Array<Variable>, value: number): SubjectTo {
-        return this.constrain(
+    private equal(variables: Variable | Array<Variable>, value: number): ConstraintsWithNewVariables {
+        return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.FIXED_VARIABLE, ub: value, lb: value}
-        );
+        ));
     }
 
-    private greaterEqualThan(variables: Variable | Array<Variable>, lowerBound: number): SubjectTo {
-        return this.constrain(
+    private greaterEqualThan(variables: Variable | Array<Variable>, lowerBound: number): ConstraintsWithNewVariables {
+        return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.LOWER_BOUND, ub: 0, lb: lowerBound}
-        );
+        ));
     }
 
-    private lessEqualThan(variables: Variable | Array<Variable>, upperBound: number): SubjectTo {
-        return this.constrain(
+    private lessEqualThan(variables: Variable | Array<Variable>, upperBound: number): ConstraintsWithNewVariables {
+        return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.UPPER_BOUND, ub: upperBound, lb: 0}
-        );
+        ));
     }
 
-    private sumEqualsZero(...variables: Array<Variable>): SubjectTo {
-        return this.constrain(
+    private sumEqualsZero(...variables: Array<Variable>): ConstraintsWithNewVariables {
+        return new ConstraintsWithNewVariables(this.constrain(
             variables,
             {type: Constraint.FIXED_VARIABLE, ub: 0, lb: 0}
-        );
+        ));
     }
 
-    private sumGreaterThan(variables: Array<Variable>, lowerBound: number): SubjectTo {
+    private sumGreaterThan(variables: Array<Variable>, lowerBound: number): ConstraintsWithNewVariables {
         return this.greaterEqualThan(variables, lowerBound + 1);
     }
 
