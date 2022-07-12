@@ -1,6 +1,6 @@
 import {Lifecycle} from './lifecycle';
 
-export class Event {
+export class LogEvent {
     public resource?: string;
     public timestamp?: Date;
     public lifecycle?: Lifecycle;

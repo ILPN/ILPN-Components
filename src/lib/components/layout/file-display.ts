@@ -12,3 +12,8 @@ export const FD_PARTIAL_ORDER: FileDisplay = {
     icon: '♠',
     color: 'black'
 }
+
+export const FD_LOG: FileDisplay = {
+    icon: '★',
+    color: 'black'
+}

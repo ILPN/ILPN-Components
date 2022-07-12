@@ -20,19 +20,19 @@ export class XesLogParserService {
         const result: Array<Trace> = [];
 
         for (let i = 0; i < traceElements.length; i++) {
-            const trace = this.parseTrace(traceElements.item(i)!)
+            result.push(this.parseTrace(traceElements.item(i)!));
         }
 
         return result;
     }
 
     private parseTrace(element: Element): Trace {
-        const trace = this.createTrace(element.getElementsByTagName('string'));
+        const trace = this.createTrace(element.querySelectorAll('trace > string'));
 
         return trace;
     }
 
-    private createTrace(traceAttributes: HTMLCollectionOf<Element>): Trace {
+    private createTrace(traceAttributes: NodeListOf<Element>): Trace {
         const trace = new Trace();
 
         for (let i = 0; i < traceAttributes.length; i++) {
