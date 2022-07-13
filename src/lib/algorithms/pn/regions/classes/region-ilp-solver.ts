@@ -16,13 +16,13 @@ import {Region} from './region';
 import {RegionsConfiguration} from './regions-configuration';
 import {arraify} from '../../../../utility/arraify';
 
-export class PetriNetRegionsService {
+export class RegionIlpSolver {
 
     // k and K defined as per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
     // for some reason k = 2^19 while not large enough to cause precision problems in either doubles or integers
     // has caused the iterative algorithm to loop indefinitely, presumably because of some precision error in the implementation of the solver
     private static readonly k = (1 << 10) - 1 // 2^10 - 1
-    private static readonly K = 2 * PetriNetRegionsService.k + 1;
+    private static readonly K = 2 * RegionIlpSolver.k + 1;
 
     private readonly _constraintCounter: IncrementingCounter;
     private readonly _variableCounter: IncrementingCounter;
@@ -396,16 +396,16 @@ export class PetriNetRegionsService {
          */
         const y = this.helperVariableName();
 
-        if (b > PetriNetRegionsService.k) {
+        if (b > RegionIlpSolver.k) {
             console.debug("b", b);
-            console.debug("k", PetriNetRegionsService.k);
+            console.debug("k", RegionIlpSolver.k);
             throw new Error("b > k. This implementation can only handle solutions that are at most k");
         }
 
         return ConstraintsWithNewVariables.combineAndIntroduceVariables(
             [y], undefined,
-            this.greaterEqualThan([this.variable(a), this.variable(y, PetriNetRegionsService.K)], b),
-            this.lessEqualThan([this.variable(a), this.variable(y, PetriNetRegionsService.K)], PetriNetRegionsService.K - 1 + b)
+            this.greaterEqualThan([this.variable(a), this.variable(y, RegionIlpSolver.K)], b),
+            this.lessEqualThan([this.variable(a), this.variable(y, RegionIlpSolver.K)], RegionIlpSolver.K - 1 + b)
         );
     }
 
@@ -482,40 +482,40 @@ export class PetriNetRegionsService {
                 this.greaterEqualThan([
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
-                    this.variable(x, PetriNetRegionsService.K)
+                    this.variable(x, RegionIlpSolver.K)
                 ], 0),
                 // b - a + Kx <= K - 1
                 this.lessEqualThan([
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
-                    this.variable(x, PetriNetRegionsService.K)
-                ], PetriNetRegionsService.K - 1),
+                    this.variable(x, RegionIlpSolver.K)
+                ], RegionIlpSolver.K - 1),
             );
         } else if (aIsVariable && !bIsVariable) {
             return ConstraintsWithNewVariables.combine(
                 // -a + Kx >= -b
                 this.greaterEqualThan([
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
-                    this.variable(x, PetriNetRegionsService.K)
+                    this.variable(x, RegionIlpSolver.K)
                 ], -b),
                 // -a + Kx <= K - b - 1
                 this.lessEqualThan([
                     ...(a as Array<string> | Array<Variable>).map(a => this.createOrCopyVariable(a, -1)),
-                    this.variable(x, PetriNetRegionsService.K)
-                ], PetriNetRegionsService.K - (b as number) - 1),
+                    this.variable(x, RegionIlpSolver.K)
+                ], RegionIlpSolver.K - (b as number) - 1),
             );
         } else if (!aIsVariable && bIsVariable) {
             return ConstraintsWithNewVariables.combine(
                 // b + Kx >= a
                 this.greaterEqualThan([
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
-                    this.variable(x, PetriNetRegionsService.K)
+                    this.variable(x, RegionIlpSolver.K)
                 ], a as number),
                 // b + Kx <= K + a - 1
                 this.lessEqualThan([
                     ...(b as Array<string> | Array<Variable>).map(b => this.createOrCopyVariable(b)),
-                    this.variable(x, PetriNetRegionsService.K)
-                ], PetriNetRegionsService.K + (a as number) - 1),
+                    this.variable(x, RegionIlpSolver.K)
+                ], RegionIlpSolver.K + (a as number) - 1),
             );
         } else {
             throw new Error(`unsupported comparison! x when ${a} > ${b}`);

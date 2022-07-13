@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
-import {PetriNetRegionsService} from './classes/petri-net-regions.service';
+import {RegionIlpSolver} from './classes/region-ilp-solver';
 import {Observable, ReplaySubject} from 'rxjs';
 import {SynthesisResult} from './classes/synthesis-result';
 import {RegionSynthesiser} from './classes/region-synthesiser';
@@ -11,7 +11,7 @@ import {RegionsConfiguration} from './classes/regions-configuration';
 })
 export class PetriNetRegionSynthesisService {
 
-    constructor(private _regionService: PetriNetRegionsService) {
+    constructor(private _regionService: RegionIlpSolver) {
     }
 
     public synthesise(input: PetriNet | Array<PetriNet>, config: RegionsConfiguration = {}, fileName: string = 'result'): Observable<SynthesisResult> {
