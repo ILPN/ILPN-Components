@@ -26,24 +26,38 @@ export class RegionIlpSolver {
 
     private readonly _constraintCounter: IncrementingCounter;
     private readonly _variableCounter: IncrementingCounter;
+    private readonly _solver$: ReplaySubject<GLPK>;
     private _allVariables: Set<string>;
     private _placeVariables: Set<string>;
 
     constructor(private _regionTransformer: PetriNetRegionTransformerService) {
         this._constraintCounter = new IncrementingCounter();
         this._variableCounter = new IncrementingCounter();
+        this._solver$ = new ReplaySubject<GLPK>(1);
         this._allVariables = new Set<string>();
         this._placeVariables = new Set<string>();
+
+        // get the solver object
+        const promise = import('glpk.js');
+        promise.then(result => {
+            // @ts-ignore
+            result.default().then(glpk => {
+                this._solver$.next(glpk);
+            });
+        });
     }
 
     public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration): Observable<Region> {
+        if (this._solver$.closed) {
+            throw new Error('This instance is already exhausted. A new instance must be created to construct and solve another ILP problem');
+        }
+
         const regions$ = new ReplaySubject<Region>();
 
         const combined = this.combineInputNets(nets);
 
         const ilp$ = new BehaviorSubject(this.setUpInitialILP(combined, config));
-        const solver$ = this.getSolver();
-        ilp$.pipe(switchMap(ilp => this.solveILP(solver$, ilp))).subscribe((ps: ProblemSolution) => {
+        ilp$.pipe(switchMap(ilp => this.solveILP(ilp))).subscribe((ps: ProblemSolution) => {
             if (ps.solution.result.status === Solution.OPTIMAL) {
                 const region = this._regionTransformer.displayRegionInNet(ps.solution, combined.net);
 
@@ -56,24 +70,11 @@ export class RegionIlpSolver {
                 console.debug('final non-optimal result', ps.solution);
                 regions$.complete();
                 ilp$.complete();
-                solver$.complete();
+                this._solver$.complete();
             }
         });
 
         return regions$.asObservable();
-    }
-
-    private getSolver(): ReplaySubject<GLPK> {
-        const result$ = new ReplaySubject<GLPK>(1);
-        // get the solver object
-        const promise = import('glpk.js');
-        promise.then(result => {
-            // @ts-ignore
-            result.default().then(glpk => {
-                result$.next(glpk);
-            });
-        });
-        return result$;
     }
 
     private combineInputNets(nets: Array<PetriNet>): CombinationResult {
@@ -630,10 +631,10 @@ export class RegionIlpSolver {
         return 'c' + this._constraintCounter.next();
     }
 
-    private solveILP(solver$: Observable<GLPK>, ilp: LP): Observable<ProblemSolution> {
+    private solveILP(ilp: LP): Observable<ProblemSolution> {
         const result$ = new ReplaySubject<ProblemSolution>();
 
-        solver$.pipe(take(1)).subscribe(glpk => {
+        this._solver$.pipe(take(1)).subscribe(glpk => {
             const res = glpk.solve(ilp, {
                 msglev: MessageLevel.ERROR,
             }) as unknown as Promise<Result>;
