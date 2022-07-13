@@ -36,8 +36,8 @@ export class MultisetMap<T> {
         this._map = new Map();
     }
 
-    public put(key: Multiset, value: T & MultisetEquivalent) {
-        const hash = this.hashKey(key);
+    public put(value: T & MultisetEquivalent) {
+        const hash = this.hashKey(value.multiset);
         const mapped = this._map.get(hash);
         if (mapped === undefined) {
             this._map.set(hash, [value]);

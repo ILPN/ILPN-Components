@@ -3,16 +3,36 @@ import {PartialOrder} from '../../../../models/po/model/partial-order';
 import {Lifecycle} from '../../../../models/log/model/lifecycle';
 import {MultisetEquivalentTraces} from './multiset-equivalent-traces';
 import {Multiset, MultisetMap} from '../../../../utility/multiset-map';
+import {PrefixTree} from '../../../../utility/prefix-tree';
 
 export class AbelOracle {
 
     public determineConcurrency(log: Array<Trace>): Array<PartialOrder> {
-        const multisetEquivalentTraces = new MultisetMap<MultisetEquivalentTraces>()
+        const multisetEquivalentTraces = new MultisetMap<MultisetEquivalentTraces>();
+        const tracePrefixTree = new PrefixTree<MultisetEquivalentTraces>();
 
         for (const t of log) {
             const trace = this.cleanTrace(t);
-            const equivalence = this.convertToEquivalence(trace);
-            multisetEquivalentTraces.put(equivalence.multiset, equivalence);
+
+            const multiset: Multiset = {};
+            tracePrefixTree.insert(trace, () => {
+                let equivalence = multisetEquivalentTraces.get(multiset);
+                if (equivalence === undefined) {
+                    equivalence = this.createEquivalence(trace, multiset);
+                    multisetEquivalentTraces.put(equivalence);
+                } else {
+                    equivalence.addTrace(trace);
+                }
+                return equivalence;
+            }, equivalence => {
+                equivalence.incrementCount();
+            }, event => {
+                if (multiset[event] === undefined) {
+                    multiset[event] = 1;
+                } else {
+                    multiset[event] += 1;
+                }
+            });
         }
 
         return [];
@@ -26,23 +46,9 @@ export class AbelOracle {
         return result;
     }
 
-    private convertToEquivalence(trace: Trace): MultisetEquivalentTraces {
-        const equivalence = new MultisetEquivalentTraces(this.createTraceMultiset(trace));
+    private createEquivalence(trace: Trace, multiset: Multiset): MultisetEquivalentTraces {
+        const equivalence = new MultisetEquivalentTraces(multiset);
         equivalence.addTrace(trace);
         return equivalence;
-    }
-
-    private createTraceMultiset(trace: Trace): Multiset {
-        const result: Multiset = {};
-
-        for (const e of trace.events) {
-            if (result[e.name] === undefined) {
-                result[e.name] = 1;
-            } else {
-                result[e.name] += 1;
-            }
-        }
-
-        return result;
     }
 }
