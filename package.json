@@ -9,6 +9,7 @@
         "file-saver": "^2.0.5",
         "glpk.js": "^4.0.1",
         "jszip": "^3.9.1",
+        "object-hash": "^3.0.0",
         "rxjs": "~7.4.0"
     },
     "dependencies": {
