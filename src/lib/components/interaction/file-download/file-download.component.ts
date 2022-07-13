@@ -18,6 +18,7 @@ export class FileDownloadComponent {
     @Input() files: undefined | DropFile | Array<DropFile> = [];
     @Input() zipFileName = 'results';
     @Input() fileDisplay: FileDisplay | undefined;
+    @Input() dontZip = false;
 
     constructor() {
     }
@@ -52,7 +53,13 @@ export class FileDownloadComponent {
             // 1 file
             const file = Array.isArray(this.files) ? this.files[0] : this.files;
             saveAs(new Blob([file.content], {type: 'text/plain;charset=utf-8'}), file.name);
-        } else {
+            return;
+        }
+        if (this.dontZip) {
+            for (const file of this.files) {
+                saveAs(new Blob([file.content], {type: 'text/plain;charset=utf-8'}), file.name);
+            }
+        }else {
             // multiple files
             // TODO JSZip throws error when used like this in a library
             const zip = new JSZip();
