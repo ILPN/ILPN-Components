@@ -62,4 +62,8 @@ export class MultisetMap<T> {
     private hashKey(key: Multiset): string {
         return objectHash.sha1(key);
     }
+
+    public values(): Array<T & MultisetEquivalent> {
+        return Array.from(this._map.values()).flat();
+    }
 }

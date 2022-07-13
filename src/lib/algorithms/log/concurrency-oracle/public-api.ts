@@ -1,1 +1,1 @@
-export * from './αbel-oracle/αbel-oracle';
+export * from './αbel-oracle/αbel-oracle.service';
