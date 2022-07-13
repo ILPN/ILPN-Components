@@ -1,25 +1,21 @@
-import {Injectable} from '@angular/core';
-import {IncrementingCounter} from '../../../utility/incrementing-counter';
+import {IncrementingCounter} from '../../../../utility/incrementing-counter';
 import {BehaviorSubject, Observable, ReplaySubject, switchMap, take} from 'rxjs';
 import {GLPK, LP, Result} from 'glpk.js';
-import {PetriNet} from '../../../models/pn/model/petri-net';
-import {ProblemSolution} from './classes/problem-solution';
-import {Constraint, Goal, MessageLevel, Solution} from '../../../models/glpk/glpk-constants';
-import {SubjectTo} from '../../../models/glpk/subject-to';
-import {Arc} from '../../../models/pn/model/arc';
-import {Transition} from '../../../models/pn/model/transition';
-import {Variable} from '../../../models/glpk/variable';
-import {ConstraintsWithNewVariables} from './classes/constraints-with-new-variables';
-import {Bound} from '../../../models/glpk/bound';
-import {PetriNetRegionTransformerService} from './petri-net-region-transformer.service';
-import {CombinationResult} from './classes/combination-result';
-import {Region} from './classes/region';
-import {RegionsConfiguration} from './classes/regions-configuration';
-import {arraify} from '../../../utility/arraify';
+import {PetriNet} from '../../../../models/pn/model/petri-net';
+import {ProblemSolution} from './problem-solution';
+import {Constraint, Goal, MessageLevel, Solution} from '../../../../models/glpk/glpk-constants';
+import {SubjectTo} from '../../../../models/glpk/subject-to';
+import {Arc} from '../../../../models/pn/model/arc';
+import {Transition} from '../../../../models/pn/model/transition';
+import {Variable} from '../../../../models/glpk/variable';
+import {ConstraintsWithNewVariables} from './constraints-with-new-variables';
+import {Bound} from '../../../../models/glpk/bound';
+import {PetriNetRegionTransformerService} from '../petri-net-region-transformer.service';
+import {CombinationResult} from './combination-result';
+import {Region} from './region';
+import {RegionsConfiguration} from './regions-configuration';
+import {arraify} from '../../../../utility/arraify';
 
-@Injectable({
-    providedIn: 'root'
-})
 export class PetriNetRegionsService {
 
     // k and K defined as per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
@@ -30,25 +26,14 @@ export class PetriNetRegionsService {
 
     private readonly _constraintCounter: IncrementingCounter;
     private readonly _variableCounter: IncrementingCounter;
-    private readonly _solver: ReplaySubject<GLPK>;
     private _allVariables: Set<string>;
     private _placeVariables: Set<string>;
 
     constructor(private _regionTransformer: PetriNetRegionTransformerService) {
         this._constraintCounter = new IncrementingCounter();
         this._variableCounter = new IncrementingCounter();
-        this._solver = new ReplaySubject<GLPK>(1);
         this._allVariables = new Set<string>();
         this._placeVariables = new Set<string>();
-
-        // get the solver object
-        const promise = import('glpk.js');
-        promise.then(result => {
-            // @ts-ignore
-            result.default().then(glpk => {
-                this._solver.next(glpk);
-            });
-        });
     }
 
     public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration): Observable<Region> {
@@ -57,7 +42,8 @@ export class PetriNetRegionsService {
         const combined = this.combineInputNets(nets);
 
         const ilp$ = new BehaviorSubject(this.setUpInitialILP(combined, config));
-        ilp$.pipe(switchMap(ilp => this.solveILP(ilp))).subscribe((ps: ProblemSolution) => {
+        const solver$ = this.getSolver();
+        ilp$.pipe(switchMap(ilp => this.solveILP(solver$, ilp))).subscribe((ps: ProblemSolution) => {
             if (ps.solution.result.status === Solution.OPTIMAL) {
                 const region = this._regionTransformer.displayRegionInNet(ps.solution, combined.net);
 
@@ -70,10 +56,24 @@ export class PetriNetRegionsService {
                 console.debug('final non-optimal result', ps.solution);
                 regions$.complete();
                 ilp$.complete();
+                solver$.complete();
             }
         });
 
         return regions$.asObservable();
+    }
+
+    private getSolver(): ReplaySubject<GLPK> {
+        const result$ = new ReplaySubject<GLPK>(1);
+        // get the solver object
+        const promise = import('glpk.js');
+        promise.then(result => {
+            // @ts-ignore
+            result.default().then(glpk => {
+                result$.next(glpk);
+            });
+        });
+        return result$;
     }
 
     private combineInputNets(nets: Array<PetriNet>): CombinationResult {
@@ -630,10 +630,10 @@ export class PetriNetRegionsService {
         return 'c' + this._constraintCounter.next();
     }
 
-    private solveILP(ilp: LP): Observable<ProblemSolution> {
+    private solveILP(solver$: Observable<GLPK>, ilp: LP): Observable<ProblemSolution> {
         const result$ = new ReplaySubject<ProblemSolution>();
 
-        this._solver.asObservable().pipe(take(1)).subscribe(glpk => {
+        solver$.pipe(take(1)).subscribe(glpk => {
             const res = glpk.solve(ilp, {
                 msglev: MessageLevel.ERROR,
             }) as unknown as Promise<Result>;

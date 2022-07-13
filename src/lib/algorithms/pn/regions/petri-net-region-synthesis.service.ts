@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
-import {PetriNetRegionsService} from './petri-net-regions.service';
+import {PetriNetRegionsService} from './classes/petri-net-regions.service';
 import {Observable, ReplaySubject} from 'rxjs';
 import {SynthesisResult} from './classes/synthesis-result';
 import {RegionSynthesiser} from './classes/region-synthesiser';
