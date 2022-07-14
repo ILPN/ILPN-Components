@@ -26,31 +26,17 @@ export class RegionIlpSolver {
 
     private readonly _constraintCounter: IncrementingCounter;
     private readonly _variableCounter: IncrementingCounter;
-    private readonly _solver$: ReplaySubject<GLPK>;
     private _allVariables: Set<string>;
     private _placeVariables: Set<string>;
 
-    constructor(private _regionTransformer: PetriNetRegionTransformerService) {
+    constructor(private _regionTransformer: PetriNetRegionTransformerService, private _solver$: Observable<GLPK>) {
         this._constraintCounter = new IncrementingCounter();
         this._variableCounter = new IncrementingCounter();
-        this._solver$ = new ReplaySubject<GLPK>(1);
         this._allVariables = new Set<string>();
         this._placeVariables = new Set<string>();
-
-        // get the solver object
-        const promise = import('glpk.js');
-        promise.then(result => {
-            // @ts-ignore
-            result.default().then(glpk => {
-                this._solver$.next(glpk);
-            });
-        });
     }
 
     public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration): Observable<Region> {
-        if (this._solver$.closed) {
-            throw new Error('This instance is already exhausted. A new instance must be created to construct and solve another ILP problem');
-        }
 
         const regions$ = new ReplaySubject<Region>();
 
@@ -70,7 +56,6 @@ export class RegionIlpSolver {
                 console.debug('final non-optimal result', ps.solution);
                 regions$.complete();
                 ilp$.complete();
-                this._solver$.complete();
             }
         });
 

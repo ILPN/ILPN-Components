@@ -26,7 +26,7 @@ export class PetriNetSerialisationService {
         if (frequency === undefined) {
             return '';
         }
-        return `${BlockType.FREQUENCY} ${frequency}`;
+        return `${BlockType.FREQUENCY} ${frequency}\n`;
     }
 
     private serialiseTransitions(transitions: Array<Transition>): string {

@@ -74,7 +74,11 @@ export class AbelOracleService {
         const sequentialNets = traces.traces.map(t => this.convertTraceToPetriNet(t));
 
         return this._regionSynthesisService.synthesise(sequentialNets, {obtainPartialOrders: true}).pipe(
-            map(r => r.result)
+            map(r => {
+                const net = r.result;
+                net.frequency = traces.count;
+                return net;
+            })
         );
     }
 
