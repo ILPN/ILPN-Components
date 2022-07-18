@@ -12,11 +12,12 @@ import {Transition} from '../../../../models/pn/model/transition';
 import {Arc} from '../../../../models/pn/model/arc';
 import {forkJoin, map, Observable} from 'rxjs';
 import {TraceConversionResult} from './trace-conversion-result';
+import {ConcurrencyOracle} from '../concurrency-oracle';
 
 @Injectable({
     providedIn: 'root'
 })
-export class AbelOracleService {
+export class AbelOracleService implements ConcurrencyOracle {
 
     constructor(private _regionSynthesisService: PetriNetRegionSynthesisService) {
     }
