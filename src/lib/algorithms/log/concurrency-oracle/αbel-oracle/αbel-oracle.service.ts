@@ -13,6 +13,7 @@ import {Arc} from '../../../../models/pn/model/arc';
 import {forkJoin, map, Observable} from 'rxjs';
 import {TraceConversionResult} from './trace-conversion-result';
 import {ConcurrencyOracle} from '../concurrency-oracle';
+import {Relabeler} from '../../../../utility/relabeler';
 
 @Injectable({
     providedIn: 'root'
@@ -85,61 +86,17 @@ export class AbelOracleService implements ConcurrencyOracle {
     }
 
     private convertTracesToPetriNets(traces: Array<Trace>): TraceConversionResult {
-        const existingLabels = new Set<string>();
-        const labelCounter = new IncrementingCounter();
-        const labelMapping = new Map<string, string>();
-        const labelOrder = new Map<string, Array<string>>();
+        const relabeler = new Relabeler();
 
         const nets: Array<PetriNet> = traces.map(trace => {
             const netCounter = new IncrementingCounter();
             const net = new PetriNet();
-            const labelOrderIndex = new Map<string, number>();
 
             let lastPlace = new Place(`p${netCounter.next()}`, 0, 0, 0);
             net.addPlace(lastPlace);
 
             for (const event of trace.events) {
-
-                let label: string;
-                if (!existingLabels.has(event.name)) {
-                    // label encountered for the first time
-                    existingLabels.add(event.name);
-                    labelMapping.set(event.name, event.name);
-                    labelOrder.set(event.name, [event.name]);
-                    labelOrderIndex.set(event.name, 1);
-                    label = event.name;
-                } else {
-                    // relabeling required
-                    let newLabelIndex = labelOrderIndex.get(event.name);
-                    if (newLabelIndex === undefined) {
-                        newLabelIndex = 0;
-                    }
-
-                    let relabelingOrder = labelOrder.get(event.name);
-                    if (relabelingOrder === undefined) {
-                        // relabeling collision
-                        relabelingOrder = [];
-                        labelOrder.set(event.name, relabelingOrder);
-                        newLabelIndex = 0;
-                    }
-
-                    if (newLabelIndex >= relabelingOrder.length) {
-                        // new label must be generated
-                        let newLabel: string;
-                        do {
-                            newLabel = `${event.name}${labelCounter.next()}`;
-                        } while (existingLabels.has(newLabel));
-                        existingLabels.add(newLabel);
-                        relabelingOrder.push(newLabel);
-                        labelMapping.set(newLabel, event.name);
-                    }
-
-                    label = relabelingOrder[newLabelIndex];
-                    labelOrderIndex.set(event.name, newLabelIndex + 1);
-                }
-
-
-                const t = new Transition(`t${netCounter.next()}`, 0, 0, label);
+                const t = new Transition(`t${netCounter.next()}`, 0, 0, relabeler.getNewLabel(event.name));
                 net.addTransition(t);
                 net.addArc(new Arc(`a${netCounter.next()}`, lastPlace, t, 1));
                 lastPlace = new Place(`p${netCounter.next()}`, 0, 0, 0);
@@ -147,10 +104,11 @@ export class AbelOracleService implements ConcurrencyOracle {
                 net.addArc(new Arc(`a${netCounter.next()}`, t, lastPlace, 1));
             }
 
+            relabeler.restartSequence();
             return net;
         });
 
-        return new TraceConversionResult(nets, labelMapping);
+        return new TraceConversionResult(nets, relabeler.getLabelMapping());
     }
 
     private relabelNet(net: PetriNet, labelMapping: Map<string, string>): PetriNet {

@@ -6,3 +6,4 @@ export * from './algorithm-result';
 export * from './arraify';
 export * from './multiset-map';
 export * from './prefix-tree';
+export * from './relabeler';
