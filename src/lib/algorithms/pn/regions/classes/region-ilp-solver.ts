@@ -219,8 +219,8 @@ export class RegionIlpSolver {
             // place is internal OR place is initial/final
             const internalOrFinal = this.helperVariableName('internalOrFinal');
             result.push(ConstraintsWithNewVariables.combineAndIntroduceVariables(
-               [internalPlace, absRiseSumIsOne, internalOrFinal], undefined,
-               this.xAorB(internalOrFinal, internalPlace, absRiseSumIsOne)
+                [internalPlace, absRiseSumIsOne, internalOrFinal], undefined,
+                this.xAorB(internalOrFinal, internalPlace, absRiseSumIsOne)
             ));
 
             // place is internal OR place is initial/final must be true
@@ -573,6 +573,7 @@ export class RegionIlpSolver {
     }
 
     private equal(variables: Variable | Array<Variable>, value: number): ConstraintsWithNewVariables {
+        console.debug(`${this.formatVariableList(variables)} = ${value}`);
         return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.FIXED_VARIABLE, ub: value, lb: value}
@@ -580,6 +581,7 @@ export class RegionIlpSolver {
     }
 
     private greaterEqualThan(variables: Variable | Array<Variable>, lowerBound: number): ConstraintsWithNewVariables {
+        console.debug(`${this.formatVariableList(variables)} >= ${lowerBound}`);
         return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.LOWER_BOUND, ub: 0, lb: lowerBound}
@@ -587,6 +589,7 @@ export class RegionIlpSolver {
     }
 
     private lessEqualThan(variables: Variable | Array<Variable>, upperBound: number): ConstraintsWithNewVariables {
+        console.debug(`${this.formatVariableList(variables)} <= ${upperBound}`);
         return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.UPPER_BOUND, ub: upperBound, lb: 0}
@@ -594,10 +597,7 @@ export class RegionIlpSolver {
     }
 
     private sumEqualsZero(...variables: Array<Variable>): ConstraintsWithNewVariables {
-        return new ConstraintsWithNewVariables(this.constrain(
-            variables,
-            {type: Constraint.FIXED_VARIABLE, ub: 0, lb: 0}
-        ));
+        return this.equal(variables, 0);
     }
 
     private sumGreaterThan(variables: Array<Variable>, lowerBound: number): ConstraintsWithNewVariables {
@@ -630,5 +630,9 @@ export class RegionIlpSolver {
         });
 
         return result$.asObservable();
+    }
+
+    private formatVariableList(variables: Variable | Array<Variable>): string {
+        return arraify(variables).map(v => `${v.coef > 0 ? '+' : ''}${v.coef === -1 ? '-' : (v.coef === 1 ? '' : v.coef)}${v.name}`).join(' ');
     }
 }
