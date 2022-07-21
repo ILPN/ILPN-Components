@@ -122,6 +122,10 @@ export class PetriNet {
         return Array.from(this._transitions.values());
     }
 
+    public getTransitionsCount(): number {
+        return this._transitions.size;
+    }
+
     public addTransition(transition: Transition) {
         if (transition.id === undefined) {
             transition.id = createUniqueString('t', this._transitions, this._transitionCounter);

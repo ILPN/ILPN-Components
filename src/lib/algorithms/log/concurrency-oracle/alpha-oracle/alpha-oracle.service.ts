@@ -11,6 +11,13 @@ import {TraceConversionResult} from './trace-conversion-result';
 import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
 
+enum PartialOrderNetComparisonResult {
+    DIFFERENT,
+    SAME,
+    SUB_GRAPH
+}
+
+
 @Injectable({
     providedIn: 'root'
 })
@@ -23,6 +30,10 @@ export class AlphaOracleService implements ConcurrencyOracle {
     }
 
     determineConcurrency(log: Array<Trace>, config: AlphaOracleConfiguration = {}): Observable<Array<PetriNet>> {
+        if (log.length === 0) {
+            return of([]);
+        }
+
         const transformedTraces = this.convertLogToPetriNetSequences(log, config.lookAheadDistance);
         if (config.addStartStopEvent) {
             transformedTraces.nets.forEach(seq => {
@@ -30,9 +41,9 @@ export class AlphaOracleService implements ConcurrencyOracle {
             })
         }
         const partialOrders = this.convertSequencesToPartialOrders(transformedTraces);
-        // TODO filter & combine
+        const result = this.filterAndCombinePartialOrderNets(partialOrders, !!config.discardPrefixes);
 
-        return of(partialOrders);
+        return of(result);
     }
 
     private convertLogToPetriNetSequences(log: Array<Trace>, lookAheadDistance: number = 1): TraceConversionResult {
@@ -182,5 +193,37 @@ export class AlphaOracleService implements ConcurrencyOracle {
         }
 
         return sequence;
+    }
+
+    private filterAndCombinePartialOrderNets(nets: Array<PetriNet>, discardPrefixes: boolean): Array<PetriNet> {
+        // descending based on the number of transitions (events)
+        nets.sort((n1, n2) => n2.getTransitionsCount() - n1.getTransitionsCount());
+
+        const unique: Array<PetriNet> = [nets.shift()!];
+
+        for (const smallerNet of nets) {
+            let discard = false;
+            for (const largerNet of unique) {
+                const result = this.compareNets(smallerNet, largerNet, discardPrefixes);
+                switch (result) {
+                    case PartialOrderNetComparisonResult.SAME:
+                        discard = true;
+                        largerNet.frequency = largerNet.frequency! + smallerNet.frequency!;
+                        break;
+                    case PartialOrderNetComparisonResult.SUB_GRAPH:
+                        discard = true;
+                        break;
+                }
+            }
+            if (!discard) {
+                unique.push(smallerNet);
+            }
+        }
+
+        return unique;
+    }
+
+    private compareNets(smaller: PetriNet, larger: PetriNet, checkSubGraph: boolean): PartialOrderNetComparisonResult {
+
     }
 }
