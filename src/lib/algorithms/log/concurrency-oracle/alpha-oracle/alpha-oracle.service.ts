@@ -16,12 +16,19 @@ import {Transition} from '../../../../models/pn/model/transition';
 })
 export class AlphaOracleService implements ConcurrencyOracle {
 
+    public static readonly START_SYMBOL = '▶';
+    public static readonly STOP_SYMBOL = '■';
+
     constructor() {
     }
 
     determineConcurrency(log: Array<Trace>, config: AlphaOracleConfiguration = {}): Observable<Array<PetriNet>> {
         const transformedTraces = this.convertLogToPetriNetSequences(log, config.lookAheadDistance);
-        // TODO add start stop
+        if (config.addStartStopEvent) {
+            transformedTraces.nets.forEach(seq => {
+                this.addStartAndStopEvent(seq);
+            })
+        }
         const partialOrders = this.convertSequencesToPartialOrders(transformedTraces);
         // TODO filter & combine
 
@@ -67,6 +74,36 @@ export class AlphaOracleService implements ConcurrencyOracle {
             nets: Array.from(netSequences.values()),
             occurrenceMatrix: matrix
         };
+    }
+
+    private addStartAndStopEvent(sequenceNet: PetriNet) {
+        const firstLast = sequenceNet.getPlaces().filter(p => p.ingoingArcs.length === 0 || p.outgoingArcs.length === 0);
+        if (firstLast.length !== 2) {
+            console.debug(sequenceNet);
+            throw new Error('Illegal state. A sequence must have one start and one end place.');
+        }
+        let first, last: Place;
+        if (firstLast[0].ingoingArcs.length === 0) {
+            first = firstLast[0];
+            last = firstLast[1];
+        } else {
+            first = firstLast[1];
+            last = firstLast[0];
+        }
+
+        const preStart = new Place();
+        const start = new Transition(AlphaOracleService.START_SYMBOL);
+        sequenceNet.addPlace(preStart);
+        sequenceNet.addTransition(start);
+        sequenceNet.addArc(preStart, start);
+        sequenceNet.addArc(start, first);
+
+        const stop = new Transition(AlphaOracleService.STOP_SYMBOL);
+        const postStop = new Place();
+        sequenceNet.addTransition(stop);
+        sequenceNet.addPlace(postStop);
+        sequenceNet.addArc(last, stop);
+        sequenceNet.addArc(stop, postStop);
     }
 
     private convertSequencesToPartialOrders(sequencesAndConcurrencyInformation: TraceConversionResult): Array<PetriNet> {
