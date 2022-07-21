@@ -4,15 +4,14 @@ import {MouseListener} from './mouse-listener';
 import {Observable, Subject} from 'rxjs';
 import {Identifiable} from '../../../utility/get-by-id';
 
-export class Arc implements MouseListener, Identifiable {
-    private readonly _id: string;
+export class Arc extends Identifiable implements MouseListener {
     private readonly _source: Node;
     private readonly _destination: Node;
     private _weight: number;
     private readonly _breakpoints: Array<DragPoint>;
 
-    constructor(id: string, source: Node, destination: Node, weight: number) {
-        this._id = id;
+    constructor(source: Node, destination: Node, weight: number = 1, id?: string) {
+        super(id);
         this._source = source;
         this._destination = destination;
         this._weight = weight;
@@ -21,16 +20,12 @@ export class Arc implements MouseListener, Identifiable {
         this._destination.addIngoingArc(this);
     }
 
-    get id(): string {
-        return this._id;
-    }
-
     get sourceId(): string {
-        return this._source.id;
+        return this._source.getId();
     }
 
     get destinationId(): string {
-        return this._destination.id;
+        return this._destination.getId();
     }
 
     get source(): Node {

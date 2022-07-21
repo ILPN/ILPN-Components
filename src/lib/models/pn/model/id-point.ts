@@ -3,10 +3,9 @@ import {MouseListener} from './mouse-listener';
 import {Point} from './point';
 import {Identifiable} from '../../../utility/get-by-id';
 
-export class IdPoint implements Point, MouseListener, Identifiable {
+export class IdPoint extends Identifiable implements Point, MouseListener {
     private _x: number;
     private _y: number;
-    private readonly _id: string;
 
     private _dragging = false;
     private _lastPoint: Point | undefined;
@@ -19,10 +18,10 @@ export class IdPoint implements Point, MouseListener, Identifiable {
 
     private _redraw$: Subject<void> | undefined;
 
-    constructor(id: string, x: number, y: number) {
+    constructor(x: number, y: number, id?: string) {
+        super(id);
         this._x = x;
         this._y = y;
-        this._id = id;
         this._preDragPosition = {x, y};
     }
 
@@ -40,10 +39,6 @@ export class IdPoint implements Point, MouseListener, Identifiable {
 
     set y(value: number) {
         this._y = value;
-    }
-
-    get id(): string {
-        return this._id;
     }
 
     get center(): Point {

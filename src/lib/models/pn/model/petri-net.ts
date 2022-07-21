@@ -18,6 +18,10 @@ export class PetriNet {
 
     private _redraw$: Subject<void>;
 
+    private _placeCounter = new IncrementingCounter();
+    private _transitionCounter = new IncrementingCounter();
+    private _arcCounter = new IncrementingCounter();
+
     constructor() {
         this._places = new Map<string, Place>();
         this._transitions = new Map<string, Transition>();
@@ -31,10 +35,10 @@ export class PetriNet {
     public static createFromArcSubset(net: PetriNet, arcs: Array<Arc>): PetriNet {
         const result = new PetriNet();
         net.getPlaces().forEach(p => {
-            result.addPlace(new Place(p.id, p.x, p.y, p.marking));
+            result.addPlace(new Place(p.marking, p.x, p.y, p.id));
         });
         net.getTransitions().forEach(t => {
-            result.addTransition(new Transition(t.id, t.x, t.y, t.label));
+            result.addTransition(new Transition(t.label, t.x, t.y, t.id));
         });
         arcs.forEach(a => {
             let source;
@@ -46,7 +50,7 @@ export class PetriNet {
                 source = result.getTransition(a.sourceId) as Transition;
                 destination = result.getPlace(a.destinationId) as Place;
             }
-            result.addArc(new Arc(a.id, source, destination, a.weight));
+            result.addArc(new Arc(source, destination, a.weight, a.id));
         });
         return result;
     }
@@ -59,32 +63,32 @@ export class PetriNet {
         const transitionMap = new Map<string, string>();
 
         b.getPlaces().forEach(p => {
-            let mappedId = p.id;
+            let mappedId = p.getId();
             while (result.getPlace(mappedId) !== undefined) {
-                mappedId = p.id + counter.next();
+                mappedId = p.getId() + counter.next();
             }
-            placeMap.set(p.id, mappedId);
-            result.addPlace(new Place(mappedId, p.x, p.y, p.marking));
+            placeMap.set(p.getId(), mappedId);
+            result.addPlace(new Place(p.marking, p.x, p.y, mappedId));
         });
 
         b.getTransitions().forEach(t => {
-            let mappedId = t.id;
+            let mappedId = t.getId();
             while (result.getTransition(mappedId) !== undefined) {
-                mappedId = t.id + counter.next();
+                mappedId = t.getId() + counter.next();
             }
-            transitionMap.set(t.id, mappedId);
-            result.addTransition(new Transition(mappedId, t.x, t.y, t.label));
+            transitionMap.set(t.getId(), mappedId);
+            result.addTransition(new Transition(t.label, t.x, t.y, mappedId));
         });
 
         b.getArcs().forEach(arc => {
-            let arcId = arc.id;
+            let arcId = arc.getId();
             while (result.getArc(arcId) !== undefined) {
-                arcId = arc.id + counter.next();
+                arcId = arc.getId() + counter.next();
             }
             if (arc.source instanceof Place) {
-                result.addArc(new Arc(arcId, result.getPlace(placeMap.get(arc.sourceId) as string) as Place, result.getTransition(transitionMap.get(arc.destinationId) as string) as Transition, arc.weight));
+                result.addArc(new Arc(result.getPlace(placeMap.get(arc.sourceId) as string) as Place, result.getTransition(transitionMap.get(arc.destinationId) as string) as Transition, arc.weight, arcId));
             } else {
-                result.addArc(new Arc(arcId, result.getTransition(transitionMap.get(arc.sourceId) as string) as Transition, result.getPlace(placeMap.get(arc.destinationId) as string) as Place, arc.weight));
+                result.addArc(new Arc(result.getTransition(transitionMap.get(arc.sourceId) as string) as Transition, result.getPlace(placeMap.get(arc.destinationId) as string) as Place, arc.weight, arcId));
             }
         });
 
@@ -103,10 +107,10 @@ export class PetriNet {
 
     private static determineInOut(p: Place, input: Set<string>, output: Set<string>) {
         if (p.ingoingArcs.length === 0) {
-            input.add(p.id);
+            input.add(p.getId());
         }
         if (p.outgoingArcs.length === 0) {
-            output.add(p.id);
+            output.add(p.getId());
         }
     }
 
@@ -119,6 +123,9 @@ export class PetriNet {
     }
 
     public addTransition(transition: Transition) {
+        if (transition.id === undefined) {
+            transition.id = `t${this._transitionCounter.next()}`;
+        }
         this._transitions.set(transition.id, transition);
     }
 
@@ -131,6 +138,9 @@ export class PetriNet {
     }
 
     public addPlace(place: Place) {
+        if (place.id === undefined) {
+            place.id = `p${this._placeCounter.next()}`;
+        }
         this._places.set(place.id, place);
         this._inputPlaces.add(place.id);
         this._outputPlaces.add(place.id);
@@ -143,7 +153,7 @@ export class PetriNet {
         }
         place = p;
 
-        this._places.delete(place.id);
+        this._places.delete(place.getId());
         place.outgoingArcs.forEach(a => {
             this.removeArc(a);
         });
@@ -161,6 +171,9 @@ export class PetriNet {
     }
 
     public addArc(arc: Arc) {
+        if (arc.id === undefined) {
+            arc.id = `a${this._arcCounter.next()}`;
+        }
         this._arcs.set(arc.id, arc);
         if (arc.source instanceof Place) {
             this._outputPlaces.delete(arc.sourceId);
@@ -176,7 +189,7 @@ export class PetriNet {
         }
         arc = a;
 
-        this._arcs.delete(arc.id);
+        this._arcs.delete(arc.getId());
         arc.source.removeArc(arc);
         arc.destination.removeArc(arc);
     }

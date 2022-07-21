@@ -32,7 +32,7 @@ export class PetriNetSerialisationService {
     private serialiseTransitions(transitions: Array<Transition>): string {
         let result = `${BlockType.TRANSITIONS}\n`;
         transitions.forEach(t => {
-            result += `${this.removeSpaces(t.id, t.id)} ${this.removeSpaces(t.label ?? '', t.id)}\n`;
+            result += `${this.removeSpaces(t.getId(), t.getId())} ${this.removeSpaces(t.label ?? '', t.getId())}\n`;
         });
         return result;
     }
@@ -40,7 +40,7 @@ export class PetriNetSerialisationService {
     private serialisePlaces(places: Array<Place>): string {
         let result = `${BlockType.PLACES}\n`;
         places.forEach(p => {
-            result += `${this.removeSpaces(p.id, p.id)} ${p.marking}\n`;
+            result += `${this.removeSpaces(p.getId(), p.getId())} ${p.marking}\n`;
         });
         return result;
     }
@@ -48,7 +48,7 @@ export class PetriNetSerialisationService {
     private serialiseArcs(arcs: Array<Arc>): string {
         let result = `${BlockType.ARCS}\n`;
         arcs.forEach(a => {
-            result += `${this.removeSpaces(a.sourceId, a.id)} ${this.removeSpaces(a.destinationId, a.id)}`;
+            result += `${this.removeSpaces(a.sourceId, a.getId())} ${this.removeSpaces(a.destinationId, a.getId())}`;
             if (a.weight > 1) {
                 result += ` ${a.weight}`;
             }

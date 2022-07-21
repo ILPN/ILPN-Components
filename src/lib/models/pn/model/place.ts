@@ -4,8 +4,8 @@ export class Place extends Node {
 
     private _marking: number;
 
-    constructor(id: string, x: number, y: number, marking: number) {
-        super(id, x, y);
+    constructor(marking: number = 0, x: number = 0, y: number = 0, id?: string) {
+        super(x, y, id);
         this._marking = marking;
     }
 

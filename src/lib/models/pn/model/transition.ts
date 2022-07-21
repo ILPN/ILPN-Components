@@ -4,8 +4,8 @@ export class Transition extends Node {
 
     private _label: string | undefined;
 
-    constructor(id: string, x: number, y: number, label?: string) {
-        super(id, x, y);
+    constructor(label?: string, x: number = 0, y: number = 0, id?: string) {
+        super(x, y, id);
         this._label = label;
     }
 

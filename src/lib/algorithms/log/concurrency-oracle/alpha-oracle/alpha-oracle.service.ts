@@ -7,7 +7,7 @@ import {AlphaOracleConfiguration} from './alpha-oracle-configuration';
 import {OccurrenceMatrix} from './occurrence-matrix';
 import {PrefixTree} from '../../../../utility/prefix-tree';
 import {PetriNetSequence} from './petri-net-sequence';
-import {createUniqueName, IncrementingCounter} from '../../../../utility/incrementing-counter';
+import {IncrementingCounter} from '../../../../utility/incrementing-counter';
 import {TraceConversionResult} from './trace-conversion-result';
 import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
@@ -78,9 +78,6 @@ export class AlphaOracleService implements ConcurrencyOracle {
 
     private convertSequenceToPartialOrder(sequence: PetriNet, hasOccurredInOrder: OccurrenceMatrix): PetriNet {
         const placeQueue = sequence.getPlaces();
-        const placeIds = new Set<string>(placeQueue.map(p => p.id));
-        const arcIds = new Set<string>(sequence.getArcs().map(a => a.id));
-        const counter = new IncrementingCounter();
 
         while (placeQueue.length > 0) {
             const place = placeQueue.shift() as Place;
@@ -114,15 +111,15 @@ export class AlphaOracleService implements ConcurrencyOracle {
                     }
                 }
 
-                const clone = new Place(createUniqueName('p', placeIds, counter),0,0,0);
+                const clone = new Place();
                 sequence.addPlace(clone);
                 placeQueue.push(clone);
 
                 for (const inArc of inPlace.ingoingArcs) {
-                    sequence.addArc(new Arc(createUniqueName('a', arcIds, counter), inArc.source, clone, 1));
+                    sequence.addArc(new Arc(inArc.source, clone));
                 }
 
-                sequence.addArc(new Arc(createUniqueName('a', arcIds, counter), clone, postEvent, 1))
+                sequence.addArc(new Arc(clone, postEvent))
             }
 
             for (const a of postEvent.outgoingArcs) {
@@ -138,15 +135,15 @@ export class AlphaOracleService implements ConcurrencyOracle {
                     }
                 }
 
-                const clone = new Place(createUniqueName('p', placeIds, counter),0,0,0);
+                const clone = new Place();
                 sequence.addPlace(clone);
                 placeQueue.push(clone);
 
                 for (const outArc of outPlace.outgoingArcs) {
-                    sequence.addArc(new Arc(createUniqueName('a', arcIds, counter), clone, outArc.destination, 1));
+                    sequence.addArc(new Arc(clone, outArc.destination));
                 }
 
-                sequence.addArc(new Arc(createUniqueName('a', arcIds, counter), preEvent, clone, 1))
+                sequence.addArc(new Arc(preEvent, clone))
             }
         }
 

@@ -84,7 +84,7 @@ export class RegionIlpSolver {
     private setUpInitialILP(combined: CombinationResult, config: RegionsConfiguration): LP {
         const net = combined.net;
 
-        this._placeVariables = new Set(net.getPlaces().map(p => p.id));
+        this._placeVariables = new Set(net.getPlaces().map(p => p.getId()));
         this._allVariables = new Set<string>(this._placeVariables);
 
         const initial: LP = {
@@ -92,7 +92,7 @@ export class RegionIlpSolver {
             objective: {
                 name: 'region',
                 direction: Goal.MINIMUM,
-                vars: net.getPlaces().map(p => this.variable(p.id)),
+                vars: net.getPlaces().map(p => this.variable(p.getId())),
             },
             subjectTo: [],
         };
@@ -124,10 +124,10 @@ export class RegionIlpSolver {
         const result: Array<ConstraintsWithNewVariables> = [];
 
         // only non-negative solutions
-        result.push(...net.getPlaces().map(p => this.greaterEqualThan(this.variable(p.id), 0)));
+        result.push(...net.getPlaces().map(p => this.greaterEqualThan(this.variable(p.getId()), 0)));
 
         // non-zero solutions
-        result.push(this.greaterEqualThan(net.getPlaces().map(p => this.variable(p.id)), 1));
+        result.push(this.greaterEqualThan(net.getPlaces().map(p => this.variable(p.getId())), 1));
 
         // initial markings must be the same
         if (combined.inputs.length > 1) {
@@ -140,7 +140,7 @@ export class RegionIlpSolver {
 
         // places with no post-set should be empty
         if (config.noOutputPlaces) {
-            result.push(...net.getPlaces().filter(p => p.outgoingArcs.length === 0).map(p => this.lessEqualThan(this.variable(p.id), 0)));
+            result.push(...net.getPlaces().filter(p => p.outgoingArcs.length === 0).map(p => this.lessEqualThan(this.variable(p.getId()), 0)));
         }
 
         // gradient constraints

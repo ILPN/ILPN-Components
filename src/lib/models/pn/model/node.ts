@@ -10,8 +10,8 @@ export class Node extends IdPoint {
     private readonly _ingoingArcWeights: Map<string, number>;
     private readonly _outgoingArcWeights: Map<string, number>;
 
-    constructor(id: string, x: number, y: number) {
-        super(id, x, y);
+    constructor(x: number, y: number, id?: string) {
+        super(x, y, id);
         this._ingoingArcs = new Map<string, Arc>();
         this._outgoingArcs = new Map<string, Arc>();
         this._ingoingArcWeights = new Map<string, number>();
@@ -35,25 +35,25 @@ export class Node extends IdPoint {
     }
 
     public addOutgoingArc(arc: Arc) {
-        this._outgoingArcs.set(arc.id, arc);
+        this._outgoingArcs.set(arc.getId(), arc);
         this._outgoingArcWeights.set(arc.destinationId, arc.weight);
     }
 
     public addIngoingArc(arc: Arc) {
-        this._ingoingArcs.set(arc.id, arc);
+        this._ingoingArcs.set(arc.getId(), arc);
         this._ingoingArcWeights.set(arc.sourceId, arc.weight);
     }
 
     public removeArc(arc: Arc | string) {
         let a = getById(this._ingoingArcs, arc);
         if (a !== undefined) {
-            this._ingoingArcs.delete(a.id);
-            this._ingoingArcWeights.delete(a.id);
+            this._ingoingArcs.delete(a.getId());
+            this._ingoingArcWeights.delete(a.getId());
         }
         a = getById(this._outgoingArcs, arc);
         if (a !== undefined) {
-            this._outgoingArcs.delete(a.id);
-            this._outgoingArcWeights.delete(a.id);
+            this._outgoingArcs.delete(a.getId());
+            this._outgoingArcWeights.delete(a.getId());
         }
     }
 }

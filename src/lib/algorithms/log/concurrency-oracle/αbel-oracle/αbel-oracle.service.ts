@@ -92,16 +92,16 @@ export class AbelOracleService implements ConcurrencyOracle {
             const netCounter = new IncrementingCounter();
             const net = new PetriNet();
 
-            let lastPlace = new Place(`p${netCounter.next()}`, 0, 0, 0);
+            let lastPlace = new Place();
             net.addPlace(lastPlace);
 
             for (const event of trace.events) {
-                const t = new Transition(`t${netCounter.next()}`, 0, 0, relabeler.getNewLabel(event.name));
+                const t = new Transition(relabeler.getNewLabel(event.name));
                 net.addTransition(t);
-                net.addArc(new Arc(`a${netCounter.next()}`, lastPlace, t, 1));
-                lastPlace = new Place(`p${netCounter.next()}`, 0, 0, 0);
+                net.addArc(new Arc(lastPlace, t));
+                lastPlace = new Place();
                 net.addPlace(lastPlace);
-                net.addArc(new Arc(`a${netCounter.next()}`, t, lastPlace, 1));
+                net.addArc(new Arc(t, lastPlace));
             }
 
             relabeler.restartSequence();

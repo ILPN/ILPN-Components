@@ -5,8 +5,8 @@ export class DragPoint extends IdPoint {
 
     private _arc: Arc | undefined;
 
-    constructor(id: string, x: number, y: number) {
-        super(id, x, y);
+    constructor(x: number, y: number, id?: string) {
+        super(x, y, id);
     }
 
     public addArcRef(arc: Arc) {

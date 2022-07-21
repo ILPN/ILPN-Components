@@ -11,7 +11,7 @@ export class PetriNetSequence {
 
     constructor() {
         this._net = new PetriNet();
-        this._lastPlace = new Place('p', 0, 0, 0);
+        this._lastPlace = new Place();
         this._net.addPlace(this._lastPlace);
     }
 
@@ -22,16 +22,16 @@ export class PetriNetSequence {
     public clone(): PetriNetSequence {
         const clone = new PetriNetSequence();
         clone._net = this._net.clone();
-        clone._lastPlace = clone._net.getPlace(this._lastPlace.id)!;
+        clone._lastPlace = clone._net.getPlace(this._lastPlace.getId())!;
         return clone;
     }
 
     public appendTransition(label: string, counter: IncrementingCounter) {
-        const t = new Transition(`t${counter.next()}`, 0, 0, label);
+        const t = new Transition(label);
         this._net.addTransition(t);
-        this._net.addArc(new Arc(`a${counter.next()}`, this._lastPlace, t, 1));
-        this._lastPlace = new Place(`p${counter.next()}`, 0, 0, 0);
+        this._net.addArc(new Arc(this._lastPlace, t));
+        this._lastPlace = new Place();
         this._net.addPlace(this._lastPlace);
-        this._net.addArc(new Arc(`a${counter.next()}`, t, this._lastPlace, 1));
+        this._net.addArc(new Arc(t, this._lastPlace));
     }
 }

@@ -52,7 +52,7 @@ export class PetriNetParserService extends AbstractParser<PetriNet> {
             if (net.getPlace(parts[0]) !== undefined || net.getTransition(parts[0]) !== undefined) {
                 throw new Error(`line '${line}' place ids must be unique!`);
             }
-            const place = new Place(parts[0], 0, 0, initialMarking);
+            const place = new Place(initialMarking, 0, 0, parts[0]);
             net.addPlace(place);
         });
     }
@@ -65,7 +65,7 @@ export class PetriNetParserService extends AbstractParser<PetriNet> {
             if (net.getTransition(parts[0]) !== undefined || net.getPlace(parts[0]) !== undefined) {
                 throw new Error(`line '${line}' transition ids must be unique!`);
             }
-            net.addTransition(new Transition(parts[0], 0, 0, parts[1]))
+            net.addTransition(new Transition(parts[1], 0, 0, parts[0]))
         });
     }
 
@@ -91,7 +91,7 @@ export class PetriNetParserService extends AbstractParser<PetriNet> {
                 throw new Error(`line '${line}' duplicate arcs between elements are not allowed!`);
             }
 
-            const arc = new Arc(arcId, srcDest.source, srcDest.destination, weight);
+            const arc = new Arc(srcDest.source, srcDest.destination, weight, arcId);
             net.addArc(arc);
         });
     }

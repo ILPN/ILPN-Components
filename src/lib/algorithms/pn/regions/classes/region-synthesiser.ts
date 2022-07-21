@@ -41,7 +41,7 @@ export class RegionSynthesiser {
 
         // extract places and arcs from regions
         for (const region of this._regions) {
-            const place = this.place(region.inputs.reduce((sum, id) => sum + region.net.getPlace(id)!.marking, 0));
+            const place = new Place(region.inputs.reduce((sum, id) => sum + region.net.getPlace(id)!.marking, 0))
 
             const gradients = new Map<string, number>();
             for (const t of region.net.getTransitions()) {
@@ -71,14 +71,6 @@ export class RegionSynthesiser {
         return new Transition(label, 0, 0, label);
     }
 
-    private place(marking: number): Place {
-        return new Place('p' + this._counter.next(), 0, 0, marking);
-    }
-
-    private arc(source: Node, destination: Node, weight: number): Arc {
-        return new Arc('a' + this._counter.next(), source, destination, weight);
-    }
-
     private computeGradient(transition: Transition): number {
         let gradient = 0;
         for (const a of transition.outgoingArcs) {
@@ -98,9 +90,9 @@ export class RegionSynthesiser {
         const transition = <Transition>net.getTransition(label);
 
         if (gradient > 0) {
-            net.addArc(this.arc(transition, place, gradient));
+            net.addArc(new Arc(transition, place, gradient));
         } else {
-            net.addArc(this.arc(place, transition, -gradient));
+            net.addArc(new Arc(place, transition, -gradient));
         }
     }
 
