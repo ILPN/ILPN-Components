@@ -91,7 +91,7 @@ export class PetriNetParserService extends AbstractParser<PetriNet> {
                 throw new Error(`line '${line}' duplicate arcs between elements are not allowed!`);
             }
 
-            const arc = new Arc(srcDest.source, srcDest.destination, weight, arcId);
+            const arc = new Arc(arcId, srcDest.source, srcDest.destination, weight);
             net.addArc(arc);
         });
     }

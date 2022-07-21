@@ -7,11 +7,9 @@ import {AlphaOracleConfiguration} from './alpha-oracle-configuration';
 import {OccurrenceMatrix} from './occurrence-matrix';
 import {PrefixTree} from '../../../../utility/prefix-tree';
 import {PetriNetSequence} from './petri-net-sequence';
-import {IncrementingCounter} from '../../../../utility/incrementing-counter';
 import {TraceConversionResult} from './trace-conversion-result';
 import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
-import {Arc} from '../../../../models/pn/model/arc';
 
 @Injectable({
     providedIn: 'root'
@@ -34,7 +32,6 @@ export class AlphaOracleService implements ConcurrencyOracle {
         const netSequences = new Set<PetriNet>();
         const tree = new PrefixTree<PetriNetSequence>(new PetriNetSequence());
         const matrix = new OccurrenceMatrix();
-        const counter = new IncrementingCounter();
 
         for (const trace of log) {
             const prefix: Array<string> = [];
@@ -60,7 +57,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
 
                     // create new node
                     const newNode = previousNode!.clone();
-                    newNode.appendTransition(step, counter);
+                    newNode.appendTransition(step);
                     return newNode;
                 }
             );
@@ -116,10 +113,10 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 placeQueue.push(clone);
 
                 for (const inArc of inPlace.ingoingArcs) {
-                    sequence.addArc(new Arc(inArc.source, clone));
+                    sequence.addArc(inArc.source as Transition, clone);
                 }
 
-                sequence.addArc(new Arc(clone, postEvent))
+                sequence.addArc(clone, postEvent)
             }
 
             for (const a of postEvent.outgoingArcs) {
@@ -140,10 +137,10 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 placeQueue.push(clone);
 
                 for (const outArc of outPlace.outgoingArcs) {
-                    sequence.addArc(new Arc(clone, outArc.destination));
+                    sequence.addArc(clone, outArc.destination as Transition);
                 }
 
-                sequence.addArc(new Arc(preEvent, clone))
+                sequence.addArc(preEvent, clone)
             }
         }
 

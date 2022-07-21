@@ -10,7 +10,7 @@ export class Arc extends Identifiable implements MouseListener {
     private _weight: number;
     private readonly _breakpoints: Array<DragPoint>;
 
-    constructor(source: Node, destination: Node, weight: number = 1, id?: string) {
+    constructor(id: string, source: Node, destination: Node, weight: number = 1) {
         super(id);
         this._source = source;
         this._destination = destination;

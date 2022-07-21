@@ -50,7 +50,7 @@ export class PetriNet {
                 source = result.getTransition(a.sourceId) as Transition;
                 destination = result.getPlace(a.destinationId) as Place;
             }
-            result.addArc(new Arc(source, destination, a.weight, a.id));
+            result.addArc(new Arc(a.getId(), source, destination, a.weight));
         });
         return result;
     }
@@ -86,9 +86,9 @@ export class PetriNet {
                 arcId = arc.getId() + counter.next();
             }
             if (arc.source instanceof Place) {
-                result.addArc(new Arc(result.getPlace(placeMap.get(arc.sourceId) as string) as Place, result.getTransition(transitionMap.get(arc.destinationId) as string) as Transition, arc.weight, arcId));
+                result.addArc(new Arc(arcId, result.getPlace(placeMap.get(arc.sourceId) as string) as Place, result.getTransition(transitionMap.get(arc.destinationId) as string) as Transition, arc.weight));
             } else {
-                result.addArc(new Arc(result.getTransition(transitionMap.get(arc.sourceId) as string) as Transition, result.getPlace(placeMap.get(arc.destinationId) as string) as Place, arc.weight, arcId));
+                result.addArc(new Arc(arcId, result.getTransition(transitionMap.get(arc.sourceId) as string) as Transition, result.getPlace(placeMap.get(arc.destinationId) as string) as Place, arc.weight));
             }
         });
 
@@ -170,15 +170,19 @@ export class PetriNet {
         return Array.from(this._arcs.values());
     }
 
-    public addArc(arc: Arc) {
-        if (arc.id === undefined) {
-            arc.id = `a${this._arcCounter.next()}`;
-        }
-        this._arcs.set(arc.id, arc);
-        if (arc.source instanceof Place) {
-            this._outputPlaces.delete(arc.sourceId);
-        } else if (arc.destination instanceof Place) {
-            this._inputPlaces.delete(arc.destinationId);
+    public addArc(arc: Arc): void;
+    public addArc(source: Transition, destination: Place, weight?: number): void;
+    public addArc(source: Place, destination: Transition, weight?: number): void;
+    public addArc(arcOrSource: Arc | Transition | Place, destination?: Place | Transition, weight: number = 1) {
+        if (arcOrSource instanceof Arc) {
+            this._arcs.set(arcOrSource.getId(), arcOrSource);
+            if (arcOrSource.source instanceof Place) {
+                this._outputPlaces.delete(arcOrSource.sourceId);
+            } else if (arcOrSource.destination instanceof Place) {
+                this._inputPlaces.delete(arcOrSource.destinationId);
+            }
+        } else {
+            this.addArc(new Arc(`a${this._arcCounter.next()}`, arcOrSource, destination!, weight));
         }
     }
 

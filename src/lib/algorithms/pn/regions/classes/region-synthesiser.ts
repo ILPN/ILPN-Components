@@ -2,8 +2,6 @@ import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {IncrementingCounter} from '../../../../utility/incrementing-counter';
 import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
-import {Arc} from '../../../../models/pn/model/arc';
-import {Node} from '../../../../models/pn/model/node';
 import {Region} from './region';
 
 export class RegionSynthesiser {
@@ -90,9 +88,9 @@ export class RegionSynthesiser {
         const transition = <Transition>net.getTransition(label);
 
         if (gradient > 0) {
-            net.addArc(new Arc(transition, place, gradient));
+            net.addArc(transition, place, gradient);
         } else {
-            net.addArc(new Arc(place, transition, -gradient));
+            net.addArc(place, transition, -gradient);
         }
     }
 

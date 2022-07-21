@@ -9,7 +9,6 @@ import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {IncrementingCounter} from '../../../../utility/incrementing-counter';
 import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
-import {Arc} from '../../../../models/pn/model/arc';
 import {forkJoin, map, Observable} from 'rxjs';
 import {TraceConversionResult} from './trace-conversion-result';
 import {ConcurrencyOracle} from '../concurrency-oracle';
@@ -98,10 +97,10 @@ export class AbelOracleService implements ConcurrencyOracle {
             for (const event of trace.events) {
                 const t = new Transition(relabeler.getNewLabel(event.name));
                 net.addTransition(t);
-                net.addArc(new Arc(lastPlace, t));
+                net.addArc(lastPlace, t);
                 lastPlace = new Place();
                 net.addPlace(lastPlace);
-                net.addArc(new Arc(t, lastPlace));
+                net.addArc(t, lastPlace);
             }
 
             relabeler.restartSequence();
