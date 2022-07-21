@@ -2,8 +2,9 @@ import {Node} from './node';
 import {DragPoint} from './drag-point';
 import {MouseListener} from './mouse-listener';
 import {Observable, Subject} from 'rxjs';
+import {Identifiable} from '../../../utility/get-by-id';
 
-export class Arc implements MouseListener {
+export class Arc implements MouseListener, Identifiable {
     private readonly _id: string;
     private readonly _source: Node;
     private readonly _destination: Node;

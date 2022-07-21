@@ -4,6 +4,7 @@ import {Arc} from './arc';
 import {Observable, Subject} from 'rxjs';
 import {IncrementingCounter} from '../../../utility/incrementing-counter';
 import {NetUnionResult} from './net-union-result';
+import {getById} from '../../../utility/get-by-id';
 
 export class PetriNet {
     private _places: Map<string, Place>;
@@ -135,6 +136,22 @@ export class PetriNet {
         this._outputPlaces.add(place.id);
     }
 
+    public removePlace(place: Place | string) {
+        const p = getById(this._places, place);
+        if (p === undefined) {
+            return;
+        }
+        place = p;
+
+        this._places.delete(place.id);
+        place.outgoingArcs.forEach(a => {
+            this.removeArc(a);
+        });
+        place.ingoingArcs.forEach(a => {
+            this.removeArc(a);
+        });
+    }
+
     public getArc(id: string): Arc | undefined {
         return this._arcs.get(id);
     }
@@ -150,6 +167,18 @@ export class PetriNet {
         } else if (arc.destination instanceof Place) {
             this._inputPlaces.delete(arc.destinationId);
         }
+    }
+
+    public removeArc(arc: Arc | string) {
+        const a = getById(this._arcs, arc);
+        if (a === undefined) {
+            return;
+        }
+        arc = a;
+
+        this._arcs.delete(arc.id);
+        arc.source.removeArc(arc);
+        arc.destination.removeArc(arc);
     }
 
     get frequency(): number | undefined {

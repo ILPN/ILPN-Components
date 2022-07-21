@@ -1,28 +1,29 @@
 import {Arc} from './arc';
 import {IdPoint} from './id-point';
+import {getById} from '../../../utility/get-by-id';
 
 export class Node extends IdPoint {
 
-    private readonly _ingoingArcs: Array<Arc>;
-    private readonly _outgoingArcs: Array<Arc>;
+    private readonly _ingoingArcs: Map<string, Arc>;
+    private readonly _outgoingArcs: Map<string, Arc>;
 
     private readonly _ingoingArcWeights: Map<string, number>;
     private readonly _outgoingArcWeights: Map<string, number>;
 
     constructor(id: string, x: number, y: number) {
         super(id, x, y);
-        this._ingoingArcs = [];
-        this._outgoingArcs = [];
+        this._ingoingArcs = new Map<string, Arc>();
+        this._outgoingArcs = new Map<string, Arc>();
         this._ingoingArcWeights = new Map<string, number>();
         this._outgoingArcWeights = new Map<string, number>();
     }
 
     get ingoingArcs(): Array<Arc> {
-        return this._ingoingArcs;
+        return Array.from(this._ingoingArcs.values());
     }
 
     get outgoingArcs(): Array<Arc> {
-        return this._outgoingArcs;
+        return Array.from(this._outgoingArcs.values());
     }
 
     get ingoingArcWeights(): Map<string, number> {
@@ -34,12 +35,25 @@ export class Node extends IdPoint {
     }
 
     public addOutgoingArc(arc: Arc) {
-        this._outgoingArcs.push(arc);
+        this._outgoingArcs.set(arc.id, arc);
         this._outgoingArcWeights.set(arc.destinationId, arc.weight);
     }
 
     public addIngoingArc(arc: Arc) {
-        this._ingoingArcs.push(arc);
+        this._ingoingArcs.set(arc.id, arc);
         this._ingoingArcWeights.set(arc.sourceId, arc.weight);
+    }
+
+    public removeArc(arc: Arc | string) {
+        let a = getById(this._ingoingArcs, arc);
+        if (a !== undefined) {
+            this._ingoingArcs.delete(a.id);
+            this._ingoingArcWeights.delete(a.id);
+        }
+        a = getById(this._outgoingArcs, arc);
+        if (a !== undefined) {
+            this._outgoingArcs.delete(a.id);
+            this._outgoingArcWeights.delete(a.id);
+        }
     }
 }
