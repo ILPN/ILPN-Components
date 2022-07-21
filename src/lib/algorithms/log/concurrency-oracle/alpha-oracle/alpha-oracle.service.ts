@@ -105,6 +105,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 const inPlace = a.source as Place;
                 const clone = new Place(createUniqueName('p', placeIds, counter),0,0,0);
                 sequence.addPlace(clone);
+                placeQueue.push(clone);
 
                 for (const inArc of inPlace.ingoingArcs) {
                     sequence.addArc(new Arc(createUniqueName('a', arcIds, counter), inArc.source, clone, 1));
@@ -117,6 +118,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 const outPlace = a.destination as Place;
                 const clone = new Place(createUniqueName('p', placeIds, counter),0,0,0);
                 sequence.addPlace(clone);
+                placeQueue.push(clone);
 
                 for (const outArc of outPlace.outgoingArcs) {
                     sequence.addArc(new Arc(createUniqueName('a', arcIds, counter), clone, outArc.destination, 1));
@@ -125,5 +127,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 sequence.addArc(new Arc(createUniqueName('a', arcIds, counter), preEvent, clone, 1))
             }
         }
+
+        return sequence;
     }
 }
