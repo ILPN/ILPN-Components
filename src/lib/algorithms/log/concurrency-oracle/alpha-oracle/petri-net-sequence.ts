@@ -29,9 +29,9 @@ export class PetriNetSequence {
     public appendTransition(label: string, counter: IncrementingCounter) {
         const t = new Transition(`t${counter.next()}`, 0, 0, label);
         this._net.addTransition(t);
-        this._net.addArc(new Arc(`a${counter}`, this._lastPlace, t, 1));
+        this._net.addArc(new Arc(`a${counter.next()}`, this._lastPlace, t, 1));
         this._lastPlace = new Place(`p${counter.next()}`, 0, 0, 0);
         this._net.addPlace(this._lastPlace);
-        this._net.addArc(new Arc(`a${counter}`, t, this._lastPlace, 1));
+        this._net.addArc(new Arc(`a${counter.next()}`, t, this._lastPlace, 1));
     }
 }
