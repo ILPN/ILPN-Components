@@ -25,10 +25,6 @@ export function getById<T extends Identifiable>(map: Map<string, T>, object: T |
     if (typeof object === 'string') {
         return map.get(object);
     } else {
-        if (object.id === undefined) {
-            console.debug(object);
-            throw new Error('id is undefined!');
-        }
-        return map.get(object.id);
+        return map.get(object.getId());
     }
 }
