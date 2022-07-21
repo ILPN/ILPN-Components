@@ -51,7 +51,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 (step, previousNode) => {
                     // occurrence matrix
                     if (prefix.length > lookAheadDistance) {
-                        prefix.unshift();
+                        prefix.shift();
                     }
                     for (const e of prefix) {
                         matrix.set(e, step);
@@ -103,6 +103,17 @@ export class AlphaOracleService implements ConcurrencyOracle {
 
             for (const a of preEvent.ingoingArcs) {
                 const inPlace = a.source as Place;
+
+                if (inPlace.ingoingArcs.length === 0 && postEvent.ingoingArcs.some(a => a.source.ingoingArcs.length === 0)) {
+                    continue;
+                }
+                if (inPlace.ingoingArcs.length > 0) {
+                    const inTransId = inPlace.ingoingArcs[0].source.id;
+                    if (postEvent.ingoingArcs.some(a => a.source.id === inTransId)) {
+                        continue;
+                    }
+                }
+
                 const clone = new Place(createUniqueName('p', placeIds, counter),0,0,0);
                 sequence.addPlace(clone);
                 placeQueue.push(clone);
@@ -116,6 +127,17 @@ export class AlphaOracleService implements ConcurrencyOracle {
 
             for (const a of postEvent.outgoingArcs) {
                 const outPlace = a.destination as Place;
+
+                if (outPlace.outgoingArcs.length === 0 && preEvent.outgoingArcs.some(a => a.destination.outgoingArcs.length === 0)) {
+                    continue;
+                }
+                if (outPlace.outgoingArcs.length > 0) {
+                    const outTransId = outPlace.outgoingArcs[0].destination.id;
+                    if (preEvent.outgoingArcs.some(a => a.destination.id === outTransId)) {
+                        continue;
+                    }
+                }
+
                 const clone = new Place(createUniqueName('p', placeIds, counter),0,0,0);
                 sequence.addPlace(clone);
                 placeQueue.push(clone);
