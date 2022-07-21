@@ -2,7 +2,7 @@ import {Place} from './place';
 import {Transition} from './transition';
 import {Arc} from './arc';
 import {Observable, Subject} from 'rxjs';
-import {IncrementingCounter} from '../../../utility/incrementing-counter';
+import {createUniqueString, IncrementingCounter} from '../../../utility/incrementing-counter';
 import {NetUnionResult} from './net-union-result';
 import {getById} from '../../../utility/get-by-id';
 
@@ -124,7 +124,7 @@ export class PetriNet {
 
     public addTransition(transition: Transition) {
         if (transition.id === undefined) {
-            transition.id = `t${this._transitionCounter.next()}`;
+            transition.id = createUniqueString('t', this._transitions, this._transitionCounter);
         }
         this._transitions.set(transition.id, transition);
     }
@@ -139,7 +139,7 @@ export class PetriNet {
 
     public addPlace(place: Place) {
         if (place.id === undefined) {
-            place.id = `p${this._placeCounter.next()}`;
+            place.id = createUniqueString('p', this._places, this._placeCounter);
         }
         this._places.set(place.id, place);
         this._inputPlaces.add(place.id);
@@ -182,7 +182,7 @@ export class PetriNet {
                 this._inputPlaces.delete(arcOrSource.destinationId);
             }
         } else {
-            this.addArc(new Arc(`a${this._arcCounter.next()}`, arcOrSource, destination!, weight));
+            this.addArc(new Arc(createUniqueString('a', this._arcs, this._arcCounter), arcOrSource, destination!, weight));
         }
     }
 
