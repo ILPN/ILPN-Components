@@ -10,6 +10,7 @@ import {PetriNetSequence} from './petri-net-sequence';
 import {TraceConversionResult} from './trace-conversion-result';
 import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
+import {MapSet} from '../../../../utility/map-set';
 
 enum PartialOrderNetComparisonResult {
     DIFFERENT,
@@ -142,7 +143,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
         let stopTransition: Transition | undefined = undefined;
         partialOrder.outputPlaces.forEach(id => {
             const outPlace = partialOrder.getPlace(id)!;
-            stopTransition = outPlace.ingoingArcs[0].destination as Transition;
+            stopTransition = outPlace.ingoingArcs[0].source as Transition;
             partialOrder.removePlace(id);
         });
 
@@ -238,8 +239,38 @@ export class AlphaOracleService implements ConcurrencyOracle {
         // algorithm based on "Algorithm A" from https://www.sciencedirect.com/science/article/pii/0304397588900321
         // the paper itself offers an improvement over this Algorithm - might be useful if A proves to be too slow
 
-        const transitionOrder = this.reverseTopologicalTransitionOrdering(partialOrder);
+        const reverseTransitionOrder = this.reverseTopologicalTransitionOrdering(partialOrder);
 
+        const reverseOrder = new Map<string, number>(reverseTransitionOrder.map((t, i) => [t.getId(), i]));
+        const transitiveDescendants = new MapSet<string, string>();
+        const reducedDescendants = new MapSet<string, string>();
+
+        for (const t of reverseTransitionOrder) {
+            transitiveDescendants.add(t.getId(), t.getId());
+            const childrenIds = this.getChildIds(t).sort((id1, id2) => reverseOrder.get(id2)! - reverseOrder.get(id1)!);
+            for (const childId of childrenIds) {
+                if (!transitiveDescendants.has(t.getId(), childId)) {
+                    transitiveDescendants.addAll(t.getId(), transitiveDescendants.get(childId));
+                    reducedDescendants.add(t.getId(), childId);
+                }
+            }
+        }
+
+        // remove transitive connections (places)
+        for (const t of partialOrder.getTransitions()) {
+            if (t.label === AlphaOracleService.STOP_SYMBOL) {
+                continue;
+            }
+            for (const a of t.outgoingArcs) {
+                if (!reducedDescendants.has(t.getId(), a.destination.outgoingArcs[0].destinationId)) {
+                    partialOrder.removePlace(a.destinationId);
+                }
+            }
+        }
+    }
+
+    private getChildIds(transition: Transition): Array<string> {
+        return transition.outgoingArcs.flatMap(a => a.destination.outgoingArcs.map(ta => ta.destination.getId()));
     }
 
     /**
@@ -308,6 +339,8 @@ export class AlphaOracleService implements ConcurrencyOracle {
     }
 
     private compareNets(smaller: PetriNet, larger: PetriNet, checkSubGraph: boolean): PartialOrderNetComparisonResult {
+        // TODO find out why are labels disappear in the result
+        return PartialOrderNetComparisonResult.DIFFERENT; // TODO finish implementation
         if (
             !checkSubGraph
             && (
