@@ -308,6 +308,52 @@ export class AlphaOracleService implements ConcurrencyOracle {
     }
 
     private compareNets(smaller: PetriNet, larger: PetriNet, checkSubGraph: boolean): PartialOrderNetComparisonResult {
+        if (
+            !checkSubGraph
+            && (
+                smaller.getTransitionCount() !== larger.getTransitionCount()
+                || smaller.getPlaceCount() !== larger.getPlaceCount()
+                || smaller.getArcCount() !== larger.getArcCount()
+                || smaller.inputPlaces.size !== larger.inputPlaces.size
+                || smaller.outputPlaces.size !== larger.outputPlaces.size
+            )
+        ) {
+            return PartialOrderNetComparisonResult.DIFFERENT;
+        }
 
+        const placeMapping = new Map<string, string>();
+        const transitionMapping = new Map<string, string>();
+
+        const mapLater: Array<string> = Array.from(smaller.inputPlaces);
+
+        while (mapLater.length > 0) {
+            const mappedSomething = false;
+            let mapImmediately = mapLater.splice(0);
+
+            while (mapImmediately.length > 0) {
+                const id = mapImmediately.shift()!;
+                const element = smaller.getPlace(id) ?? smaller.getTransition(id);
+                if (element === undefined) {
+                    throw new Error('illegal state');
+                }
+
+            }
+
+        }
+
+        if (
+            checkSubGraph
+            && (
+                smaller.getTransitionCount() !== larger.getTransitionCount()
+                || smaller.getPlaceCount() !== larger.getPlaceCount()
+                || smaller.getArcCount() !== larger.getArcCount()
+                || smaller.inputPlaces.size !== larger.inputPlaces.size
+                || smaller.outputPlaces.size !== larger.outputPlaces.size
+            )
+        ) {
+            return PartialOrderNetComparisonResult.SUB_GRAPH;
+        } else {
+            return PartialOrderNetComparisonResult.SAME;
+        }
     }
 }
