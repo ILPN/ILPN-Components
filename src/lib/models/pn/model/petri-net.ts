@@ -122,7 +122,7 @@ export class PetriNet {
         return Array.from(this._transitions.values());
     }
 
-    public getTransitionsCount(): number {
+    public getTransitionCount(): number {
         return this._transitions.size;
     }
 
@@ -133,12 +133,32 @@ export class PetriNet {
         this._transitions.set(transition.id, transition);
     }
 
+    public removeTransition(transition: Transition | string) {
+        const t = getById(this._transitions, transition);
+        if (t === undefined) {
+            return;
+        }
+        transition = t;
+
+        this._transitions.delete(transition.getId());
+        transition.outgoingArcs.forEach(a => {
+            this.removeArc(a);
+        });
+        transition.ingoingArcs.forEach(a => {
+            this.removeArc(a);
+        });
+    }
+
     public getPlace(id: string): Place | undefined {
         return this._places.get(id);
     }
 
     public getPlaces(): Array<Place> {
         return Array.from(this._places.values());
+    }
+
+    public getPlaceCount(): number {
+        return this._places.size;
     }
 
     public addPlace(place: Place) {
@@ -164,6 +184,9 @@ export class PetriNet {
         place.ingoingArcs.forEach(a => {
             this.removeArc(a);
         });
+
+        this._inputPlaces.delete(place.getId());
+        this._outputPlaces.delete(place.getId());
     }
 
     public getArc(id: string): Arc | undefined {
@@ -172,6 +195,10 @@ export class PetriNet {
 
     public getArcs(): Array<Arc> {
         return Array.from(this._arcs.values());
+    }
+
+    public getArcCount(): number {
+        return this._arcs.size;
     }
 
     public addArc(arc: Arc): void;
@@ -200,6 +227,11 @@ export class PetriNet {
         this._arcs.delete(arc.getId());
         arc.source.removeArc(arc);
         arc.destination.removeArc(arc);
+        if (arc.source instanceof Place && arc.source.outgoingArcs.length === 0) {
+            this._outputPlaces.add(arc.sourceId);
+        } else if (arc.destination instanceof Place && arc.destination.ingoingArcs.length === 0) {
+            this._inputPlaces.add(arc.destinationId);
+        }
     }
 
     get frequency(): number | undefined {

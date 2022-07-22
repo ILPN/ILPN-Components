@@ -35,12 +35,16 @@ export class AlphaOracleService implements ConcurrencyOracle {
         }
 
         const transformedTraces = this.convertLogToPetriNetSequences(log, config.lookAheadDistance);
-        if (config.addStartStopEvent) {
-            transformedTraces.nets.forEach(seq => {
-                this.addStartAndStopEvent(seq);
+        transformedTraces.nets.forEach(seq => {
+            this.addStartAndStopEvent(seq);
+        })
+        const partialOrders = this.convertSequencesToPartialOrders(transformedTraces);
+        this.removeTransitiveDependencies(partialOrders)
+        if (!config.addStartStopEvent) {
+            partialOrders.forEach(po => {
+                this.removeStartAndStopEvent(po);
             })
         }
-        const partialOrders = this.convertSequencesToPartialOrders(transformedTraces);
         const result = this.filterAndCombinePartialOrderNets(partialOrders, !!config.discardPrefixes);
 
         return of(result);
@@ -115,6 +119,37 @@ export class AlphaOracleService implements ConcurrencyOracle {
         sequenceNet.addPlace(postStop);
         sequenceNet.addArc(last, stop);
         sequenceNet.addArc(stop, postStop);
+    }
+
+    private removeStartAndStopEvent(partialOrder: PetriNet) {
+        if (partialOrder.inputPlaces.size !== 1 || partialOrder.outputPlaces.size !== 1) {
+            console.debug(partialOrder);
+            throw new Error('illegal state');
+        }
+
+        let startTransition: Transition | undefined = undefined;
+        partialOrder.inputPlaces.forEach(id => {
+            const inPlace = partialOrder.getPlace(id)!;
+            startTransition = inPlace.outgoingArcs[0].destination as Transition;
+            partialOrder.removePlace(id);
+        });
+
+        if (startTransition === undefined || (startTransition as Transition).label !== AlphaOracleService.START_SYMBOL) {
+            throw new Error('illegal state');
+        }
+        partialOrder.removeTransition(startTransition);
+
+        let stopTransition: Transition | undefined = undefined;
+        partialOrder.outputPlaces.forEach(id => {
+            const outPlace = partialOrder.getPlace(id)!;
+            stopTransition = outPlace.ingoingArcs[0].destination as Transition;
+            partialOrder.removePlace(id);
+        });
+
+        if (stopTransition === undefined || (stopTransition as Transition).label !== AlphaOracleService.STOP_SYMBOL) {
+            throw new Error('illegal state');
+        }
+        partialOrder.removeTransition(stopTransition);
     }
 
     private convertSequencesToPartialOrders(sequencesAndConcurrencyInformation: TraceConversionResult): Array<PetriNet> {
@@ -195,9 +230,55 @@ export class AlphaOracleService implements ConcurrencyOracle {
         return sequence;
     }
 
+    private removeTransitiveDependencies(nets: Array<PetriNet>) {
+        nets.forEach(n => this.performTransitiveReduction(n));
+    }
+
+    private performTransitiveReduction(partialOrder: PetriNet) {
+        // algorithm based on "Algorithm A" from https://www.sciencedirect.com/science/article/pii/0304397588900321
+        // the paper itself offers an improvement over this Algorithm - might be useful if A proves to be too slow
+
+        const transitionOrder = this.reverseTopologicalTransitionOrdering(partialOrder);
+
+    }
+
+    /**
+     * Returns an array containing the transitions of the given net. The result is in reverse-topological order i.e.
+     * transitions at the front of the Array appear later in the net.
+     *
+     * Implementation based on https://www.geeksforgeeks.org/topological-sorting/3
+     * @param net a Petri Net representation of a partial order
+     */
+    private reverseTopologicalTransitionOrdering(net: PetriNet): Array<Transition> {
+        const resultStack: Array<Transition> = [];
+        const visited = new Set<string>();
+        for (const t of net.getTransitions()) {
+            if (visited.has(t.getId())) {
+                continue;
+            }
+            this.topologicalOrderingUtil(t, visited, resultStack);
+        }
+        return resultStack;
+    }
+
+    private topologicalOrderingUtil(t: Transition, visited: Set<string>, resultStack: Array<Transition>) {
+        visited.add(t.getId());
+        for (const a of t.outgoingArcs) {
+            const nextTransition = a.destination.outgoingArcs[0]?.destination;
+            if (nextTransition === undefined) {
+                continue;
+            }
+            if (visited.has(nextTransition.getId())) {
+                continue;
+            }
+            this.topologicalOrderingUtil(nextTransition as Transition, visited, resultStack);
+        }
+        resultStack.push(t);
+    }
+
     private filterAndCombinePartialOrderNets(nets: Array<PetriNet>, discardPrefixes: boolean): Array<PetriNet> {
         // descending based on the number of transitions (events)
-        nets.sort((n1, n2) => n2.getTransitionsCount() - n1.getTransitionsCount());
+        nets.sort((n1, n2) => n2.getTransitionCount() - n1.getTransitionCount());
 
         const unique: Array<PetriNet> = [nets.shift()!];
 
@@ -213,6 +294,9 @@ export class AlphaOracleService implements ConcurrencyOracle {
                     case PartialOrderNetComparisonResult.SUB_GRAPH:
                         discard = true;
                         break;
+                }
+                if (discard) {
+                    break;
                 }
             }
             if (!discard) {
