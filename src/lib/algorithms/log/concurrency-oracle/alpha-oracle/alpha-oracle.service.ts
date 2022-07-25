@@ -85,8 +85,6 @@ export class AlphaOracleService implements ConcurrencyOracle {
         const cleanedLog = log.map(t => this.cleanTrace(t));
 
         for (const trace of cleanedLog) {
-            const prefix: Array<string> = [];
-
             tree.insert(trace,
                 () => {
                     throw new Error('should never be called');
@@ -106,15 +104,14 @@ export class AlphaOracleService implements ConcurrencyOracle {
                         netSequences.delete(node!.net);
                     }
                 } : undefined,
-                (step, previousNode) => {
+                (step, prefix, previousNode) => {
                     // occurrence matrix
-                    if (prefix.length > lookAheadDistance) {
+                    while (prefix.length > lookAheadDistance) {
                         prefix.shift();
                     }
                     for (const e of prefix) {
                         matrix.set(e, step);
                     }
-                    prefix.push(step);
 
                     // create new node
                     const newNode = previousNode!.clone();

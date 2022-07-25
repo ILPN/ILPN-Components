@@ -48,17 +48,19 @@ export class PrefixTree<T> {
                   newNodeContent: () => T,
                   updateNodeContent: (node: T, treeWrapper: PrefixTreeNode<T>) => void,
                   stepReaction: (step: string, previousNode: T | undefined, previousTreeWrapper: PrefixTreeNode<T>) => void = () => {},
-                  newStepNode: (step: string, previousNode: T | undefined) => T | undefined = () => undefined) {
+                  newStepNode: (step: string, prefix: Array<string>, previousNode: T | undefined) => T | undefined = () => undefined) {
         let currentNode = this._root;
+        const prefix: Array<string> = [];
         for (let i = 0; i < path.length(); i++) {
             const step = path.get(i);
             stepReaction(step, currentNode.content, currentNode);
             let child = currentNode.getChild(step);
             if (child === undefined) {
-                currentNode = currentNode.addChild(step, newStepNode(step, currentNode.content));
+                currentNode = currentNode.addChild(step, newStepNode(step, [...prefix], currentNode.content));
             } else {
                 currentNode = child;
             }
+            prefix.push(step);
         }
         if (currentNode.content !== undefined) {
             updateNodeContent(currentNode.content, currentNode);
