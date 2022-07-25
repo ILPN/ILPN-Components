@@ -1,8 +1,8 @@
 import {Component, Input} from '@angular/core';
 import {DropFile} from '../../../utility/drop-file';
 import {saveAs} from 'file-saver';
-import * as JSZip from 'jszip';
 import {FileDisplay} from '../../layout/file-display';
+import {downloadZip} from 'client-zip';
 
 @Component({
     selector: 'ilpn-file-download',
@@ -18,7 +18,6 @@ export class FileDownloadComponent {
     @Input() files: undefined | DropFile | Array<DropFile> = [];
     @Input() zipFileName = 'results';
     @Input() fileDisplay: FileDisplay | undefined;
-    @Input() dontZip = false;
 
     constructor() {
     }
@@ -55,21 +54,10 @@ export class FileDownloadComponent {
             saveAs(new Blob([file.content], {type: 'text/plain;charset=utf-8'}), file.name);
             return;
         }
-        if (this.dontZip) {
-            for (const file of this.files) {
-                saveAs(new Blob([file.content], {type: 'text/plain;charset=utf-8'}), file.name);
-            }
-        }else {
-            // multiple files
-            // TODO JSZip throws error when used like this in a library
-            const zip = new JSZip();
-            for (const file of this.files) {
-                zip.file(file.name, file.content);
-            }
-            zip.generateAsync({type: 'blob'}).then(content => {
-                saveAs(content, `${this.zipFileName}.zip`);
-            });
-        }
+        // multiple files
+        downloadZip(this.files.map(f => ({name: f.name, input: f.content}))).blob().then(content => {
+            saveAs(content, `${this.zipFileName}.zip`);
+        });
     }
 
     resolveSquareContent(): string {
