@@ -3,7 +3,7 @@ export interface StringSequence {
     length(): number;
 }
 
-class PrefixTreeNode<T> {
+export class PrefixTreeNode<T> {
 
     private _children: Map<string, PrefixTreeNode<T>>;
     private _content: T | undefined;
@@ -30,6 +30,10 @@ class PrefixTreeNode<T> {
         this._children.set(key, child);
         return child;
     }
+
+    public hasChildren(): boolean {
+        return this._children.size !== 0;
+    }
 }
 
 export class PrefixTree<T> {
@@ -42,13 +46,13 @@ export class PrefixTree<T> {
 
     public insert(path: StringSequence,
                   newNodeContent: () => T,
-                  updateNodeContent: (node: T) => void,
-                  stepReaction: (step: string, previousNode?: T) => void = () => {},
-                  newStepNode: (step: string, previousNode?: T) => T | undefined = () => undefined) {
+                  updateNodeContent: (node: T, treeWrapper: PrefixTreeNode<T>) => void,
+                  stepReaction: (step: string, previousNode: T | undefined, previousTreeWrapper: PrefixTreeNode<T>) => void = () => {},
+                  newStepNode: (step: string, previousNode: T | undefined) => T | undefined = () => undefined) {
         let currentNode = this._root;
         for (let i = 0; i < path.length(); i++) {
             const step = path.get(i);
-            stepReaction(step, currentNode.content);
+            stepReaction(step, currentNode.content, currentNode);
             let child = currentNode.getChild(step);
             if (child === undefined) {
                 currentNode = currentNode.addChild(step, newStepNode(step, currentNode.content));
@@ -57,7 +61,7 @@ export class PrefixTree<T> {
             }
         }
         if (currentNode.content !== undefined) {
-            updateNodeContent(currentNode.content);
+            updateNodeContent(currentNode.content, currentNode);
         } else {
             currentNode.content = newNodeContent();
         }

@@ -35,7 +35,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
             return of([]);
         }
 
-        const transformedTraces = this.convertLogToPetriNetSequences(log, config.lookAheadDistance);
+        const transformedTraces = this.convertLogToPetriNetSequences(log, !!config.discardPrefixes, config.lookAheadDistance);
         transformedTraces.nets.forEach(seq => {
             this.addStartAndStopEvent(seq);
         })
@@ -46,12 +46,12 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 this.removeStartAndStopEvent(po);
             })
         }
-        const result = this.filterAndCombinePartialOrderNets(partialOrders, !!config.discardPrefixes);
+        const result = this.filterAndCombinePartialOrderNets(partialOrders);
 
         return of(result);
     }
 
-    private convertLogToPetriNetSequences(log: Array<Trace>, lookAheadDistance: number = 1): TraceConversionResult {
+    private convertLogToPetriNetSequences(log: Array<Trace>, discardPrefixes: boolean, lookAheadDistance: number = 1): TraceConversionResult {
         const netSequences = new Set<PetriNet>();
         const tree = new PrefixTree<PetriNetSequence>(new PetriNetSequence());
         const matrix = new OccurrenceMatrix();
@@ -63,11 +63,21 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 () => {
                     throw new Error('should never be called');
                 },
-                node => {
-                    node.net.frequency = node.net.frequency === undefined ? 1 : node.net.frequency + 1;
-                    netSequences.add(node.net);
+                (node, treeNode) => {
+                    if (discardPrefixes && treeNode.hasChildren()) {
+                        node.net.frequency = 0;
+                        netSequences.delete(node.net);
+                    } else {
+                        node.net.frequency = node.net.frequency === undefined ? 1 : node.net.frequency + 1;
+                        netSequences.add(node.net);
+                    }
                 },
-                undefined,
+                discardPrefixes ? (s, node, treeNode) => {
+                    if (treeNode.hasChildren()) {
+                        node!.net.frequency = 0;
+                        netSequences.delete(node!.net);
+                    }
+                } : undefined,
                 (step, previousNode) => {
                     // occurrence matrix
                     if (prefix.length > lookAheadDistance) {
@@ -311,7 +321,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
         resultStack.push(t);
     }
 
-    private filterAndCombinePartialOrderNets(nets: Array<PetriNet>, discardPrefixes: boolean): Array<PetriNet> {
+    private filterAndCombinePartialOrderNets(nets: Array<PetriNet>): Array<PetriNet> {
         // descending based on the number of transitions (events)
         nets.sort((n1, n2) => n2.getTransitionCount() - n1.getTransitionCount());
 
@@ -320,7 +330,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
         for (const smallerNet of nets) {
             let discard = false;
             for (const largerNet of unique) {
-                const result = this.compareNets(smallerNet, largerNet, discardPrefixes);
+                const result = this.compareNets(smallerNet, largerNet);
                 switch (result) {
                     case PartialOrderNetComparisonResult.SAME:
                         discard = true;
@@ -342,8 +352,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
         return unique;
     }
 
-    private compareNets(smaller: PetriNet, larger: PetriNet, checkSubGraph: boolean): PartialOrderNetComparisonResult {
-        return PartialOrderNetComparisonResult.DIFFERENT; // TODO finish implementation
+    private compareNets(smaller: PetriNet, larger: PetriNet): PartialOrderNetComparisonResult {
         if (
             !checkSubGraph
             && (
