@@ -173,7 +173,11 @@ export class AlphaOracleService implements ConcurrencyOracle {
 
             const preEvent = (place.ingoingArcs[0].source as Transition);
             const postEvent = (place.outgoingArcs[0].destination as Transition);
-            if (!hasOccurredInOrder.get(preEvent.label!, postEvent.label!) || !hasOccurredInOrder.get(postEvent.label!, preEvent.label!)) {
+            if (
+                preEvent.label! === postEvent.label!                           // no auto-concurrency
+                || !hasOccurredInOrder.get(preEvent.label!, postEvent.label!)
+                || !hasOccurredInOrder.get(postEvent.label!, preEvent.label!)
+            ) {
                 continue;
             }
 
@@ -186,8 +190,8 @@ export class AlphaOracleService implements ConcurrencyOracle {
                     continue;
                 }
                 if (inPlace.ingoingArcs.length > 0) {
-                    const inTransId = inPlace.ingoingArcs[0].source.id;
-                    if (postEvent.ingoingArcs.some(a => a.source.id === inTransId)) {
+                    const inTransId = inPlace.ingoingArcs[0].sourceId;
+                    if (postEvent.ingoingArcs.some(a => a.sourceId === inTransId)) {
                         continue;
                     }
                 }
@@ -196,8 +200,8 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 sequence.addPlace(clone);
                 placeQueue.push(clone);
 
-                for (const inArc of inPlace.ingoingArcs) {
-                    sequence.addArc(inArc.source as Transition, clone);
+                if (inPlace.ingoingArcs.length > 0) {
+                    sequence.addArc(inPlace.ingoingArcs[0].source as Transition, clone);
                 }
 
                 sequence.addArc(clone, postEvent)
@@ -210,8 +214,8 @@ export class AlphaOracleService implements ConcurrencyOracle {
                     continue;
                 }
                 if (outPlace.outgoingArcs.length > 0) {
-                    const outTransId = outPlace.outgoingArcs[0].destination.id;
-                    if (preEvent.outgoingArcs.some(a => a.destination.id === outTransId)) {
+                    const outTransId = outPlace.outgoingArcs[0].destinationId;
+                    if (preEvent.outgoingArcs.some(a => a.destinationId === outTransId)) {
                         continue;
                     }
                 }
@@ -220,8 +224,8 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 sequence.addPlace(clone);
                 placeQueue.push(clone);
 
-                for (const outArc of outPlace.outgoingArcs) {
-                    sequence.addArc(clone, outArc.destination as Transition);
+                if (outPlace.outgoingArcs.length > 0) {
+                    sequence.addArc(clone, outPlace.outgoingArcs[0].destination as Transition);
                 }
 
                 sequence.addArc(preEvent, clone)
