@@ -339,7 +339,6 @@ export class AlphaOracleService implements ConcurrencyOracle {
     }
 
     private compareNets(smaller: PetriNet, larger: PetriNet, checkSubGraph: boolean): PartialOrderNetComparisonResult {
-        // TODO find out why are labels disappear in the result
         return PartialOrderNetComparisonResult.DIFFERENT; // TODO finish implementation
         if (
             !checkSubGraph
