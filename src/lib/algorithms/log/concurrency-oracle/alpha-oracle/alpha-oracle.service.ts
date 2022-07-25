@@ -12,6 +12,7 @@ import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
 import {MapSet} from '../../../../utility/map-set';
 import {IncrementingCounter} from '../../../../utility/incrementing-counter';
+import {Lifecycle} from '../../../../models/log/model/lifecycle';
 
 
 class PossibleMapping {
@@ -81,7 +82,9 @@ export class AlphaOracleService implements ConcurrencyOracle {
         const tree = new PrefixTree<PetriNetSequence>(new PetriNetSequence());
         const matrix = new OccurrenceMatrix();
 
-        for (const trace of log) {
+        const cleanedLog = log.map(t => this.cleanTrace(t));
+
+        for (const trace of cleanedLog) {
             const prefix: Array<string> = [];
 
             tree.insert(trace,
@@ -121,10 +124,20 @@ export class AlphaOracleService implements ConcurrencyOracle {
             );
         }
 
+        console.debug(matrix);
+
         return {
             nets: Array.from(netSequences.values()),
             occurrenceMatrix: matrix
         };
+    }
+
+    private cleanTrace(trace: Trace): Trace {
+        const result = new Trace();
+        result.name = trace.name;
+        result.description = trace.description;
+        result.events = trace.events.filter(e => e.lifecycle === undefined || e.lifecycle === Lifecycle.COMPLETE);
+        return result;
     }
 
     private addStartAndStopEvent(sequenceNet: PetriNet) {
