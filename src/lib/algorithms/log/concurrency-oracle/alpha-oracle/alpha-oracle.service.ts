@@ -403,7 +403,9 @@ export class AlphaOracleService implements ConcurrencyOracle {
         let done = false;
         do {
             const mapping = new Map<string, string>(choiceOrder.map(choice => [choice.transitionId, orderedTransitionMapping.get(choice.transitionId)![choice.current()]]));
-            if (this.isMappingAnIsomorphism(partialOrderA, partialOrderB, mapping)) {
+            const uniqueMapped = new Set<string>(mapping.values()); // ist the mapping bijection?
+
+            if (uniqueMapped.size === mapping.size && this.isMappingAnIsomorphism(partialOrderA, partialOrderB, mapping)) {
                 return true;
             }
 
@@ -426,7 +428,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
     }
 
     private isMappingAnIsomorphism(partialOrderA: PetriNet, partialOrderB: PetriNet, mapping: Map<string, string>): boolean {
-        const unmappedArcs = partialOrderB.getPlaces().filter(p => p.ingoingArcs.length === 0 || p.outgoingArcs.length === 0);
+        const unmappedArcs = partialOrderB.getPlaces().filter(p => p.ingoingArcs.length !== 0 && p.outgoingArcs.length !== 0);
 
         for (const arc of partialOrderA.getPlaces()) {
             if (arc.ingoingArcs.length === 0 || arc.outgoingArcs.length === 0) {
