@@ -11,13 +11,38 @@ import {TraceConversionResult} from './trace-conversion-result';
 import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
 import {MapSet} from '../../../../utility/map-set';
+import {IncrementingCounter} from '../../../../utility/incrementing-counter';
 
-enum PartialOrderNetComparisonResult {
-    DIFFERENT,
-    SAME,
-    SUB_GRAPH
+
+class PossibleMapping {
+
+    public transitionId: string;
+    private readonly _currentChoice: IncrementingCounter;
+    private readonly _maximum: number;
+
+    constructor(transitionId: string, maximum: number) {
+        this.transitionId = transitionId;
+        this._maximum = maximum;
+        this._currentChoice = new IncrementingCounter();
+    }
+
+    public current(): number {
+        return this._currentChoice.current();
+    }
+
+    public next(): number {
+        const next = this._currentChoice.next();
+        if (next === this._maximum) {
+            this._currentChoice.reset();
+            return 0;
+        }
+        return next;
+    }
+
+    public isLastOption(): boolean {
+        return this._currentChoice.current() + 1 === this._maximum;
+    }
 }
-
 
 @Injectable({
     providedIn: 'root'
@@ -322,83 +347,101 @@ export class AlphaOracleService implements ConcurrencyOracle {
     }
 
     private filterAndCombinePartialOrderNets(nets: Array<PetriNet>): Array<PetriNet> {
-        // descending based on the number of transitions (events)
-        nets.sort((n1, n2) => n2.getTransitionCount() - n1.getTransitionCount());
-
         const unique: Array<PetriNet> = [nets.shift()!];
 
-        for (const smallerNet of nets) {
+        for (const uncheckedOrder of nets) {
             let discard = false;
-            for (const largerNet of unique) {
-                const result = this.compareNets(smallerNet, largerNet);
-                switch (result) {
-                    case PartialOrderNetComparisonResult.SAME:
-                        discard = true;
-                        largerNet.frequency = largerNet.frequency! + smallerNet.frequency!;
-                        break;
-                    case PartialOrderNetComparisonResult.SUB_GRAPH:
-                        discard = true;
-                        break;
-                }
-                if (discard) {
+            for (const uniqueOrder of unique) {
+                if (this.arePartialOrdersIsomorphic(uncheckedOrder, uniqueOrder)) {
+                    discard = true;
+                    uniqueOrder.frequency = uniqueOrder.frequency! + uncheckedOrder.frequency!;
                     break;
                 }
             }
             if (!discard) {
-                unique.push(smallerNet);
+                unique.push(uncheckedOrder);
             }
         }
 
         return unique;
     }
 
-    private compareNets(smaller: PetriNet, larger: PetriNet): PartialOrderNetComparisonResult {
+    private arePartialOrdersIsomorphic(partialOrderA: PetriNet, partialOrderB: PetriNet): boolean {
         if (
-            !checkSubGraph
-            && (
-                smaller.getTransitionCount() !== larger.getTransitionCount()
-                || smaller.getPlaceCount() !== larger.getPlaceCount()
-                || smaller.getArcCount() !== larger.getArcCount()
-                || smaller.inputPlaces.size !== larger.inputPlaces.size
-                || smaller.outputPlaces.size !== larger.outputPlaces.size
-            )
+            partialOrderA.getTransitionCount() !== partialOrderB.getTransitionCount()
+            || partialOrderA.getPlaceCount() !== partialOrderB.getPlaceCount()
+            || partialOrderA.getArcCount() !== partialOrderB.getArcCount()
+            || partialOrderA.inputPlaces.size !== partialOrderB.inputPlaces.size
+            || partialOrderA.outputPlaces.size !== partialOrderB.outputPlaces.size
+
         ) {
-            return PartialOrderNetComparisonResult.DIFFERENT;
+            return false;
         }
 
-        const placeMapping = new Map<string, string>();
-        const transitionMapping = new Map<string, string>();
-
-        const mapLater: Array<string> = Array.from(smaller.inputPlaces);
-
-        while (mapLater.length > 0) {
-            const mappedSomething = false;
-            let mapImmediately = mapLater.splice(0);
-
-            while (mapImmediately.length > 0) {
-                const id = mapImmediately.shift()!;
-                const element = smaller.getPlace(id) ?? smaller.getTransition(id);
-                if (element === undefined) {
-                    throw new Error('illegal state');
+        const transitionMapping = new MapSet<string, string>();
+        for (const tA of partialOrderA.getTransitions()) {
+            let wasMapped = false;
+            for (const tB of partialOrderB.getTransitions()) {
+                if (tA.label === tB.label) {
+                    wasMapped = true;
+                    transitionMapping.add(tA.getId(), tB.getId());
+                    break;
                 }
+            }
+            if (!wasMapped) {
+                return false;
+            }
+        }
 
+        const choiceOrder: Array<PossibleMapping> = [];
+        for (const [transitionId, possibleTransitionIds] of transitionMapping.entries()) {
+            choiceOrder.push(new PossibleMapping(transitionId, possibleTransitionIds.size))
+        }
+
+        const orderedTransitionMapping = new Map<string, Array<string>>(choiceOrder.map(choice => [choice.transitionId, Array.from(transitionMapping.get(choice.transitionId))]));
+
+        let done = false;
+        do {
+            const mapping = new Map<string, string>(choiceOrder.map(choice => [choice.transitionId, orderedTransitionMapping.get(choice.transitionId)![choice.current()]]));
+            if (this.isMappingAnIsomorphism(partialOrderA, partialOrderB, mapping)) {
+                return true;
             }
 
+            let incrementedIndex = 0;
+            while (incrementedIndex < choiceOrder.length) {
+                const carry = choiceOrder[incrementedIndex].isLastOption();
+                choiceOrder[incrementedIndex].next();
+                if (carry) {
+                    incrementedIndex++;
+                } else {
+                    break;
+                }
+            }
+            if (incrementedIndex === choiceOrder.length) {
+                done = true;
+            }
+        } while (!done);
+
+        return false;
+    }
+
+    private isMappingAnIsomorphism(partialOrderA: PetriNet, partialOrderB: PetriNet, mapping: Map<string, string>): boolean {
+        const unmappedArcs = partialOrderB.getPlaces().filter(p => p.ingoingArcs.length === 0 || p.outgoingArcs.length === 0);
+
+        for (const arc of partialOrderA.getPlaces()) {
+            if (arc.ingoingArcs.length === 0 || arc.outgoingArcs.length === 0) {
+                continue;
+            }
+            const preTransitionB = mapping.get(arc.ingoingArcs[0].sourceId)!;
+            const postTransitionB = mapping.get(arc.outgoingArcs[0].destinationId);
+
+            const fittingArcIndex = unmappedArcs.findIndex(unmapped => unmapped.ingoingArcs[0].sourceId === preTransitionB && unmapped.outgoingArcs[0].destinationId === postTransitionB);
+            if (fittingArcIndex === undefined) {
+                return false;
+            }
+            unmappedArcs.splice(fittingArcIndex, 1);
         }
 
-        if (
-            checkSubGraph
-            && (
-                smaller.getTransitionCount() !== larger.getTransitionCount()
-                || smaller.getPlaceCount() !== larger.getPlaceCount()
-                || smaller.getArcCount() !== larger.getArcCount()
-                || smaller.inputPlaces.size !== larger.inputPlaces.size
-                || smaller.outputPlaces.size !== larger.outputPlaces.size
-            )
-        ) {
-            return PartialOrderNetComparisonResult.SUB_GRAPH;
-        } else {
-            return PartialOrderNetComparisonResult.SAME;
-        }
+        return true;
     }
 }

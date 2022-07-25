@@ -38,4 +38,8 @@ export class MapSet<K, V> {
         }
         return set;
     }
+
+    public entries(): IterableIterator<[K, Set<V>]> {
+        return this._map.entries();
+    }
 }
