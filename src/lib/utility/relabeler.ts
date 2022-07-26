@@ -23,9 +23,6 @@ export class Relabeler {
     public getNewLabel(oldLabel: string): string {
         if (!this._existingLabels.has(oldLabel)) {
             // label encountered for the first time
-            if (this._locked) {
-                throw new Error('New label encountered! Relabeler instance is locked and cannot accept unknown labels!');
-            }
             this._existingLabels.add(oldLabel);
             this._labelMapping.set(oldLabel, oldLabel);
             this._labelOrder.set(oldLabel, [oldLabel]);
