@@ -1,6 +1,5 @@
 import {Injectable} from '@angular/core';
 import {Trace} from '../../../../models/log/model/trace';
-import {Lifecycle} from '../../../../models/log/model/lifecycle';
 import {MultisetEquivalentTraces} from './multiset-equivalent-traces';
 import {Multiset, MultisetMap} from '../../../../utility/multiset-map';
 import {PrefixTree} from '../../../../utility/prefix-tree';
@@ -11,15 +10,16 @@ import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
 import {forkJoin, map, Observable} from 'rxjs';
 import {TraceConversionResult} from './trace-conversion-result';
-import {ConcurrencyOracle} from '../concurrency-oracle';
 import {Relabeler} from '../../../../utility/relabeler';
+import {LogCleaner} from '../../log-cleaner';
 
 @Injectable({
     providedIn: 'root'
 })
-export class AbelOracleService implements ConcurrencyOracle {
+export class AbelOracleService extends LogCleaner {
 
     constructor(private _regionSynthesisService: PetriNetRegionSynthesisService) {
+        super();
     }
 
     public determineConcurrency(log: Array<Trace>): Observable<Array<PetriNet>> {
@@ -56,14 +56,6 @@ export class AbelOracleService implements ConcurrencyOracle {
         }
 
         return multisetEquivalentTraces.values();
-    }
-
-    private cleanTrace(trace: Trace): Trace {
-        const result = new Trace();
-        result.name = trace.name;
-        result.description = trace.description;
-        result.events = trace.events.filter(e => e.lifecycle === undefined || e.lifecycle === Lifecycle.COMPLETE);
-        return result;
     }
 
     private createEquivalence(trace: Trace, multiset: Multiset): MultisetEquivalentTraces {

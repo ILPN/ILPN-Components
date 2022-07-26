@@ -10,6 +10,10 @@ export class Trace implements StringSequence {
     constructor() {
     }
 
+    get eventNames(): Array<string> {
+        return this.events.map(e => e.name);
+    }
+
     public appendEvent(event: LogEvent) {
         this.events.push(event);
     }

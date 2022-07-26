@@ -9,6 +9,8 @@ export class Relabeler {
 
     private readonly _labelOrderIndex: Map<string, number>;
 
+    private _locked = false;
+
     constructor() {
         this._existingLabels = new Set<string>();
         this._labelCounter = new IncrementingCounter();
@@ -21,6 +23,9 @@ export class Relabeler {
     public getNewLabel(oldLabel: string): string {
         if (!this._existingLabels.has(oldLabel)) {
             // label encountered for the first time
+            if (this._locked) {
+                throw new Error('New label encountered! Relabeler instance is locked and cannot accept unknown labels!');
+            }
             this._existingLabels.add(oldLabel);
             this._labelMapping.set(oldLabel, oldLabel);
             this._labelOrder.set(oldLabel, [oldLabel]);
@@ -43,6 +48,9 @@ export class Relabeler {
 
             if (newLabelIndex >= relabelingOrder.length) {
                 // new label must be generated
+                if (this._locked) {
+                    throw new Error('Ran out of label options! Relabeler instance is locked and cannot generate new labels!');
+                }
                 let newLabel: string;
                 do {
                     newLabel = `${oldLabel}${this._labelCounter.next()}`;
@@ -63,6 +71,10 @@ export class Relabeler {
 
     public getLabelMapping(): Map<string, string> {
         return this._labelMapping;
+    }
+
+    public lock() {
+        this._locked = true;
     }
 
 }

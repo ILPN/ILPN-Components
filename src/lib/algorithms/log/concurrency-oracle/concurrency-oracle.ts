@@ -1,8 +1,6 @@
 import {Trace} from '../../../models/log/model/trace';
-import {Observable} from 'rxjs';
-import {PetriNet} from '../../../models/pn/model/petri-net';
+import {ConcurrencyRelation} from '../../../models/concurrency/model/concurrency-relation';
 
 export interface ConcurrencyOracle {
-    determineConcurrency(log: Array<Trace>): Observable<Array<PetriNet>>;
-    // TODO alternative method that returns Partial Order instances
+    determineConcurrency(log: Array<Trace>): ConcurrencyRelation;
 }
