@@ -18,29 +18,38 @@ export class AlphaOracleService extends LogCleaner implements ConcurrencyOracle 
 
     determineConcurrency(log: Array<Trace>, config: AlphaOracleConfiguration = {}): ConcurrencyRelation {
         if (log.length === 0) {
-            return new ConcurrencyRelation();
+            return ConcurrencyRelation.noConcurrency();
         }
 
         const cleanedLog = this.cleanLog(log);
         // TODO relabel log
+        const matrix = this.computeOccurrenceMatrix(cleanedLog, config.lookAheadDistance);
 
+        return ConcurrencyRelation.fromOccurrenceMatrix(matrix);
+    }
+
+    public computeOccurrenceMatrix(log: Array<Trace>, lookAheadDistance: number = 1, cleanLog: boolean = false): OccurrenceMatrix {
         const matrix = new OccurrenceMatrix();
-        const lookAheadDistance = config.lookAheadDistance ?? 1;
 
-        for (const trace of cleanedLog) {
+        if (cleanLog) {
+            log = this.cleanLog(log);
+        }
+
+        for (const trace of log) {
             const prefix: Array<string> = [];
             for (const step of trace.eventNames) {
                 if (prefix.length > lookAheadDistance) {
                     prefix.shift();
                 }
                 for (const e of prefix) {
-                    matrix.set(e, step);
+                    matrix.add(e, step);
                 }
                 prefix.push(step);
             }
         }
 
         console.debug(matrix);
-        // TODO create concurrency relation
+
+        return matrix;
     }
 }
