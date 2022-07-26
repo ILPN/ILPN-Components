@@ -55,10 +55,10 @@ export class RegionSynthesiser {
             }
 
             if (!this.isEquivalentPlaceInNet(gradients, result)) {
+                result.addPlace(place);
                 for (const [label, gradient] of gradients) {
                     this.addArc(label, place, gradient, result);
                 }
-                result.addPlace(place);
             }
         }
 
