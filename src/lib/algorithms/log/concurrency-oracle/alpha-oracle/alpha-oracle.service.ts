@@ -236,7 +236,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 }
                 if (inPlace.ingoingArcs.length > 0) {
                     const inTransId = inPlace.ingoingArcs[0].sourceId;
-                    if (postEvent.ingoingArcs.some(a => a.sourceId === inTransId)) {
+                    if (postEvent.ingoingArcs.some(a => a.source.ingoingArcs[0]?.sourceId === inTransId)) {
                         continue;
                     }
                 }
@@ -260,7 +260,7 @@ export class AlphaOracleService implements ConcurrencyOracle {
                 }
                 if (outPlace.outgoingArcs.length > 0) {
                     const outTransId = outPlace.outgoingArcs[0].destinationId;
-                    if (preEvent.outgoingArcs.some(a => a.destinationId === outTransId)) {
+                    if (preEvent.outgoingArcs.some(a => a.destination.outgoingArcs[0]?.destinationId === outTransId)) {
                         continue;
                     }
                 }
