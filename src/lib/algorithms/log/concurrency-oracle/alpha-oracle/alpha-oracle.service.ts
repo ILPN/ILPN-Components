@@ -24,6 +24,7 @@ export class AlphaOracleService extends LogCleaner implements ConcurrencyOracle 
 
         const cleanedLog = this.cleanLog(log);
 
+        // TODO don't always relabel
         const relabeler = new Relabeler();
         relabeler.relabelSequences(cleanedLog);
 

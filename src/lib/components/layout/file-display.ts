@@ -17,3 +17,8 @@ export const FD_LOG: FileDisplay = {
     icon: '★',
     color: 'black'
 }
+
+export const FD_CONCURRENCY: FileDisplay = {
+    icon: '☰',
+    color: 'blue'
+}
