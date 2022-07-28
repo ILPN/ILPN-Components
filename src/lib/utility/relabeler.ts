@@ -1,4 +1,6 @@
-import {IncrementingCounter} from './incrementing-counter';
+import {createUniqueString, IncrementingCounter} from './incrementing-counter';
+import {EditableStringSequence} from './string-sequence';
+import {iterate} from './iterate';
 
 export class Relabeler {
 
@@ -18,6 +20,21 @@ export class Relabeler {
         this._labelOrder = new Map<string, Array<string>>();
 
         this._labelOrderIndex = new Map<string, number>();
+    }
+
+    public clone(): Relabeler {
+        const result = new Relabeler();
+        this._existingLabels.forEach(l => {
+            result._existingLabels.add(l);
+        });
+        result._labelCounter.setCurrentValue(this._labelCounter.current());
+        this._labelMapping.forEach((v, k) => {
+            result._labelMapping.set(k, v);
+        });
+        this._labelOrder.forEach((v, k) => {
+            result._labelOrder.set(k, [...v]);
+        });
+        return result;
     }
 
     public getNewLabel(oldLabel: string): string {
@@ -48,10 +65,7 @@ export class Relabeler {
                 if (this._locked) {
                     throw new Error('Ran out of label options! Relabeler instance is locked and cannot generate new labels!');
                 }
-                let newLabel: string;
-                do {
-                    newLabel = `${oldLabel}${this._labelCounter.next()}`;
-                } while (this._existingLabels.has(newLabel));
+                const newLabel = createUniqueString(oldLabel, this._existingLabels, this._labelCounter);
                 this._existingLabels.add(newLabel);
                 relabelingOrder.push(newLabel);
                 this._labelMapping.set(newLabel, oldLabel);
@@ -72,6 +86,19 @@ export class Relabeler {
 
     public lock() {
         this._locked = true;
+    }
+
+    public relabelSequence(sequence: EditableStringSequence) {
+        this.restartSequence();
+        for (let i = 0; i < sequence.length(); i++) {
+            sequence.set(i, this.getNewLabel(sequence.get(i)));
+        }
+    }
+
+    public relabelSequences(sequences: Iterable<EditableStringSequence>) {
+        iterate(sequences, s => {
+            this.relabelSequence(s);
+        });
     }
 
 }

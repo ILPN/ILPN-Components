@@ -1,7 +1,7 @@
 import {LogEvent} from './logEvent';
-import {StringSequence} from '../../../utility/prefix-tree';
+import {EditableStringSequence} from '../../../utility/string-sequence';
 
-export class Trace implements StringSequence {
+export class Trace implements EditableStringSequence {
 
     public events: Array<LogEvent> = [];
     public name?: string;
@@ -20,6 +20,10 @@ export class Trace implements StringSequence {
 
     get(i: number): string {
         return this.events[i].name;
+    }
+
+    set(i: number, value: string): void {
+        this.events[i].name = value;
     }
 
     length(): number {

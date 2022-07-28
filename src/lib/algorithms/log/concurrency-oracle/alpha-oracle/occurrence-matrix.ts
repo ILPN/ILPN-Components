@@ -5,8 +5,15 @@ export class OccurrenceMatrix {
         }
     };
 
+    private readonly _keys: Set<string>;
+
     constructor() {
         this._matrix = {};
+        this._keys = new Set<string>();
+    }
+
+    get keys(): Set<string> {
+        return this._keys;
     }
 
     public add(e1: string, e2: string) {
@@ -16,6 +23,8 @@ export class OccurrenceMatrix {
             return;
         }
         row[e2] = (row[e2] ?? 0) + 1;
+        this._keys.add(e1);
+        this._keys.add(e2);
     }
 
     public get(e1: string, e2: string): boolean {

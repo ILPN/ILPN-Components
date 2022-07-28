@@ -1,7 +1,4 @@
-export interface StringSequence {
-    get(i: number): string;
-    length(): number;
-}
+import {StringSequence} from './string-sequence';
 
 export class PrefixTreeNode<T> {
 

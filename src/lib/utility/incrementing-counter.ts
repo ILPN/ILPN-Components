@@ -12,6 +12,10 @@ export class IncrementingCounter {
     public reset() {
         this.value = 0;
     }
+
+    public setCurrentValue(value: number) {
+        this.value = value;
+    }
 }
 
 export interface SetLike<T> {

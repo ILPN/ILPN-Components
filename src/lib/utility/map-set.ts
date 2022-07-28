@@ -1,3 +1,5 @@
+import {iterate} from './iterate';
+
 export class MapSet<K, V> {
     private _map: Map<K, Set<V>>;
 
@@ -16,12 +18,9 @@ export class MapSet<K, V> {
     public addAll(key: K, values: Iterable<V>) {
         if (this._map.has(key)) {
             const set = this._map.get(key)!;
-            const iterator = values[Symbol.iterator]();
-            let it = iterator.next();
-            while (!it.done) {
-                set.add(it.value);
-                it = iterator.next();
-            }
+            iterate(values, v => {
+                set.add(v);
+            });
         } else {
             this._map.set(key, new Set(values));
         }

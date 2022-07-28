@@ -3,26 +3,38 @@ import {OccurrenceMatrix} from '../../../algorithms/log/concurrency-oracle/alpha
 
 export class ConcurrencyRelation {
 
-    private _relabeler: Relabeler;
-
-    private _concurrencyMatrix: {
+    private readonly _relabeler: Relabeler;
+    private readonly _concurrencyMatrix: {
         [k: string]: {
             [k: string]: boolean;
         }
     }
 
-    protected constructor() {
+    protected constructor(relabeler: Relabeler) {
         this._concurrencyMatrix = {};
+        this._relabeler = relabeler.clone();
     }
 
     public static noConcurrency(): ConcurrencyRelation {
-        return new ConcurrencyRelation();
+        return new ConcurrencyRelation(new Relabeler());
     }
 
-    public static fromOccurrenceMatrix(matrix: OccurrenceMatrix): ConcurrencyRelation {
+    public static fromOccurrenceMatrix(matrix: OccurrenceMatrix, relabeler: Relabeler): ConcurrencyRelation {
+        const result = new ConcurrencyRelation(relabeler);
 
+        const keys = Array.from(matrix.keys);
+        for (let i = 0; i < keys.length; i++) {
+            const k1 = keys[i];
+            for (let j = i + 1; j < keys.length; j++) {
+                const k2 = keys[j];
+                if (matrix.get(k1, k2) && matrix.get(k2, k1)) {
+                    result.setConcurrent(k1, k2);
+                }
+            }
+        }
+
+        return result;
     }
-
 
     public isConcurrent(uniqueLabelA: string, uniqueLabelB: string): boolean {
         const row = this._concurrencyMatrix[uniqueLabelA];

@@ -5,6 +5,7 @@ import {AlphaOracleConfiguration} from './alpha-oracle-configuration';
 import {OccurrenceMatrix} from './occurrence-matrix';
 import {ConcurrencyRelation} from '../../../../models/concurrency/model/concurrency-relation';
 import {LogCleaner} from '../../log-cleaner';
+import {Relabeler} from '../../../../utility/relabeler';
 
 
 @Injectable({
@@ -22,10 +23,13 @@ export class AlphaOracleService extends LogCleaner implements ConcurrencyOracle 
         }
 
         const cleanedLog = this.cleanLog(log);
-        // TODO relabel log
+
+        const relabeler = new Relabeler();
+        relabeler.relabelSequences(cleanedLog);
+
         const matrix = this.computeOccurrenceMatrix(cleanedLog, config.lookAheadDistance);
 
-        return ConcurrencyRelation.fromOccurrenceMatrix(matrix);
+        return ConcurrencyRelation.fromOccurrenceMatrix(matrix, relabeler);
     }
 
     public computeOccurrenceMatrix(log: Array<Trace>, lookAheadDistance: number = 1, cleanLog: boolean = false): OccurrenceMatrix {

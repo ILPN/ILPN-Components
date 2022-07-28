@@ -8,3 +8,4 @@ export * from './multiset-map';
 export * from './prefix-tree';
 export * from './relabeler';
 export * from './map-set';
+export * from './string-sequence';
