@@ -46,7 +46,7 @@ export class ConcurrencyParserService extends AbstractParser<ConcurrencyRelation
             throw new Error('unsupported');
         }
 
-        const storedOrder = relabeler.getLabelMapping().get(label);
+        const storedOrder = relabeler.getLabelOrder().get(label);
         const storedLabel = storedOrder?.[oneBasedOrder - 1];
         if (storedLabel !== undefined) {
             return storedLabel;
@@ -56,7 +56,7 @@ export class ConcurrencyParserService extends AbstractParser<ConcurrencyRelation
         if (storedOrder === undefined) {
             missingCount = oneBasedOrder;
         } else {
-            missingCount = storedOrder.length - oneBasedOrder;
+            missingCount = oneBasedOrder - storedOrder.length;
         }
 
         let missingLabel: string;
