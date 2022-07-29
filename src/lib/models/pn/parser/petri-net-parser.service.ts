@@ -5,13 +5,13 @@ import {Transition} from '../model/transition';
 import {Arc} from '../model/arc';
 import {SourceAndDestination} from './source-and-destination';
 import {Node} from '../model/node';
-import {AbstractParser} from '../../../utility/abstract-parser';
+import {AbstractBlockParser} from '../../../utility/abstract-block-parser';
 import {BlockType} from './block-type';
 
 @Injectable({
     providedIn: 'root'
 })
-export class PetriNetParserService extends AbstractParser<PetriNet> {
+export class PetriNetParserService extends AbstractBlockParser<PetriNet> {
 
     constructor() {
         super(

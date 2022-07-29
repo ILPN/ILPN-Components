@@ -44,7 +44,7 @@ export class ConcurrencyRelation {
         return !!row[uniqueLabelB];
     }
 
-    protected setConcurrent(uniqueLabelA: string, uniqueLabelB: string, concurrency: boolean = true) {
+    public setConcurrent(uniqueLabelA: string, uniqueLabelB: string, concurrency: boolean = true) {
         this.set(uniqueLabelA, uniqueLabelB, concurrency);
         this.set(uniqueLabelB, uniqueLabelA, concurrency);
     }
