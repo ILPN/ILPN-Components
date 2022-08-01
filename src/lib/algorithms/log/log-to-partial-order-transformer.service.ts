@@ -378,7 +378,6 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
                 if (tA.label === tB.label) {
                     wasMapped = true;
                     transitionMapping.add(tA.getId(), tB.getId());
-                    break;
                 }
             }
             if (!wasMapped) {
