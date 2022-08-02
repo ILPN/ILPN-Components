@@ -8,6 +8,7 @@ export class Relabeler {
     private readonly _labelCounter: IncrementingCounter;
     private readonly _labelMapping: Map<string, string>;
     private readonly _labelOrder: Map<string, Array<string>>;
+    private readonly _nonUniqueIdentities: Set<string>;
 
     private readonly _labelOrderIndex: Map<string, number>;
 
@@ -16,6 +17,7 @@ export class Relabeler {
         this._labelCounter = new IncrementingCounter();
         this._labelMapping = new Map<string, string>();
         this._labelOrder = new Map<string, Array<string>>();
+        this._nonUniqueIdentities = new Set<string>();
 
         this._labelOrderIndex = new Map<string, number>();
     }
@@ -35,13 +37,27 @@ export class Relabeler {
         return result;
     }
 
-    public getNewLabel(oldLabel: string): string {
+    public getNewUniqueLabel(oldLabel: string): string {
+        return this.getNewLabel(oldLabel, false);
+    }
+
+    public getNewLabelPreserveNonUniqueIdentities(oldLabel: string): string {
+        return this.getNewLabel(oldLabel, true);
+    }
+
+    protected getNewLabel(oldLabel: string, preserveNonUniqueIdentities: boolean): string {
         if (!this._existingLabels.has(oldLabel)) {
             // label encountered for the first time
             this._existingLabels.add(oldLabel);
             this._labelMapping.set(oldLabel, oldLabel);
-            this._labelOrder.set(oldLabel, [oldLabel]);
-            this._labelOrderIndex.set(oldLabel, 1);
+
+            if (preserveNonUniqueIdentities) {
+                this._nonUniqueIdentities.add(oldLabel);
+            } else {
+                this._labelOrder.set(oldLabel, [oldLabel]);
+                this._labelOrderIndex.set(oldLabel, 1);
+            }
+
             return oldLabel;
         } else {
             // relabeling required
@@ -52,7 +68,10 @@ export class Relabeler {
 
             let relabelingOrder = this._labelOrder.get(oldLabel);
             if (relabelingOrder === undefined) {
-                // relabeling collision
+                // relabeling collision or non-unique identity
+                if (preserveNonUniqueIdentities && this._nonUniqueIdentities.has(oldLabel)) {
+                    return oldLabel;
+                }
                 relabelingOrder = [];
                 this._labelOrder.set(oldLabel, relabelingOrder);
                 newLabelIndex = 0;
@@ -83,17 +102,30 @@ export class Relabeler {
         return this._labelOrder;
     }
 
-    public relabelSequence(sequence: EditableStringSequence) {
-        this.restartSequence();
-        for (let i = 0; i < sequence.length(); i++) {
-            sequence.set(i, this.getNewLabel(sequence.get(i)));
-        }
+    public uniquelyRelabelSequence(sequence: EditableStringSequence) {
+        this.relabel(sequence, false);
     }
 
-    public relabelSequences(sequences: Iterable<EditableStringSequence>) {
+    public uniquelyRelabelSequences(sequences: Iterable<EditableStringSequence>) {
         iterate(sequences, s => {
-            this.relabelSequence(s);
+            this.uniquelyRelabelSequence(s);
         });
     }
 
+    public relabelSequencePreserveNonUniqueIdentities(sequence: EditableStringSequence) {
+        this.relabel(sequence, true);
+    }
+
+    public relabelSequencesPreserveNonUniqueIdentities(sequences: Iterable<EditableStringSequence>) {
+        iterate(sequences, s => {
+            this.relabelSequencePreserveNonUniqueIdentities(s);
+        });
+    }
+
+    protected relabel(sequence: EditableStringSequence, preserveIdentities: boolean) {
+        this.restartSequence();
+        for (let i = 0; i < sequence.length(); i++) {
+            sequence.set(i, this.getNewLabel(sequence.get(i), preserveIdentities));
+        }
+    }
 }

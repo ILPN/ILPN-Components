@@ -26,7 +26,7 @@ export class AlphaOracleService extends LogCleaner implements ConcurrencyOracle 
 
         // TODO don't always relabel
         const relabeler = new Relabeler();
-        relabeler.relabelSequences(cleanedLog);
+        relabeler.uniquelyRelabelSequences(cleanedLog);
 
         const matrix = this.computeOccurrenceMatrix(cleanedLog, config.lookAheadDistance);
 

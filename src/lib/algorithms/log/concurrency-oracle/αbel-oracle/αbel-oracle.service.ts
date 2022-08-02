@@ -87,7 +87,7 @@ export class AbelOracleService extends LogCleaner {
             net.addPlace(lastPlace);
 
             for (const event of trace.events) {
-                const t = new Transition(relabeler.getNewLabel(event.name));
+                const t = new Transition(relabeler.getNewUniqueLabel(event.name));
                 net.addTransition(t);
                 net.addArc(lastPlace, t);
                 lastPlace = new Place();

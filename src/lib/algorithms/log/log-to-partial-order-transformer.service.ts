@@ -65,7 +65,11 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
 
         if (!!config.cleanLog) {
             log = this.cleanLog(log);
+        } else {
+            console.warn(`relabeling a log with both 'start' and 'complete' events will result in unexpected label associations!`);
         }
+
+        concurrencyRelation.relabeler.relabelSequencesPreserveNonUniqueIdentities(log);
 
         const sequences = this.convertLogToPetriNetSequences(log, !!config.discardPrefixes);
 

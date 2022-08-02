@@ -61,7 +61,7 @@ export class ConcurrencyParserService extends AbstractParser<ConcurrencyRelation
 
         let missingLabel: string;
         for (let i = 0; i < missingCount; i++) {
-            missingLabel = relabeler.getNewLabel(label);
+            missingLabel = relabeler.getNewUniqueLabel(label);
         }
 
         return missingLabel!;
