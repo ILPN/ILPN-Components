@@ -1,17 +1,21 @@
 import {Relabeler} from '../../../utility/relabeler';
 import {OccurrenceMatrix} from '../../../algorithms/log/concurrency-oracle/alpha-oracle/occurrence-matrix';
 
+interface ConcurrencyMatrix {
+    [k: string]: {
+        [k: string]: boolean;
+    }
+}
+
 export class ConcurrencyRelation {
 
     private readonly _relabeler: Relabeler;
-    private readonly _concurrencyMatrix: {
-        [k: string]: {
-            [k: string]: boolean;
-        }
-    }
+    private readonly _uniqueConcurrencyMatrix: ConcurrencyMatrix;
+    private readonly _wildcardConcurrencyMatrix: ConcurrencyMatrix;
 
     protected constructor(relabeler: Relabeler) {
-        this._concurrencyMatrix = {};
+        this._uniqueConcurrencyMatrix = {};
+        this._wildcardConcurrencyMatrix = {};
         this._relabeler = relabeler.clone();
     }
 
@@ -28,7 +32,7 @@ export class ConcurrencyRelation {
             for (let j = i + 1; j < keys.length; j++) {
                 const k2 = keys[j];
                 if (matrix.get(k1, k2) && matrix.get(k2, k1)) {
-                    result.setConcurrent(k1, k2);
+                    result.setUniqueConcurrent(k1, k2);
                 }
             }
         }
@@ -36,23 +40,35 @@ export class ConcurrencyRelation {
         return result;
     }
 
-    public isConcurrent(uniqueLabelA: string, uniqueLabelB: string): boolean {
-        const row = this._concurrencyMatrix[uniqueLabelA];
+    public isConcurrent(labelA: string, labelB: string): boolean {
+        // unique
+        let row = this._uniqueConcurrencyMatrix[labelA];
+        if (row !== undefined) {
+            return !!row[labelB];
+        }
+
+        // wildcard
+        row = this._wildcardConcurrencyMatrix[labelA];
         if (row === undefined) {
             return false;
         }
-        return !!row[uniqueLabelB];
+        return !!row[labelB];
     }
 
-    public setConcurrent(uniqueLabelA: string, uniqueLabelB: string, concurrency: boolean = true) {
-        this.set(uniqueLabelA, uniqueLabelB, concurrency);
-        this.set(uniqueLabelB, uniqueLabelA, concurrency);
+    public setUniqueConcurrent(uniqueLabelA: string, uniqueLabelB: string, concurrency: boolean = true) {
+        this.set(this._uniqueConcurrencyMatrix, uniqueLabelA, uniqueLabelB, concurrency);
+        this.set(this._uniqueConcurrencyMatrix, uniqueLabelB, uniqueLabelA, concurrency);
     }
 
-    private set(uniqueLabelA: string, uniqueLabelB: string, concurrency: boolean = true) {
-        const row = this._concurrencyMatrix[uniqueLabelA];
+    public setWildcardConcurrent(wildcardLabelA: string, wildcardLabelB: string, concurrency: boolean = true) {
+        this.set(this._wildcardConcurrencyMatrix, wildcardLabelA, wildcardLabelB, concurrency);
+        this.set(this._wildcardConcurrencyMatrix, wildcardLabelB, wildcardLabelA, concurrency);
+    }
+
+    protected set(matrix: ConcurrencyMatrix, uniqueLabelA: string, uniqueLabelB: string, concurrency: boolean = true) {
+        const row = matrix[uniqueLabelA];
         if (row === undefined) {
-            this._concurrencyMatrix[uniqueLabelA] = {[uniqueLabelB]: concurrency};
+            matrix[uniqueLabelA] = {[uniqueLabelB]: concurrency};
             return;
         }
         row[uniqueLabelB] = concurrency;

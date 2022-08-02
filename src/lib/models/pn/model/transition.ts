@@ -1,6 +1,7 @@
 import {Node} from './node';
+import {EditableString} from '../../../utility/string-sequence';
 
-export class Transition extends Node {
+export class Transition extends Node implements EditableString {
 
     private _label: string | undefined;
 
@@ -19,5 +20,17 @@ export class Transition extends Node {
 
     set label(value: string | undefined) {
         this._label = value;
+    }
+
+    getString(): string {
+        const l = this.label;
+        if (l === undefined) {
+            throw new Error('Transition label is undefined');
+        }
+        return l;
+    }
+
+    setString(value: string): void {
+        this.label = value;
     }
 }

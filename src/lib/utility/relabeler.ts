@@ -128,4 +128,17 @@ export class Relabeler {
             sequence.set(i, this.getNewLabel(sequence.get(i), preserveIdentities));
         }
     }
+
+    public undoSequenceLabeling(sequence: EditableStringSequence) {
+        for (let i = 0; i < sequence.length(); i++) {
+            const label = sequence.get(i);
+            sequence.set(i, this._labelMapping.get(label) ?? label);
+        }
+    }
+
+    public undoSequencesLabeling(sequences: Iterable<EditableStringSequence>) {
+        iterate(sequences, s => {
+            this.undoSequenceLabeling(s);
+        });
+    }
 }

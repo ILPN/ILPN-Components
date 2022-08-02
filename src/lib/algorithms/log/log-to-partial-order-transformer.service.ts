@@ -9,6 +9,7 @@ import {Place} from '../../models/pn/model/place';
 import {Transition} from '../../models/pn/model/transition';
 import {MapSet} from '../../utility/map-set';
 import {IncrementingCounter} from '../../utility/incrementing-counter';
+import {EditableStringSequenceWrapper} from '../../utility/string-sequence';
 
 export interface LogToPartialOrderTransformerConfiguration {
     cleanLog?: boolean;
@@ -85,6 +86,8 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
             });
         }
         const result = this.filterAndCombinePartialOrderNets(partialOrders);
+
+        concurrencyRelation.relabeler.undoSequencesLabeling(result.map(pn => new EditableStringSequenceWrapper(pn.getTransitions())));
 
         return result;
     }
@@ -434,7 +437,7 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
             const postTransitionB = mapping.get(arc.outgoingArcs[0].destinationId);
 
             const fittingArcIndex = unmappedArcs.findIndex(unmapped => unmapped.ingoingArcs[0].sourceId === preTransitionB && unmapped.outgoingArcs[0].destinationId === postTransitionB);
-            if (fittingArcIndex === undefined) {
+            if (fittingArcIndex === -1) {
                 return false;
             }
             unmappedArcs.splice(fittingArcIndex, 1);

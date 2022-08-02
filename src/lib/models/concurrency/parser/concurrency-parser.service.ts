@@ -3,6 +3,13 @@ import {ConcurrencyRelation} from '../model/concurrency-relation';
 import {AbstractParser} from '../../../utility/abstract-parser';
 import {Relabeler} from '../../../utility/relabeler';
 
+
+interface RelabelingResult {
+    isWildcard?: boolean;
+    label: string;
+}
+
+
 @Injectable({
     providedIn: 'root'
 })
@@ -33,23 +40,33 @@ export class ConcurrencyParserService extends AbstractParser<ConcurrencyRelation
             const eventA = this.getUniqueLabel(match[1], parseInt(match[2]), relabeler);
             const eventB = this.getUniqueLabel(match[3], parseInt(match[4]), relabeler);
 
-            result.setConcurrent(eventA, eventB);
+            if (!eventA.isWildcard && !eventB.isWildcard) {
+                result.setUniqueConcurrent(eventA.label, eventB.label);
+            } else if (eventA.isWildcard && eventB.isWildcard) {
+                result.setWildcardConcurrent(eventA.label, eventB.label);
+            } else {
+                throw new Error('unsupported');
+            }
         }
 
         relabeler.restartSequence();
         return result;
     }
 
-    protected getUniqueLabel(label: string, oneBasedOrder: number, relabeler: Relabeler): string {
+    protected getUniqueLabel(label: string, oneBasedOrder: number, relabeler: Relabeler): RelabelingResult {
         if (isNaN(oneBasedOrder)) {
-            // TODO wildcards
-            throw new Error('unsupported');
+            return {
+                isWildcard: true,
+                label
+            };
         }
 
         const storedOrder = relabeler.getLabelOrder().get(label);
         const storedLabel = storedOrder?.[oneBasedOrder - 1];
         if (storedLabel !== undefined) {
-            return storedLabel;
+            return {
+                label: storedLabel
+            };
         }
 
         let missingCount;
@@ -64,6 +81,8 @@ export class ConcurrencyParserService extends AbstractParser<ConcurrencyRelation
             missingLabel = relabeler.getNewUniqueLabel(label);
         }
 
-        return missingLabel!;
+        return {
+            label: missingLabel!
+        };
     }
 }
