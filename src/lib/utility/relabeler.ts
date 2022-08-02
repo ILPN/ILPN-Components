@@ -131,8 +131,7 @@ export class Relabeler {
 
     public undoSequenceLabeling(sequence: EditableStringSequence) {
         for (let i = 0; i < sequence.length(); i++) {
-            const label = sequence.get(i);
-            sequence.set(i, this._labelMapping.get(label) ?? label);
+            sequence.set(i, this.undoLabel(sequence.get(i)));
         }
     }
 
@@ -140,5 +139,9 @@ export class Relabeler {
         iterate(sequences, s => {
             this.undoSequenceLabeling(s);
         });
+    }
+
+    public undoLabel(label: string): string {
+        return this._labelMapping.get(label) ?? label
     }
 }

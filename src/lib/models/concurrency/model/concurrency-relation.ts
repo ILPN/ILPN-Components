@@ -12,10 +12,14 @@ export class ConcurrencyRelation {
     private readonly _relabeler: Relabeler;
     private readonly _uniqueConcurrencyMatrix: ConcurrencyMatrix;
     private readonly _wildcardConcurrencyMatrix: ConcurrencyMatrix;
+    private readonly _mixedConcurrencyMatrix: ConcurrencyMatrix;
+    private readonly _wildCardLabels: Set<string>;
 
     protected constructor(relabeler: Relabeler) {
         this._uniqueConcurrencyMatrix = {};
         this._wildcardConcurrencyMatrix = {};
+        this._mixedConcurrencyMatrix = {};
+        this._wildCardLabels = new Set<string>();
         this._relabeler = relabeler.clone();
     }
 
@@ -41,18 +45,22 @@ export class ConcurrencyRelation {
     }
 
     public isConcurrent(labelA: string, labelB: string): boolean {
-        // unique
-        let row = this._uniqueConcurrencyMatrix[labelA];
-        if (row !== undefined) {
-            return !!row[labelB];
+        const unique = this.read(this._uniqueConcurrencyMatrix, labelA, labelB);
+        if (unique) {
+            return true;
         }
 
-        // wildcard
-        row = this._wildcardConcurrencyMatrix[labelA];
-        if (row === undefined) {
+        const wildcardA = this.getWildcard(labelA);
+        const wildcardB = this.getWildcard(labelB);
+        if (!wildcardA && !wildcardB) {
             return false;
+        } else if (wildcardA && wildcardB) {
+            return this.read(this._wildcardConcurrencyMatrix, wildcardA, wildcardB);
+        } else if (wildcardA && !wildcardB) {
+            return this.read(this._mixedConcurrencyMatrix, wildcardA, labelB);
+        } else {
+            return this.read(this._mixedConcurrencyMatrix, wildcardB!, labelA);
         }
-        return !!row[labelB];
     }
 
     public setUniqueConcurrent(uniqueLabelA: string, uniqueLabelB: string, concurrency: boolean = true) {
@@ -63,6 +71,13 @@ export class ConcurrencyRelation {
     public setWildcardConcurrent(wildcardLabelA: string, wildcardLabelB: string, concurrency: boolean = true) {
         this.set(this._wildcardConcurrencyMatrix, wildcardLabelA, wildcardLabelB, concurrency);
         this.set(this._wildcardConcurrencyMatrix, wildcardLabelB, wildcardLabelA, concurrency);
+        this._wildCardLabels.add(wildcardLabelA);
+        this._wildCardLabels.add(wildcardLabelB);
+    }
+
+    public setMixedConcurrent(wildcardLabel: string, uniqueLabel: string, concurrency: boolean = true) {
+        this.set(this._mixedConcurrencyMatrix, wildcardLabel, uniqueLabel, concurrency);
+        this._wildCardLabels.add(wildcardLabel);
     }
 
     protected set(matrix: ConcurrencyMatrix, uniqueLabelA: string, uniqueLabelB: string, concurrency: boolean = true) {
@@ -72,6 +87,22 @@ export class ConcurrencyRelation {
             return;
         }
         row[uniqueLabelB] = concurrency;
+    }
+
+    protected read(matrix: ConcurrencyMatrix, row: string, column: string): boolean {
+        const matrixRow = matrix[row];
+        if (matrixRow === undefined) {
+            return false;
+        }
+        return !!matrixRow[column];
+    }
+
+    protected getWildcard(label: string): string | undefined {
+        const undone = this.relabeler.undoLabel(label);
+        if (this._wildCardLabels.has(undone)) {
+            return undone;
+        }
+        return undefined;
     }
 
     get relabeler(): Relabeler {

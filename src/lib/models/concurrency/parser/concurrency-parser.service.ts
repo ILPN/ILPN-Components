@@ -44,8 +44,10 @@ export class ConcurrencyParserService extends AbstractParser<ConcurrencyRelation
                 result.setUniqueConcurrent(eventA.label, eventB.label);
             } else if (eventA.isWildcard && eventB.isWildcard) {
                 result.setWildcardConcurrent(eventA.label, eventB.label);
+            } else if (eventA.isWildcard && !eventB.isWildcard) {
+                result.setMixedConcurrent(eventA.label, eventB.label);
             } else {
-                throw new Error('unsupported');
+                result.setMixedConcurrent(eventB.label, eventA.label);
             }
         }
 
