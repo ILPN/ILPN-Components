@@ -2,6 +2,8 @@ import {Injectable} from '@angular/core';
 import {ConcurrencyRelation} from '../model/concurrency-relation';
 import {AbstractParser} from '../../../utility/abstract-parser';
 import {Relabeler} from '../../../utility/relabeler';
+import {ConcurrencyMatrix} from '../model/concurrency-matrix';
+import {unique} from 'ng-packagr/lib/utils/array';
 
 interface OrderedOriginal {
     original: string,
@@ -22,48 +24,68 @@ export class ConcurrencySerialisationService {
         let result = `${AbstractParser.TYPE_BLOCK} concurrency\n`
 
         const relabeler = concurrency.relabeler;
-        const labelMap = new Map<string, OrderedOriginal>();
-        const uniqueLabels = Array.from(relabeler.getLabelMapping().keys());
-        for (let i = 0; i < uniqueLabels.length; i++) {
-            const labelA = uniqueLabels[i];
-            for (let j = i + 1; j < uniqueLabels.length; j++) {
-                const labelB = uniqueLabels[j];
+        const cachedUniqueLabels = new Map<string, OrderedOriginal>();
+        const matrices = concurrency.cloneConcurrencyMatrices();
 
-                if (!concurrency.isConcurrent(labelA, labelB)) {
-                    continue;
-                }
+        this.iterateConcurrentEntries(matrices.unique, (labelA, labelB) => {
+            const originalA = this.getOriginalLabel(labelA, cachedUniqueLabels, relabeler);
+            const originalB = this.getOriginalLabel(labelB, cachedUniqueLabels, relabeler);
 
-                const originalA = this.getOriginalLabel(labelA, labelMap, relabeler);
-                const originalB = this.getOriginalLabel(labelB, labelMap, relabeler);
+            result += this.formatConcurrencyEntry(this.formatUniqueLabel(originalA), this.formatUniqueLabel(originalB));
+        });
 
-                result += `${this.formatLabel(originalA)}${ConcurrencySerialisationService.PARALLEL_SYMBOL}${this.formatLabel(originalB)}\n`;
+        this.iterateConcurrentEntries(matrices.wildcard, (labelA, labelB) => {
+            // TODO unmapping of wildcard labels might be needed
+            result += this.formatConcurrencyEntry(labelA, labelB);
+        });
 
-            }
-        }
+        this.iterateConcurrentEntries(matrices.mixed, (wildcardLabel, uniqueLabel) => {
+            // TODO unmapping of wildcard labels might be needed
+            const uniqueOriginal = this.getOriginalLabel(uniqueLabel, cachedUniqueLabels, relabeler);
+
+            result += this.formatConcurrencyEntry(wildcardLabel, this.formatUniqueLabel(uniqueOriginal));
+        });
 
         return result;
     }
 
-    private getOriginalLabel(label: string, labelMap: Map<string, OrderedOriginal>, relabeler: Relabeler): OrderedOriginal {
-        const m = labelMap.get(label);
+    protected iterateConcurrentEntries(matrix: ConcurrencyMatrix, consumer: (a: string, b: string) => void) {
+        for (const labelA of Object.keys(matrix)) {
+            for (const labelB of Object.keys(matrix[labelA])) {
+                if (!matrix[labelA][labelB]) {
+                    continue;
+                }
+                consumer(labelA, labelB);
+            }
+        }
+    }
+
+    protected getOriginalLabel(label: string, cachedUniqueLabels: Map<string, OrderedOriginal>, relabeler: Relabeler): OrderedOriginal {
+        const m = cachedUniqueLabels.get(label);
         if (m !== undefined) {
             return m;
         }
         const original = relabeler.getLabelMapping().get(label);
         if (original === undefined) {
-            // TODO wildcard?
-            throw new Error();
+            console.debug(relabeler);
+            console.debug(label);
+            throw new Error('Unique concurrency matrix contains an entry unknown to the relabeling function!');
         }
         const order = relabeler.getLabelOrder().get(original)!.findIndex(l => l === label);
         if (order === -1) {
-            // TODO
-            throw new Error();
+            console.debug(relabeler);
+            console.debug(label);
+            throw new Error('Unique concurrency matrix contains an entry outside of the relabeling order of the relabeling function!');
         }
-        labelMap.set(label, {original, order});
-        return labelMap.get(label)!;
+        cachedUniqueLabels.set(label, {original, order});
+        return cachedUniqueLabels.get(label)!;
     }
 
-    private formatLabel(label: OrderedOriginal): string {
+    protected formatConcurrencyEntry(formattedLabelA: string, formattedLabelB: string): string {
+        return `${formattedLabelA}${ConcurrencySerialisationService.PARALLEL_SYMBOL}${formattedLabelB}\n`;
+    }
+
+    protected formatUniqueLabel(label: OrderedOriginal): string {
         return `${label.original}[${label.order + 1}]`;
     }
 }

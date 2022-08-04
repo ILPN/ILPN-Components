@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
 import {ConcurrencyOracle} from '../concurrency-oracle';
-import {Trace} from '../../../../models/log/model/trace';;
+import {Trace} from '../../../../models/log/model/trace';
 import {AlphaOracleConfiguration} from './alpha-oracle-configuration';
-import {OccurrenceMatrix} from './occurrence-matrix';
+import {OccurenceMatrixType, OccurrenceMatrix} from './occurrence-matrix';
 import {ConcurrencyRelation} from '../../../../models/concurrency/model/concurrency-relation';
 import {LogCleaner} from '../../log-cleaner';
 import {Relabeler} from '../../../../utility/relabeler';
@@ -24,17 +24,24 @@ export class AlphaOracleService extends LogCleaner implements ConcurrencyOracle 
 
         const cleanedLog = this.cleanLog(log);
 
-        // TODO don't always relabel
         const relabeler = new Relabeler();
-        relabeler.uniquelyRelabelSequences(cleanedLog);
+        if (!!config.distinguishSameLabels) {
+            relabeler.uniquelyRelabelSequences(cleanedLog);
+        } else {
+            relabeler.relabelSequencesPreserveNonUniqueIdentities(cleanedLog);
+        }
 
-        const matrix = this.computeOccurrenceMatrix(cleanedLog, config.lookAheadDistance);
+        const matrix = this.computeOccurrenceMatrix(
+            cleanedLog,
+            config.lookAheadDistance,
+            config.distinguishSameLabels ? OccurenceMatrixType.UNIQUE : OccurenceMatrixType.WILDCARD
+        );
 
         return ConcurrencyRelation.fromOccurrenceMatrix(matrix, relabeler);
     }
 
-    public computeOccurrenceMatrix(log: Array<Trace>, lookAheadDistance: number = 1, cleanLog: boolean = false): OccurrenceMatrix {
-        const matrix = new OccurrenceMatrix();
+    public computeOccurrenceMatrix(log: Array<Trace>, lookAheadDistance: number = 1, matrixType: OccurenceMatrixType = OccurenceMatrixType.UNIQUE, cleanLog: boolean = false): OccurrenceMatrix {
+        const matrix = new OccurrenceMatrix(matrixType);
 
         if (cleanLog) {
             log = this.cleanLog(log);

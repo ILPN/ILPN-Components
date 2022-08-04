@@ -1,3 +1,8 @@
+export enum OccurenceMatrixType {
+    UNIQUE,
+    WILDCARD
+}
+
 export class OccurrenceMatrix {
     private readonly _matrix: {
         [k: string]: {
@@ -7,13 +12,17 @@ export class OccurrenceMatrix {
 
     private readonly _keys: Set<string>;
 
-    constructor() {
+    constructor(private _type: OccurenceMatrixType) {
         this._matrix = {};
         this._keys = new Set<string>();
     }
 
     get keys(): Set<string> {
         return this._keys;
+    }
+
+    get type(): OccurenceMatrixType {
+        return this._type;
     }
 
     public add(e1: string, e2: string) {

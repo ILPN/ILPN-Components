@@ -1,11 +1,10 @@
 import {Relabeler} from '../../../utility/relabeler';
-import {OccurrenceMatrix} from '../../../algorithms/log/concurrency-oracle/alpha-oracle/occurrence-matrix';
+import {
+    OccurenceMatrixType,
+    OccurrenceMatrix
+} from '../../../algorithms/log/concurrency-oracle/alpha-oracle/occurrence-matrix';
+import {ConcurrencyMatrices, ConcurrencyMatrix} from './concurrency-matrix';
 
-interface ConcurrencyMatrix {
-    [k: string]: {
-        [k: string]: boolean;
-    }
-}
 
 export class ConcurrencyRelation {
 
@@ -36,7 +35,14 @@ export class ConcurrencyRelation {
             for (let j = i + 1; j < keys.length; j++) {
                 const k2 = keys[j];
                 if (matrix.get(k1, k2) && matrix.get(k2, k1)) {
-                    result.setUniqueConcurrent(k1, k2);
+                    switch (matrix.type) {
+                        case OccurenceMatrixType.UNIQUE:
+                            result.setUniqueConcurrent(k1, k2);
+                            break;
+                        case OccurenceMatrixType.WILDCARD:
+                            result.setWildcardConcurrent(k1, k2);
+                            break;
+                    }
                 }
             }
         }
@@ -108,4 +114,28 @@ export class ConcurrencyRelation {
     get relabeler(): Relabeler {
         return this._relabeler;
     }
+
+    public cloneConcurrencyMatrices(): ConcurrencyMatrices {
+        return {
+            unique: this.cloneMatrix(this._uniqueConcurrencyMatrix),
+            wildcard: this.cloneMatrix(this._wildcardConcurrencyMatrix),
+            mixed: this.cloneMatrix(this._mixedConcurrencyMatrix)
+        };
+    }
+
+    protected cloneMatrix(matrix: ConcurrencyMatrix): ConcurrencyMatrix {
+        const result = {};
+
+        for (const row of Object.keys(matrix)) {
+            for (const column of Object.keys(matrix[row])) {
+                if (!matrix[row][column]) {
+                    continue;
+                }
+                this.set(result, row, column);
+            }
+        }
+
+        return result;
+    }
 }
+
