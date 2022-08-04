@@ -1,6 +1,6 @@
 export interface ConcurrencyMatrix {
     [k: string]: {
-        [k: string]: boolean;
+        [k: string]: boolean | number;
     }
 }
 

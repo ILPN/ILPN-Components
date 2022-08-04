@@ -43,4 +43,8 @@ export class OccurrenceMatrix {
         }
         return !!row[e2];
     }
+
+    public getOccurrenceFrequency(e1: string, e2: string): undefined | number {
+        return this._matrix?.[e1]?.[e2];
+    }
 }

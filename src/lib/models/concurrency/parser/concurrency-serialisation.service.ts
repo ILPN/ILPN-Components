@@ -3,7 +3,7 @@ import {ConcurrencyRelation} from '../model/concurrency-relation';
 import {AbstractParser} from '../../../utility/abstract-parser';
 import {Relabeler} from '../../../utility/relabeler';
 import {ConcurrencyMatrix} from '../model/concurrency-matrix';
-import {unique} from 'ng-packagr/lib/utils/array';
+
 
 interface OrderedOriginal {
     original: string,
@@ -27,19 +27,19 @@ export class ConcurrencySerialisationService {
         const cachedUniqueLabels = new Map<string, OrderedOriginal>();
         const matrices = concurrency.cloneConcurrencyMatrices();
 
-        this.iterateConcurrentEntries(matrices.unique, (labelA, labelB) => {
+        this.iterateConcurrentEntries(matrices.unique, true, (labelA, labelB, fab, fba) => {
             const originalA = this.getOriginalLabel(labelA, cachedUniqueLabels, relabeler);
             const originalB = this.getOriginalLabel(labelB, cachedUniqueLabels, relabeler);
 
-            result += this.formatConcurrencyEntry(this.formatUniqueLabel(originalA), this.formatUniqueLabel(originalB));
+            result += this.formatConcurrencyEntry(this.formatUniqueLabel(originalA), this.formatUniqueLabel(originalB), fab!, fba!);
         });
 
-        this.iterateConcurrentEntries(matrices.wildcard, (labelA, labelB) => {
+        this.iterateConcurrentEntries(matrices.wildcard, true, (labelA, labelB, fab, fba) => {
             // TODO unmapping of wildcard labels might be needed
-            result += this.formatConcurrencyEntry(labelA, labelB);
+            result += this.formatConcurrencyEntry(labelA, labelB, fab!, fba!);
         });
 
-        this.iterateConcurrentEntries(matrices.mixed, (wildcardLabel, uniqueLabel) => {
+        this.iterateConcurrentEntries(matrices.mixed, false, (wildcardLabel, uniqueLabel) => {
             // TODO unmapping of wildcard labels might be needed
             const uniqueOriginal = this.getOriginalLabel(uniqueLabel, cachedUniqueLabels, relabeler);
 
@@ -49,14 +49,33 @@ export class ConcurrencySerialisationService {
         return result;
     }
 
-    protected iterateConcurrentEntries(matrix: ConcurrencyMatrix, consumer: (a: string, b: string) => void) {
-        for (const labelA of Object.keys(matrix)) {
-            for (const labelB of Object.keys(matrix[labelA])) {
-                if (!matrix[labelA][labelB]) {
-                    continue;
+    protected iterateConcurrentEntries(matrix: ConcurrencyMatrix, symmetric: boolean, consumer: (a: string, b: string, fab?: number, fba?: number) => void) {
+        if (!symmetric) {
+            for (const labelA of Object.keys(matrix)) {
+                for (const labelB of Object.keys(matrix[labelA])) {
+                    this.processMatrixEntry(matrix, labelA, labelB, consumer);
                 }
-                consumer(labelA, labelB);
             }
+        } else {
+            const keys = Object.keys(matrix);
+            for (let i = 0; i < keys.length; i++) {
+                const labelA = keys[i];
+                for (let j = i + 1; j < keys.length; j++) {
+                    const labelB = keys[j];
+                    this.processMatrixEntry(matrix, labelA, labelB, consumer);
+                }
+            }
+        }
+    }
+
+    protected processMatrixEntry(matrix: ConcurrencyMatrix, labelA: string, labelB: string, consumer: (a: string, b: string, fab?: number, fba?: number) => void) {
+        if (!matrix[labelA][labelB]) {
+            return;
+        }
+        if (typeof matrix[labelA][labelB] === 'boolean') {
+            consumer(labelA, labelB);
+        } else {
+            consumer(labelA, labelB, matrix[labelA][labelB] as number, matrix[labelB][labelA] as number);
         }
     }
 
@@ -81,8 +100,14 @@ export class ConcurrencySerialisationService {
         return cachedUniqueLabels.get(label)!;
     }
 
-    protected formatConcurrencyEntry(formattedLabelA: string, formattedLabelB: string): string {
-        return `${formattedLabelA}${ConcurrencySerialisationService.PARALLEL_SYMBOL}${formattedLabelB}\n`;
+    protected formatConcurrencyEntry(formattedLabelA: string, formattedLabelB: string): string;
+    protected formatConcurrencyEntry(formattedLabelA: string, formattedLabelB: string, frequencyAB: number, frequencyBA: number): string
+    protected formatConcurrencyEntry(formattedLabelA: string, formattedLabelB: string, frequencyAB?: number, frequencyBA?: number): string {
+        if (frequencyAB === undefined && frequencyBA === undefined) {
+            return `${formattedLabelA}${ConcurrencySerialisationService.PARALLEL_SYMBOL}${formattedLabelB}\n`;
+        } else {
+            return `${formattedLabelA}${ConcurrencySerialisationService.PARALLEL_SYMBOL}${formattedLabelB} #${frequencyAB} ${frequencyBA}\n`;
+        }
     }
 
     protected formatUniqueLabel(label: OrderedOriginal): string {
