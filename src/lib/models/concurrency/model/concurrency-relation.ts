@@ -76,8 +76,8 @@ export class ConcurrencyRelation {
             this.set(this._uniqueConcurrencyMatrix, uniqueLabelA, uniqueLabelB, value);
             this.set(this._uniqueConcurrencyMatrix, uniqueLabelB, uniqueLabelA, value);
         } else {
-            this.set(this._wildcardConcurrencyMatrix, uniqueLabelA, uniqueLabelB, value);
-            this.set(this._wildcardConcurrencyMatrix, uniqueLabelB, uniqueLabelA, frequencyBA!);
+            this.set(this._uniqueConcurrencyMatrix, uniqueLabelA, uniqueLabelB, value);
+            this.set(this._uniqueConcurrencyMatrix, uniqueLabelB, uniqueLabelA, frequencyBA!);
         }
     }
 
