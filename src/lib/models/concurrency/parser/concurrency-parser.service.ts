@@ -15,7 +15,7 @@ interface RelabelingResult {
 })
 export class ConcurrencyParserService extends AbstractParser<ConcurrencyRelation> {
 
-    protected static LINE_REGEX = /^(.+?)(?:\[([1-9]\d*)\])?(?:\|\||∥)(.+?)(?:\[([1-9]\d*)\])?$/;
+    protected static LINE_REGEX = /^(.+?)(?:\[([1-9]\d*)\])?(?:\|\||∥)(.+?)(?:\[([1-9]\d*)\])?(?: #\d+ \d+)?$/;
 
     constructor() {
         super('concurrency');
