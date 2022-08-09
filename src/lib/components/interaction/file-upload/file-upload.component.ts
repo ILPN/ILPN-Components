@@ -14,9 +14,10 @@ export class FileUploadComponent implements OnDestroy {
     @Output('fileContent') fileContentEmitter: EventEmitter<Array<DropFile>>;
 
     @Input() descriptionText: string = '';
-    @Input() squareContent: string = '?';
+    @Input() squareContent: string | undefined;
     @Input() showText = true;
     @Input() fileDisplay: FileDisplay | undefined;
+    @Input() bold: boolean | undefined;
 
     isHovered = false;
 
@@ -53,19 +54,5 @@ export class FileUploadComponent implements OnDestroy {
                 this.fileContentEmitter.emit(result);
             }
         });
-    }
-
-    resolveSquareContent(): string {
-        if (this.fileDisplay !== undefined) {
-            return this.fileDisplay.icon;
-        }
-        return this.squareContent;
-    }
-
-    resolveSquareColor(): string {
-        if (this.fileDisplay !== undefined) {
-            return this.fileDisplay.color;
-        }
-        return 'black';
     }
 }

@@ -1,9 +1,11 @@
 <div fxLayout="column" fxLayoutAlign="start center">
     <span [class.hidden]="!showText || disabled">{{descriptionText}}</span>
-    <div class="interactive-square larger-icon" [class.disabled]="disabled" [ngStyle]="{'color': resolveSquareColor()}" fxLayout="row" fxLayoutAlign="center center"
-         (click)="download()"
-         (mouseenter)="hoverStart($event)"
-         (mouseleave)="hoverEnd($event)">
-        {{resolveSquareContent()}}
-    </div>
+    <ilpn-file-display [class.disabled]="disabled"
+                            [fileDisplay]="fileDisplay"
+                            [squareContent]="squareContent"
+                            [bold]="bold"
+                            (click)="download()"
+                            (mouseenter)="hoverStart($event)"
+                            (mouseleave)="hoverEnd($event)">
+    </ilpn-file-display>
 </div>

@@ -7,6 +7,7 @@ import {FileDownloadComponent} from './interaction/file-download/file-download.c
 import {DescriptiveLinkComponent} from './interaction/descriptive-link/descriptive-link.component';
 import { InfoCardComponent } from './interaction/info-card/info-card.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+import { FileDisplayComponent } from './interaction/file-display/file-display.component';
 
 
 @NgModule({
@@ -16,7 +17,8 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
         FileUploadComponent,
         FileDownloadComponent,
         DescriptiveLinkComponent,
-        InfoCardComponent
+        InfoCardComponent,
+        FileDisplayComponent
     ],
 	imports: [
 		FlexLayoutModule,

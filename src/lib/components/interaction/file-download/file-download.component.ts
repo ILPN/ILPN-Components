@@ -1,8 +1,8 @@
 import {Component, Input} from '@angular/core';
 import {DropFile} from '../../../utility/drop-file';
 import {saveAs} from 'file-saver';
-import {FileDisplay} from '../../layout/file-display';
 import {downloadZip} from 'client-zip';
+import {FileDisplay} from '../../layout/file-display';
 
 @Component({
     selector: 'ilpn-file-download',
@@ -12,12 +12,13 @@ import {downloadZip} from 'client-zip';
 export class FileDownloadComponent {
 
     @Input() descriptionText: string = '';
-    @Input() squareContent: string = '?';
+    @Input() squareContent: string | undefined;
     @Input() showText = true;
     @Input() disabled = false;
     @Input() files: undefined | DropFile | Array<DropFile> = [];
     @Input() zipFileName = 'results';
     @Input() fileDisplay: FileDisplay | undefined;
+    @Input() bold: boolean | undefined;
 
     constructor() {
     }
@@ -58,20 +59,6 @@ export class FileDownloadComponent {
         downloadZip(this.files.map(f => ({name: f.name, input: f.content}))).blob().then(content => {
             saveAs(content, `${this.zipFileName}.zip`);
         });
-    }
-
-    resolveSquareContent(): string {
-        if (this.fileDisplay !== undefined) {
-            return this.fileDisplay.icon;
-        }
-        return this.squareContent;
-    }
-
-    resolveSquareColor(): string {
-        if (this.fileDisplay !== undefined) {
-            return this.fileDisplay.color;
-        }
-        return 'black';
     }
 
 }

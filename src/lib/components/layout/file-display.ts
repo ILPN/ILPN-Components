@@ -1,6 +1,7 @@
 export interface FileDisplay {
     icon: string;
     color: string;
+    bold?: boolean;
 }
 
 export const FD_PETRI_NET: FileDisplay = {
@@ -19,6 +20,7 @@ export const FD_LOG: FileDisplay = {
 }
 
 export const FD_CONCURRENCY: FileDisplay = {
-    icon: '☰',
-    color: 'blue'
+    icon: '∥',
+    color: 'blue',
+    bold: true
 }
