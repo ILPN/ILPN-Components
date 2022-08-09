@@ -20,7 +20,7 @@ export const FD_LOG: FileDisplay = {
 }
 
 export const FD_CONCURRENCY: FileDisplay = {
-    icon: '∥',
+    icon: '┃┃',
     color: 'blue',
     bold: true
 }
