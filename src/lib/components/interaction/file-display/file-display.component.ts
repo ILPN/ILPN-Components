@@ -14,6 +14,7 @@ export class FileDisplayComponent {
     @Input() bold: boolean | undefined = false;
     @Input() squareContent: string | undefined;
     @Input() fileDisplay: FileDisplay | undefined;
+    @Input() hover: boolean = false;
 
     resolveSquareContent(): string {
         if (this.fileDisplay !== undefined) {

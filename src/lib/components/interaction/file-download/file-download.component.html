@@ -1,11 +1,12 @@
 <div fxLayout="column" fxLayoutAlign="start center">
     <span [class.hidden]="!showText || disabled">{{descriptionText}}</span>
-    <ilpn-file-display [class.disabled]="disabled"
-                            [fileDisplay]="fileDisplay"
-                            [squareContent]="squareContent"
-                            [bold]="bold"
-                            (click)="download()"
-                            (mouseenter)="hoverStart($event)"
-                            (mouseleave)="hoverEnd($event)">
+    <ilpn-file-display [hover]="isHovered && !disabled"
+                       [class.disabled]="disabled"
+                       [fileDisplay]="fileDisplay"
+                       [squareContent]="squareContent"
+                       [bold]="bold"
+                       (click)="download()"
+                       (mouseenter)="hoverStart($event)"
+                       (mouseleave)="hoverEnd($event)">
     </ilpn-file-display>
 </div>

@@ -20,6 +20,8 @@ export class FileDownloadComponent {
     @Input() fileDisplay: FileDisplay | undefined;
     @Input() bold: boolean | undefined;
 
+    isHovered = false;
+
     constructor() {
     }
 
@@ -30,13 +32,12 @@ export class FileDownloadComponent {
 
     hoverStart(e: Event) {
         this.prevent(e);
-        const target = (e.target as HTMLElement);
-        target.classList.add('hover');
+        this.isHovered = true;
     }
 
     hoverEnd(e: MouseEvent, drop = false) {
         this.prevent(e);
-        (e.target as HTMLElement).classList.remove('hover');
+        this.isHovered = false;
     }
 
     download() {

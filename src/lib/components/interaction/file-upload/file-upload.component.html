@@ -1,14 +1,15 @@
 <div fxLayout="column" fxLayoutAlign="start center">
     <span [class.hidden]="!showText && !isHovered">{{descriptionText}}</span>
-    <ilpn-file-display [fileDisplay]="fileDisplay"
-                            [squareContent]="squareContent"
-                            [bold]="bold"
-                            (drag)="prevent($event)"
-                            (dragstart)="prevent($event)"
-                            (dragover)="hoverStart($event)"
-                            (dragenter)="hoverStart($event)"
-                            (dragleave)="hoverEnd($event)"
-                            (dragend)="hoverEnd($event)"
-                            (drop)="fileDrop($event)">
+    <ilpn-file-display [hover]="isHovered"
+                       [fileDisplay]="fileDisplay"
+                       [squareContent]="squareContent"
+                       [bold]="bold"
+                       (drag)="prevent($event)"
+                       (dragstart)="prevent($event)"
+                       (dragover)="hoverStart($event)"
+                       (dragenter)="hoverStart($event)"
+                       (dragleave)="hoverEnd($event)"
+                       (dragend)="hoverEnd($event)"
+                       (drop)="fileDrop($event)">
     </ilpn-file-display>
 </div>

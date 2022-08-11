@@ -36,14 +36,11 @@ export class FileUploadComponent implements OnDestroy {
 
     hoverStart(e: Event) {
         this.prevent(e);
-        const target = (e.target as HTMLElement);
-        target.classList.add('hover');
         this.isHovered = true;
     }
 
     hoverEnd(e: MouseEvent, drop = false) {
         this.prevent(e);
-        (e.target as HTMLElement).classList.remove('hover');
         this.isHovered = false;
     }
 
