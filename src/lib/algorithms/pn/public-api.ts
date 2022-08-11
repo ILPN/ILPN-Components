@@ -6,3 +6,5 @@ export * from './regions/classes/synthesis-result';
 export * from './validation/lpo-flow-validator';
 export * from './validation/lpo-fire-validator';
 export * from './validation/classes/validation-result';
+
+export * from './synthesis/prime-miner.service';
