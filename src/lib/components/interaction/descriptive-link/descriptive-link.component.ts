@@ -13,6 +13,7 @@ export class DescriptiveLinkComponent {
     @Input() title: string = '';
     @Input() description: string = '';
     @Input() fileDisplay: FileDisplay | undefined;
+    @Input() disabled = false;
 
     @Input() link: Array<string> | string | undefined;
     @Input() download = false;
@@ -20,8 +21,16 @@ export class DescriptiveLinkComponent {
     constructor(@Inject(APP_BASE_HREF) public baseHref: string) {
     }
 
-    isAnchor(): boolean {
-        return this.link !== undefined && !Array.isArray(this.link);
+    type(): string {
+        if (this.disabled) {
+            return 'disabled';
+        }
+        if (this.isAnchor()) {
+            return 'anchor';
+        } else {
+            return 'button';
+        }
+
     }
 
     resolveAnchorLink(): string {
@@ -38,6 +47,10 @@ export class DescriptiveLinkComponent {
         for (const link of links) {
             this.createDownloadLink(link);
         }
+    }
+
+    private isAnchor(): boolean {
+        return this.link !== undefined && !Array.isArray(this.link);
     }
 
     private resolveSingleLink(link: string) {

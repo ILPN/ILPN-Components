@@ -9,10 +9,20 @@ export const FD_PETRI_NET: FileDisplay = {
     color: 'red'
 };
 
+export const FD_BPMN: FileDisplay = {
+    icon: '♦',
+    color: 'red'
+};
+
 export const FD_PARTIAL_ORDER: FileDisplay = {
     icon: '♠',
     color: 'black'
 }
+
+export const FD_TRANSITION_SYSTEM: FileDisplay = {
+    icon: '♣',
+    color: 'black'
+};
 
 export const FD_LOG: FileDisplay = {
     icon: '★',

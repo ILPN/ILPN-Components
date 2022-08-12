@@ -12,6 +12,7 @@ export class InfoCardComponent {
     @Input() title: string = '';
     @Input() description: string = '';
     @Input() fileDisplay: FileDisplay | undefined;
+    @Input() disabled = false;
 
     constructor() {
     }
@@ -24,10 +25,21 @@ export class InfoCardComponent {
     }
 
     resolveSquareColor(): string {
+        if (this.disabled) {
+            return 'grey';
+        }
         if (this.fileDisplay !== undefined) {
             return this.fileDisplay.color;
         }
         return 'black';
+    }
+
+    resolveBorderColor(): string {
+        if (this.disabled) {
+            return 'grey';
+        } else {
+            return 'black';
+        }
     }
 
 }

@@ -7,7 +7,7 @@
     float: left;
 }
 
-.border:hover {
+.border-enabled:hover {
     border-color: black;
 }
 
@@ -19,9 +19,7 @@
     margin: 10px;
     border-width: 3px;
     border-style: solid;
-    border-color: black;
 
-    color: black;
     font-size: 30px;
 }
 

@@ -1,13 +1,28 @@
-<ng-template [ngIf]="isAnchor()" [ngIfElse]="button">
-    <!-- single link -->
+<!-- single link -->
+<ng-template [ngIf]="type() === 'anchor'">
     <a class="link" [href]="resolveAnchorLink()" [attr.download]="download ? '' : null">
-        <ilpn-info-card [fileDisplay]="fileDisplay" [squareContent]="squareContent" [description]="description" [title]="title"></ilpn-info-card>
+        <ilpn-info-card [fileDisplay]="fileDisplay"
+                        [squareContent]="squareContent"
+                        [description]="description"
+                        [title]="title"></ilpn-info-card>
     </a>
 </ng-template>
 
 <!-- multiple links -->
-<ng-template #button>
+<ng-template [ngIf]="type() === 'button'">
     <button class="buttonStyle" (click)="buttonClick()">
-        <ilpn-info-card [fileDisplay]="fileDisplay" [squareContent]="squareContent" [description]="description" [title]="title"></ilpn-info-card>
+        <ilpn-info-card [fileDisplay]="fileDisplay"
+                        [squareContent]="squareContent"
+                        [description]="description"
+                        [title]="title"></ilpn-info-card>
     </button>
+</ng-template>
+
+<!-- descriptive link disabled -->
+<ng-template [ngIf]="type() === 'disabled'">
+    <ilpn-info-card [fileDisplay]="fileDisplay"
+                    [squareContent]="squareContent"
+                    [description]="description"
+                    [title]="title"
+                    [disabled]="true"></ilpn-info-card>
 </ng-template>
