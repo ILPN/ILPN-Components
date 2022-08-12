@@ -1,6 +1,5 @@
 .border {
     width: 320px;
-    height: 110px;
     margin: 10px;
     border: 2px solid grey;
     padding: 5px;
@@ -32,4 +31,8 @@
 
 .width100 {
     width: 100%;
+}
+
+.description-min-height {
+    min-height: 3em;
 }

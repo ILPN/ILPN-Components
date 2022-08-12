@@ -13,6 +13,7 @@ export class InfoCardComponent {
     @Input() description: string = '';
     @Input() fileDisplay: FileDisplay | undefined;
     @Input() disabled = false;
+    @Input() descriptionLines = 3;
 
     constructor() {
     }
@@ -40,6 +41,10 @@ export class InfoCardComponent {
         } else {
             return 'black';
         }
+    }
+
+    resolveDescriptionHeight(): string {
+        return `${this.descriptionLines}em`;
     }
 
 }

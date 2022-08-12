@@ -14,6 +14,7 @@ export class DescriptiveLinkComponent {
     @Input() description: string = '';
     @Input() fileDisplay: FileDisplay | undefined;
     @Input() disabled = false;
+    @Input() descriptionLines = 3;
 
     @Input() link: Array<string> | string | undefined;
     @Input() download = false;
