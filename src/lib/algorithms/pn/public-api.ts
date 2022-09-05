@@ -8,3 +8,4 @@ export * from './validation/lpo-fire-validator';
 export * from './validation/classes/validation-result';
 
 export * from './synthesis/prime-miner.service';
+export * from './synthesis/prime-miner-result';

@@ -3,6 +3,7 @@ import {BehaviorSubject, concatMap, EMPTY, filter, from, map, Observable} from '
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {PetriNetRegionSynthesisService} from '../regions/petri-net-region-synthesis.service';
 import {RegionsConfiguration} from '../regions/classes/regions-configuration';
+import {PrimeMinerResult} from './prime-miner-result';
 
 @Injectable({
     providedIn: 'root'
@@ -12,33 +13,34 @@ export class PrimeMinerService {
     constructor(protected _synthesisService: PetriNetRegionSynthesisService) {
     }
 
-    public mine(partialOrders: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<PetriNet> {
+    public mine(partialOrders: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<PrimeMinerResult> {
         if (partialOrders.length === 0) {
             console.error('Miner input must be non empty');
             return EMPTY;
         }
 
-        partialOrders.sort((a,b) => (b?.frequency ?? 0) - (a?.frequency ?? 0));
+        partialOrders.sort((a, b) => (b?.frequency ?? 0) - (a?.frequency ?? 0));
 
-        let bestResult = new PetriNet();
+        let bestResult = new PrimeMinerResult(new PetriNet(), []);
         let nextInputIndex = 1;
 
         const minerInput$ = new BehaviorSubject(partialOrders[0]);
         return minerInput$.pipe(
             concatMap(nextPO => {
-                return this._synthesisService.synthesise([bestResult, nextPO], config);
+                return this._synthesisService.synthesise([bestResult.net, nextPO], config);
             }),
             map(result => {
                 console.debug(`Iteration ${nextInputIndex} completed`, result);
 
-                const r: Array<PetriNet> = [];
+                const r: Array<PrimeMinerResult> = [];
                 if (this.isConnected(result.result)) {
-                    if (this.areIsomorphic(bestResult, result.result)) {
-                    } else if (!bestResult.isEmpty()) {
+                    if (this.areIsomorphic(bestResult.net, result.result)) {
+                        bestResult.supportedPoIndices.push(nextInputIndex);
+                    } else if (!bestResult.net.isEmpty()) {
                         r.push(bestResult);
                     }
 
-                    bestResult = result.result;
+                    bestResult = new PrimeMinerResult(result.result, [...bestResult.supportedPoIndices, nextInputIndex]);
 
                     if (nextInputIndex === partialOrders.length) {
                         r.push(bestResult);
