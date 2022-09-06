@@ -1,14 +1,14 @@
 import {IncrementingCounter} from '../../../../utility/incrementing-counter';
 
 
-export class PossibleMapping {
+export class MappingCounter {
 
-    public transitionId: string;
+    public mappedId: string;
     private readonly _currentChoice: IncrementingCounter;
     private readonly _maximum: number;
 
-    constructor(transitionId: string, maximum: number) {
-        this.transitionId = transitionId;
+    constructor(mappedId: string, maximum: number) {
+        this.mappedId = mappedId;
         this._maximum = maximum;
         this._currentChoice = new IncrementingCounter();
     }

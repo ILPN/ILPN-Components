@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {MapSet} from '../../../utility/map-set';
-import {PossibleMapping} from './classes/possible-mapping';
+import {MappingManager} from './classes/mapping-manager';
 
 @Injectable({
     providedIn: 'root'
@@ -21,35 +21,19 @@ export class PetriNetIsomorphismService {
             return false;
         }
 
-        const choiceOrder: Array<PossibleMapping> = [];
-        for (const [transitionId, possibleTransitionIds] of transitionMapping.entries()) {
-            choiceOrder.push(new PossibleMapping(transitionId, possibleTransitionIds.size))
-        }
-
-        const orderedTransitionMapping = new Map<string, Array<string>>(choiceOrder.map(choice => [choice.transitionId, Array.from(transitionMapping.get(choice.transitionId))]));
+        const transitionMappingManager = new MappingManager(transitionMapping);
 
         let done = false;
         do {
-            const mapping = new Map<string, string>(choiceOrder.map(choice => [choice.transitionId, orderedTransitionMapping.get(choice.transitionId)![choice.current()]]));
-            const uniqueMapped = new Set<string>(mapping.values()); // ist the mapping a bijection?
+            const mapping = transitionMappingManager.getCurrentMapping();
+            const uniqueMapped = new Set<string>(mapping.values());
 
-            if (uniqueMapped.size === mapping.size && this.isMappingAPartialOrderIsomorphism(partialOrderA, partialOrderB, mapping)) {
+            if (uniqueMapped.size === mapping.size // ist the mapping a bijection?
+                && this.isMappingAPartialOrderIsomorphism(partialOrderA, partialOrderB, mapping)) {
                 return true;
             }
 
-            let incrementedIndex = 0;
-            while (incrementedIndex < choiceOrder.length) {
-                const carry = choiceOrder[incrementedIndex].isLastOption();
-                choiceOrder[incrementedIndex].next();
-                if (carry) {
-                    incrementedIndex++;
-                } else {
-                    break;
-                }
-            }
-            if (incrementedIndex === choiceOrder.length) {
-                done = true;
-            }
+            done = transitionMappingManager.moveToNextMapping();
         } while (!done);
 
         return false;
