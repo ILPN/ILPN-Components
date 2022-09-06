@@ -8,43 +8,13 @@ import {LogCleaner} from './log-cleaner';
 import {Place} from '../../models/pn/model/place';
 import {Transition} from '../../models/pn/model/transition';
 import {MapSet} from '../../utility/map-set';
-import {IncrementingCounter} from '../../utility/incrementing-counter';
 import {EditableStringSequenceWrapper} from '../../utility/string-sequence';
+import {PetriNetIsomorphismService} from '../pn/isomorphism/petri-net-isomorphism.service';
 
 export interface LogToPartialOrderTransformerConfiguration {
     cleanLog?: boolean;
     addStartStopEvent?: boolean;
     discardPrefixes?: boolean;
-}
-
-class PossibleMapping {
-
-    public transitionId: string;
-    private readonly _currentChoice: IncrementingCounter;
-    private readonly _maximum: number;
-
-    constructor(transitionId: string, maximum: number) {
-        this.transitionId = transitionId;
-        this._maximum = maximum;
-        this._currentChoice = new IncrementingCounter();
-    }
-
-    public current(): number {
-        return this._currentChoice.current();
-    }
-
-    public next(): number {
-        const next = this._currentChoice.next();
-        if (next === this._maximum) {
-            this._currentChoice.reset();
-            return 0;
-        }
-        return next;
-    }
-
-    public isLastOption(): boolean {
-        return this._currentChoice.current() + 1 === this._maximum;
-    }
 }
 
 @Injectable({
@@ -55,7 +25,7 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
     public static readonly START_SYMBOL = '▶';
     public static readonly STOP_SYMBOL = '■';
 
-    constructor() {
+    constructor(protected _pnIsomorphismService: PetriNetIsomorphismService) {
         super();
     }
 
@@ -352,7 +322,7 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
         for (const uncheckedOrder of nets) {
             let discard = false;
             for (const uniqueOrder of unique) {
-                if (this.arePartialOrdersIsomorphic(uncheckedOrder, uniqueOrder)) {
+                if (this._pnIsomorphismService.arePartialOrderPetriNetsIsomorphic(uncheckedOrder, uniqueOrder)) {
                     discard = true;
                     uniqueOrder.frequency = uniqueOrder.frequency! + uncheckedOrder.frequency!;
                     break;
@@ -364,86 +334,6 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
         }
 
         return unique;
-    }
-
-    private arePartialOrdersIsomorphic(partialOrderA: PetriNet, partialOrderB: PetriNet): boolean {
-        if (
-            partialOrderA.getTransitionCount() !== partialOrderB.getTransitionCount()
-            || partialOrderA.getPlaceCount() !== partialOrderB.getPlaceCount()
-            || partialOrderA.getArcCount() !== partialOrderB.getArcCount()
-            || partialOrderA.inputPlaces.size !== partialOrderB.inputPlaces.size
-            || partialOrderA.outputPlaces.size !== partialOrderB.outputPlaces.size
-
-        ) {
-            return false;
-        }
-
-        const transitionMapping = new MapSet<string, string>();
-        for (const tA of partialOrderA.getTransitions()) {
-            let wasMapped = false;
-            for (const tB of partialOrderB.getTransitions()) {
-                if (tA.label === tB.label) {
-                    wasMapped = true;
-                    transitionMapping.add(tA.getId(), tB.getId());
-                }
-            }
-            if (!wasMapped) {
-                return false;
-            }
-        }
-
-        const choiceOrder: Array<PossibleMapping> = [];
-        for (const [transitionId, possibleTransitionIds] of transitionMapping.entries()) {
-            choiceOrder.push(new PossibleMapping(transitionId, possibleTransitionIds.size))
-        }
-
-        const orderedTransitionMapping = new Map<string, Array<string>>(choiceOrder.map(choice => [choice.transitionId, Array.from(transitionMapping.get(choice.transitionId))]));
-
-        let done = false;
-        do {
-            const mapping = new Map<string, string>(choiceOrder.map(choice => [choice.transitionId, orderedTransitionMapping.get(choice.transitionId)![choice.current()]]));
-            const uniqueMapped = new Set<string>(mapping.values()); // ist the mapping bijection?
-
-            if (uniqueMapped.size === mapping.size && this.isMappingAnIsomorphism(partialOrderA, partialOrderB, mapping)) {
-                return true;
-            }
-
-            let incrementedIndex = 0;
-            while (incrementedIndex < choiceOrder.length) {
-                const carry = choiceOrder[incrementedIndex].isLastOption();
-                choiceOrder[incrementedIndex].next();
-                if (carry) {
-                    incrementedIndex++;
-                } else {
-                    break;
-                }
-            }
-            if (incrementedIndex === choiceOrder.length) {
-                done = true;
-            }
-        } while (!done);
-
-        return false;
-    }
-
-    private isMappingAnIsomorphism(partialOrderA: PetriNet, partialOrderB: PetriNet, mapping: Map<string, string>): boolean {
-        const unmappedArcs = partialOrderB.getPlaces().filter(p => p.ingoingArcs.length !== 0 && p.outgoingArcs.length !== 0);
-
-        for (const arc of partialOrderA.getPlaces()) {
-            if (arc.ingoingArcs.length === 0 || arc.outgoingArcs.length === 0) {
-                continue;
-            }
-            const preTransitionB = mapping.get(arc.ingoingArcs[0].sourceId)!;
-            const postTransitionB = mapping.get(arc.outgoingArcs[0].destinationId);
-
-            const fittingArcIndex = unmappedArcs.findIndex(unmapped => unmapped.ingoingArcs[0].sourceId === preTransitionB && unmapped.outgoingArcs[0].destinationId === postTransitionB);
-            if (fittingArcIndex === -1) {
-                return false;
-            }
-            unmappedArcs.splice(fittingArcIndex, 1);
-        }
-
-        return true;
     }
 
 }
