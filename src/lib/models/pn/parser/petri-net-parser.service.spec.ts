@@ -38,7 +38,7 @@ describe('PetriNetParserService', () => {
 
     it('errors on incorrect place attributes', () => {
         expectErrorMessage(
-`.type pn
+            `.type pn
 .transitions
 .places
 a
@@ -46,44 +46,136 @@ a
 `,
             'does not have the correct number of elements!'
         );
-/*
-        expect(() => service.parse(
+        expectErrorMessage(
             `.type pn
 .transitions
 .places
 a a a
 .arcs
-`
-        )).toThrowMatching(e => e.message.contains('does not have the correct number of elements!'));
-        expect(() => service.parse(
+`,
+            'does not have the correct number of elements!'
+        );
+        expectErrorMessage(
             `.type pn
 .transitions
 .places
 a a
 .arcs
-`
-        )).toThrowMatching(e => e.message.contains('marking cannot be parsed into a number!'));
-        expect(() => service.parse(
+`,
+            'marking cannot be parsed into a number!'
+        );
+        expectErrorMessage(
             `.type pn
 .transitions
 .places
 a -1
 .arcs
-`
-        )).toThrowMatching(e => e.message.contains('marking is less than 0!'));
-        expect(() => service.parse(
+`,
+            'marking is less than 0!'
+        );
+        expectErrorMessage(
             `.type pn
 .transitions
 .places
 a 0
 a 1
 .arcs
-`
-        )).toThrowMatching(e => e.message.contains('place ids must be unique!'));
-
- */
+`,
+            'place ids must be unique!'
+        );
     });
 
+    it('errors on incorrect transition attributes', () => {
+        expectErrorMessage(
+            `.type pn
+.transitions
+a a a
+.places
+.arcs
+`,
+            'does not have the correct number of elements!'
+        );
+        expectErrorMessage(
+            `.type pn
+.transitions
+a
+a
+.places
+.arcs
+`,
+            'transition ids must be unique!'
+        );
+    });
+
+    it('errors on incorrect arc attributes', () => {
+        expectErrorMessage(
+            `.type pn
+.transitions
+.places
+.arcs
+a
+`,
+            'does not have the correct number of elements!'
+        );
+        expectErrorMessage(
+            `.type pn
+.transitions
+.places
+.arcs
+a a a a
+`,
+            'does not have the correct number of elements!'
+        );
+        expectErrorMessage(
+            `.type pn
+.transitions
+.places
+.arcs
+a a a
+`,
+            'arc weight cannot be parsed into a number!'
+        );
+        expectErrorMessage(
+            `.type pn
+.transitions
+.places
+.arcs
+a a 0
+`,
+            'arc weight is less than 1!'
+        );
+        expectErrorMessage(
+            `.type pn
+.transitions
+.places
+.arcs
+a a
+`,
+            'arc source or destination is invalid!'
+        );
+        expectErrorMessage(
+            `.type pn
+.transitions
+a
+.places
+.arcs
+a a
+`,
+            'arc source or destination is invalid!'
+        );
+        expectErrorMessage(
+            `.type pn
+.transitions
+a
+.places
+b 0
+.arcs
+a b
+a b
+`,
+            'duplicate arcs between elements are not allowed!'
+        );
+    });
 
     function expectErrorMessage(net: string, messageContent: string): void {
         const parsed = service.parse(net);
