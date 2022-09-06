@@ -34,6 +34,112 @@ describe('PetriNetParserService', () => {
         expect(result?.getTransitions().length).toBe(0);
         expect(result?.getPlaces().length).toBe(0);
         expect(result?.getArcs().length).toBe(0);
+        expect(result?.inputPlaces.size).toBe(0);
+        expect(result?.outputPlaces.size).toBe(0);
+    });
+
+    it('can parse net', () => {
+        let result = service.parse(
+            `.type pn
+.transitions
+a A
+b
+.places
+c 1
+.arcs
+a c
+c b 1
+b c 2`
+        );
+        expect(result).toBeTruthy();
+        expect(result?.getTransitions().length).toBe(2);
+        expect(result?.getPlaces().length).toBe(1);
+        expect(result?.getArcs().length).toBe(3);
+        expect(result?.inputPlaces.size).toBe(0);
+        expect(result?.outputPlaces.size).toBe(0);
+        let a = result?.getTransition('a');
+        expect(a).toBeTruthy();
+        expect(a?.label).toBe('A');
+        expect(a?.isSilent).toBeFalse();
+        expect(a?.ingoingArcs.length).toBe(0);
+        expect(a?.outgoingArcs.length).toBe(1);
+        expect(a?.outgoingArcs[0].source).toBe(a);
+        expect(a?.outgoingArcs[0].weight).toBe(1);
+        let c = result?.getPlace('c');
+        expect(c).toBeTruthy();
+        expect(a?.outgoingArcs[0].destination).toBe(c);
+        let b = result?.getTransition('b');
+        expect(b).toBeTruthy();
+        expect(b?.label).toBeUndefined();
+        expect(b?.isSilent).toBeTrue();
+        expect(b?.ingoingArcs.length).toBe(1);
+        expect(b?.ingoingArcs[0].source).toBe(c);
+        expect(b?.ingoingArcs[0].destination).toBe(b);
+        expect(b?.ingoingArcs[0].weight).toBe(1);
+        expect(b?.outgoingArcs.length).toBe(1);
+        expect(b?.outgoingArcs[0].source).toBe(b);
+        expect(b?.outgoingArcs[0].destination).toBe(c);
+        expect(b?.outgoingArcs[0].weight).toBe(2);
+        expect(c?.marking).toBe(1);
+        expect(c?.ingoingArcs.length).toBe(2);
+        expect(c?.outgoingArcs.length).toBe(1);
+
+        result = service.parse(
+            `.type pn
+.transitions
+a A
+b A
+.places
+c 1
+d 0
+.arcs
+c a
+c b
+a d
+b d`
+        );
+        expect(result).toBeTruthy();
+        expect(result?.getTransitions().length).toBe(2);
+        expect(result?.getPlaces().length).toBe(2);
+        expect(result?.getArcs().length).toBe(4);
+        expect(result?.inputPlaces.size).toBe(1);
+        expect(result?.outputPlaces.size).toBe(1);
+        c = result?.getPlace('c');
+        expect(c).toBeTruthy();
+        expect(Array.from(result!.inputPlaces)[0]).toBe(c?.id);
+        expect(c?.marking).toBe(1);
+        expect(c?.ingoingArcs.length).toBe(0);
+        expect(c?.outgoingArcs.length).toBe(2);
+        const d = result?.getPlace('d');
+        expect(d).toBeTruthy();
+        expect(Array.from(result!.outputPlaces)[0]).toBe(d?.id);
+        expect(d?.marking).toBe(0);
+        expect(d?.ingoingArcs.length).toBe(2);
+        expect(d?.outgoingArcs.length).toBe(0);
+        a = result?.getTransition('a');
+        expect(a).toBeTruthy();
+        expect(a?.label).toBe('A');
+        expect(a?.isSilent).toBeFalse();
+        expect(a?.ingoingArcs.length).toBe(1);
+        expect(a?.ingoingArcs[0].source).toBe(c);
+        expect(a?.ingoingArcs[0].destination).toBe(a);
+        expect(a?.ingoingArcs[0].weight).toBe(1);
+        expect(a?.outgoingArcs.length).toBe(1);
+        expect(a?.outgoingArcs[0].source).toBe(a);
+        expect(a?.outgoingArcs[0].destination).toBe(d);
+        expect(a?.outgoingArcs[0].weight).toBe(1);
+        b = result?.getTransition('b');
+        expect(b).toBeTruthy();
+        expect(b?.label).toBe('A');
+        expect(b?.isSilent).toBeFalse();
+        expect(b?.ingoingArcs.length).toBe(1);
+        expect(b?.ingoingArcs[0].source).toBe(c);
+        expect(b?.ingoingArcs[0].destination).toBe(b);
+        expect(b?.ingoingArcs[0].weight).toBe(1);
+        expect(b?.outgoingArcs.length).toBe(1);
+        expect(b?.outgoingArcs[0].source).toBe(b);
+        expect(b?.outgoingArcs[0].destination).toBe(d);
+        expect(b?.outgoingArcs[0].weight).toBe(1);
     });
 
     it('errors on incorrect place attributes', () => {
