@@ -18,8 +18,9 @@ describe('PetriNetIsomorphismService', () => {
         expect(isomorphismService).toBeTruthy();
     });
 
-    it('empty partial orders are isomorphic', () => {
+    it('empty net isomorphic', () => {
         expect(isomorphismService.arePartialOrderPetriNetsIsomorphic(new PetriNet(), new PetriNet())).toBeTrue();
+        expect(isomorphismService.arePetriNetsIsomorphic(new PetriNet(), new PetriNet())).toBeTrue();
     });
 
     it('A B parallel PO is isomorphic', () => {
@@ -58,6 +59,7 @@ b p4`
         );
         expect(po2).toBeTruthy();
         expect(isomorphismService.arePartialOrderPetriNetsIsomorphic(po1!, po2!)).toBeTrue();
+        expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeTrue();
     });
 
     it('3A sequence PO is isomorphic', () => {
@@ -102,6 +104,7 @@ c p4`
         );
         expect(po2).toBeTruthy();
         expect(isomorphismService.arePartialOrderPetriNetsIsomorphic(po1!, po2!)).toBeTrue();
+        expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeTrue();
     });
 
     it('AB then C is not C then AB PO', () => {
@@ -150,5 +153,74 @@ b p5`
         );
         expect(po2).toBeTruthy();
         expect(isomorphismService.arePartialOrderPetriNetsIsomorphic(po1!, po2!)).toBeFalse();
+        expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeFalse();
+    });
+
+    it('A B conflict is isomorphic', () => {
+        const po1 = parserService.parse(
+            `.type pn
+.transitions
+a A
+b B
+.places
+p1 0
+p2 0
+.arcs
+p1 a
+a p2
+p1 b
+b p2`
+        );
+        expect(po1).toBeTruthy();
+        const po2 = parserService.parse(
+            `.type pn
+.transitions
+a A
+b B
+.places
+p1 0
+p2 0
+.arcs
+p1 a
+a p2
+p1 b
+b p2`
+        );
+        expect(po2).toBeTruthy();
+        expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeTrue();
+    });
+
+    it('unlabeled loop is isomorphic', () => {
+        const po1 = parserService.parse(
+            `.type pn
+.transitions
+a
+b
+.places
+p1 0
+p2 0
+.arcs
+p1 a
+a p2
+p2 b
+b p1`
+        );
+        expect(po1).toBeTruthy();
+        const po2 = parserService.parse(
+            `.type pn
+.transitions
+b
+a
+.places
+p1 0
+p2 0
+.arcs
+p1 a
+a p2
+p2 b
+b p1`
+        );
+        expect(po2).toBeTruthy();
+        expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeTrue();
     });
 });
