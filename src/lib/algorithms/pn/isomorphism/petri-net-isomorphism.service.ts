@@ -16,18 +16,9 @@ export class PetriNetIsomorphismService {
             return false;
         }
 
-        const transitionMapping = new MapSet<string, string>();
-        for (const tA of partialOrderA.getTransitions()) {
-            let wasMapped = false;
-            for (const tB of partialOrderB.getTransitions()) {
-                if (tA.label === tB.label) {
-                    wasMapped = true;
-                    transitionMapping.add(tA.getId(), tB.getId());
-                }
-            }
-            if (!wasMapped) {
-                return false;
-            }
+        const transitionMapping = this.determinePossibleTransitionMappings(partialOrderA, partialOrderB);
+        if (transitionMapping === undefined) {
+            return false;
         }
 
         const choiceOrder: Array<PossibleMapping> = [];
@@ -42,7 +33,7 @@ export class PetriNetIsomorphismService {
             const mapping = new Map<string, string>(choiceOrder.map(choice => [choice.transitionId, orderedTransitionMapping.get(choice.transitionId)![choice.current()]]));
             const uniqueMapped = new Set<string>(mapping.values()); // ist the mapping a bijection?
 
-            if (uniqueMapped.size === mapping.size && this.isMappingAnIsomorphism(partialOrderA, partialOrderB, mapping)) {
+            if (uniqueMapped.size === mapping.size && this.isMappingAPartialOrderIsomorphism(partialOrderA, partialOrderB, mapping)) {
                 return true;
             }
 
@@ -72,15 +63,34 @@ export class PetriNetIsomorphismService {
             && netA.outputPlaces.size === netB.outputPlaces.size;
     }
 
-    private isMappingAnIsomorphism(partialOrderA: PetriNet, partialOrderB: PetriNet, mapping: Map<string, string>): boolean {
+    private determinePossibleTransitionMappings(netA: PetriNet, netB: PetriNet): MapSet<string, string> | undefined {
+        const transitionMapping = new MapSet<string, string>();
+        for (const tA of netA.getTransitions()) {
+            let wasMapped = false;
+            for (const tB of netB.getTransitions()) {
+                if (tA.label === tB.label
+                    && tA.ingoingArcs.length === tB.ingoingArcs.length
+                    && tA.outgoingArcs.length === tB.outgoingArcs.length) {
+                    wasMapped = true;
+                    transitionMapping.add(tA.getId(), tB.getId());
+                }
+            }
+            if (!wasMapped) {
+                return undefined;
+            }
+        }
+        return transitionMapping;
+    }
+
+    private isMappingAPartialOrderIsomorphism(partialOrderA: PetriNet, partialOrderB: PetriNet, transitionMapping: Map<string, string>): boolean {
         const unmappedArcs = partialOrderB.getPlaces().filter(p => p.ingoingArcs.length !== 0 && p.outgoingArcs.length !== 0);
 
         for (const arc of partialOrderA.getPlaces()) {
             if (arc.ingoingArcs.length === 0 || arc.outgoingArcs.length === 0) {
                 continue;
             }
-            const preTransitionB = mapping.get(arc.ingoingArcs[0].sourceId)!;
-            const postTransitionB = mapping.get(arc.outgoingArcs[0].destinationId);
+            const preTransitionB = transitionMapping.get(arc.ingoingArcs[0].sourceId)!;
+            const postTransitionB = transitionMapping.get(arc.outgoingArcs[0].destinationId);
 
             const fittingArcIndex = unmappedArcs.findIndex(unmapped => unmapped.ingoingArcs[0].sourceId === preTransitionB && unmapped.outgoingArcs[0].destinationId === postTransitionB);
             if (fittingArcIndex === -1) {
