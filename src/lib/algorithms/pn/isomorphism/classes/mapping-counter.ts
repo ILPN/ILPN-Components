@@ -1,32 +1,28 @@
-import {IncrementingCounter} from '../../../../utility/incrementing-counter';
-
-
 export class MappingCounter {
 
     public mappedId: string;
-    private readonly _currentChoice: IncrementingCounter;
+    private _currentChoice: number;
     private readonly _maximum: number;
 
     constructor(mappedId: string, maximum: number) {
         this.mappedId = mappedId;
         this._maximum = maximum;
-        this._currentChoice = new IncrementingCounter();
+        this._currentChoice = 0;
     }
 
     public current(): number {
-        return this._currentChoice.current();
+        return this._currentChoice;
     }
 
     public next(): number {
-        const next = this._currentChoice.next();
-        if (next === this._maximum) {
-            this._currentChoice.reset();
-            return 0;
+        this._currentChoice += 1;
+        if (this._currentChoice > this._maximum) {
+            this._currentChoice = 0;
         }
-        return next;
+        return this._currentChoice;
     }
 
     public isLastOption(): boolean {
-        return this._currentChoice.current() + 1 === this._maximum;
+        return this._currentChoice === this._maximum;
     }
 }

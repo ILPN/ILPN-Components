@@ -9,7 +9,7 @@ export class MappingManager {
     constructor(possibleMappings: MapSet<string, string>) {
         this._mappingCounters = [];
         for (const [id, mappableIds] of possibleMappings.entries()) {
-            this._mappingCounters.push(new MappingCounter(id, mappableIds.size))
+            this._mappingCounters.push(new MappingCounter(id, mappableIds.size - 1))
         }
 
         this._mappingOrder = new Map<string, Array<string>>(this._mappingCounters.map(choice => [choice.mappedId, Array.from(possibleMappings.get(choice.mappedId))]));
