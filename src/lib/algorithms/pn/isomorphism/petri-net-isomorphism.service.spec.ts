@@ -223,4 +223,126 @@ b p1`
         expect(po2).toBeTruthy();
         expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeTrue();
     });
+
+    it('considers arc weights', () => {
+        const po1 = parserService.parse(
+            `.type pn
+.transitions
+a
+.places
+p1 0
+.arcs
+p1 a`
+        );
+        expect(po1).toBeTruthy();
+        const po2 = parserService.parse(
+            `.type pn
+.transitions
+a
+.places
+p1 0
+.arcs
+p1 a 2`
+        );
+        expect(po2).toBeTruthy();
+        expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeFalse();
+    });
+
+    it('prime miner arc weight bug', () => {
+        const po1 = parserService.parse(
+            `.type pn
+.transitions
+Register Register
+Analyze_Defect Analyze_Defect
+Repair_Complex Repair_Complex
+Test_Repair Test_Repair
+Inform_User Inform_User
+Archive_Repair Archive_Repair
+Repair_Simple Repair_Simple
+Restart_Repair Restart_Repair
+.places
+p0 0
+p1 0
+p2 1
+p3 0
+p4 0
+p5 0
+p6 0
+p7 0
+p8 0
+p9 0
+.arcs
+Archive_Repair p0
+Register p1
+p1 Analyze_Defect
+p2 Register
+Inform_User p3
+p3 Archive_Repair
+Analyze_Defect p4
+p4 Inform_User
+Test_Repair p5
+p5 Archive_Repair
+p5 Restart_Repair
+Repair_Complex p6
+p6 Test_Repair
+Repair_Simple p6
+Analyze_Defect p7
+p7 Repair_Complex
+p7 Repair_Simple
+Restart_Repair p7
+Analyze_Defect p8
+p8 Archive_Repair
+Analyze_Defect p9
+p9 Restart_Repair`
+        );
+        expect(po1).toBeTruthy();
+        const po2 = parserService.parse(
+            `.type pn
+.transitions
+Register Register
+Analyze_Defect Analyze_Defect
+Repair_Complex Repair_Complex
+Test_Repair Test_Repair
+Inform_User Inform_User
+Archive_Repair Archive_Repair
+Repair_Simple Repair_Simple
+Restart_Repair Restart_Repair
+.places
+p0 0
+p1 0
+p2 0
+p3 0
+p4 1
+p5 0
+p6 0
+p7 0
+p8 0
+p9 0
+.arcs
+Archive_Repair p0
+Inform_User p1
+p1 Archive_Repair
+Analyze_Defect p2
+p2 Inform_User
+Register p3
+p3 Analyze_Defect
+p4 Register
+Analyze_Defect p5
+p5 Archive_Repair
+Repair_Complex p6
+p6 Test_Repair
+Repair_Simple p6
+Test_Repair p7
+p7 Archive_Repair
+p7 Restart_Repair
+Analyze_Defect p8
+p8 Repair_Complex
+p8 Repair_Simple
+Restart_Repair p8
+Analyze_Defect p9 2
+p9 Restart_Repair`
+        );
+        expect(po2).toBeTruthy();
+        expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeFalse();
+    });
 });

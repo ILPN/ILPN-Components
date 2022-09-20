@@ -131,9 +131,10 @@ export class RegionIlpSolver {
 
         // initial markings must be the same
         if (combined.inputs.length > 1) {
-            const inputsA = Array.from(combined.inputs[0]);
-            for (let i = 1; i < combined.inputs.length; i++) {
-                const inputsB = Array.from(combined.inputs[i]);
+            const nonemptyInputs = combined.inputs.filter(inputs => inputs.size !== 0);
+            const inputsA = Array.from(nonemptyInputs[0]);
+            for (let i = 1; i < nonemptyInputs.length; i++) {
+                const inputsB = Array.from(nonemptyInputs[i]);
                 result.push(this.sumEqualsZero(...inputsA.map(id => this.variable(id, 1)), ...inputsB.map(id => this.variable(id, -1))));
             }
         }

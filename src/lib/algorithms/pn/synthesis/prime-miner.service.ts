@@ -4,13 +4,14 @@ import {PetriNet} from '../../../models/pn/model/petri-net';
 import {PetriNetRegionSynthesisService} from '../regions/petri-net-region-synthesis.service';
 import {RegionsConfiguration} from '../regions/classes/regions-configuration';
 import {PrimeMinerResult} from './prime-miner-result';
+import {PetriNetIsomorphismService} from '../isomorphism/petri-net-isomorphism.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class PrimeMinerService {
 
-    constructor(protected _synthesisService: PetriNetRegionSynthesisService) {
+    constructor(protected _synthesisService: PetriNetRegionSynthesisService, protected _isomorphismService: PetriNetIsomorphismService) {
     }
 
     public mine(partialOrders: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<PrimeMinerResult> {
@@ -34,7 +35,7 @@ export class PrimeMinerService {
 
                 const r: Array<PrimeMinerResult> = [];
                 if (this.isConnected(result.result)) {
-                    if (this.areIsomorphic(bestResult.net, result.result)) {
+                    if (this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, result.result)) {
                         bestResult.supportedPoIndices.push(nextInputIndex);
                     } else if (!bestResult.net.isEmpty()) {
                         r.push(bestResult);
@@ -64,18 +65,5 @@ export class PrimeMinerService {
 
     private isConnected(net: PetriNet): boolean {
         return net.getTransitions().every(t => t.ingoingArcs.length > 0);
-    }
-
-    private areIsomorphic(a: PetriNet, b: PetriNet): boolean {
-        if (a.getPlaces().length !== b.getPlaces().length) {
-            return false;
-        }
-        if (a.getTransitions().length !== b.getTransitions().length) {
-            return false
-        }
-        if (a.getArcs().length !== b.getArcs().length) {
-            return false;
-        }
-        return true; // TODO
     }
 }
