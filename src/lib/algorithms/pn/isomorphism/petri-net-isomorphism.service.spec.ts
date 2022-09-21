@@ -248,7 +248,7 @@ p1 a 2`
         expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeFalse();
     });
 
-    it('prime miner arc weight bug', () => {
+    it('prime miner incorrect mapping counter incrementation bug', () => {
         const po1 = parserService.parse(
             `.type pn
 .transitions

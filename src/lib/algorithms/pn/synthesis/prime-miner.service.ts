@@ -35,9 +35,8 @@ export class PrimeMinerService {
 
                 const r: Array<PrimeMinerResult> = [];
                 if (this.isConnected(result.result)) {
-                    if (this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, result.result)) {
-                        bestResult.supportedPoIndices.push(nextInputIndex);
-                    } else if (!bestResult.net.isEmpty()) {
+                    if (!this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, result.result)
+                        && !bestResult.net.isEmpty()) {
                         r.push(bestResult);
                     }
 
