@@ -1,6 +1,7 @@
 import {expect} from '@angular/flex-layout/_private-utils/testing';
 import {OccurenceMatrixType, OccurrenceMatrix} from './occurrence-matrix';
 
+
 describe('OccurrenceMatrix', () => {
 
     it('should add key when an entry is added', () => {
