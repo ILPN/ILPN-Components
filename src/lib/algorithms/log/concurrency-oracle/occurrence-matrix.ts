@@ -29,9 +29,9 @@ export class OccurrenceMatrix {
         const row = this._matrix[e1];
         if (row === undefined) {
             this._matrix[e1] = {[e2]: 1};
-            return;
+        } else {
+            row[e2] = (row[e2] ?? 0) + 1;
         }
-        row[e2] = (row[e2] ?? 0) + 1;
         this._keys.add(e1);
         this._keys.add(e2);
     }

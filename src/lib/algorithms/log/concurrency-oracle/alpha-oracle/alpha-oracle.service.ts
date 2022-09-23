@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {ConcurrencyOracle} from '../concurrency-oracle';
 import {Trace} from '../../../../models/log/model/trace';
 import {AlphaOracleConfiguration} from './alpha-oracle-configuration';
-import {OccurenceMatrixType, OccurrenceMatrix} from './occurrence-matrix';
+import {OccurenceMatrixType, OccurrenceMatrix} from '../occurrence-matrix';
 import {ConcurrencyRelation} from '../../../../models/concurrency/model/concurrency-relation';
 import {LogCleaner} from '../../log-cleaner';
 import {Relabeler} from '../../../../utility/relabeler';

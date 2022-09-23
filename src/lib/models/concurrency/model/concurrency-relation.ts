@@ -2,7 +2,7 @@ import {Relabeler} from '../../../utility/relabeler';
 import {
     OccurenceMatrixType,
     OccurrenceMatrix
-} from '../../../algorithms/log/concurrency-oracle/alpha-oracle/occurrence-matrix';
+} from '../../../algorithms/log/concurrency-oracle/occurrence-matrix';
 import {ConcurrencyMatrices, ConcurrencyMatrix} from './concurrency-matrix';
 
 
