@@ -30,12 +30,12 @@ describe('TimestampOracleService', () => {
         expect(trace.events[1].lifecycle).toBe(Lifecycle.COMPLETE);
     });
 
-    it('should detect concurrency', () => {
+    it('should detect wildcard concurrency', () => {
         // |-A-||-B-|
         let trace = createMockTrace([
             {n: 'A', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
-            {n: 'B',p: Lifecycle.START},
+            {n: 'B', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE}
         ]);
 
@@ -47,7 +47,7 @@ describe('TimestampOracleService', () => {
         //   |-B-|
         trace = createMockTrace([
             {n: 'A', p: Lifecycle.START},
-            {n: 'B',p: Lifecycle.START},
+            {n: 'B', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
             {n: 'B', p: Lifecycle.COMPLETE}
         ]);
@@ -61,9 +61,9 @@ describe('TimestampOracleService', () => {
         //       |-C-|
         trace = createMockTrace([
             {n: 'A', p: Lifecycle.START},
-            {n: 'B',p: Lifecycle.START},
+            {n: 'B', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
-            {n: 'C',p: Lifecycle.START},
+            {n: 'C', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE},
             {n: 'C', p: Lifecycle.COMPLETE}
         ]);
@@ -79,8 +79,8 @@ describe('TimestampOracleService', () => {
         //     |-C-|
         trace = createMockTrace([
             {n: 'A', p: Lifecycle.START},
-            {n: 'B',p: Lifecycle.START},
-            {n: 'C',p: Lifecycle.START},
+            {n: 'B', p: Lifecycle.START},
+            {n: 'C', p: Lifecycle.START},
             {n: 'C', p: Lifecycle.COMPLETE},
             {n: 'B', p: Lifecycle.COMPLETE},
             {n: 'A', p: Lifecycle.COMPLETE},
@@ -95,7 +95,7 @@ describe('TimestampOracleService', () => {
         // A |-B-|
         trace = createMockTrace([
             {n: 'A', p: Lifecycle.COMPLETE},
-            {n: 'B',p: Lifecycle.START},
+            {n: 'B', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE}
         ]);
 
@@ -105,7 +105,7 @@ describe('TimestampOracleService', () => {
 
         // |-A-| B
         trace = createMockTrace([
-            {n: 'A',p: Lifecycle.START},
+            {n: 'A', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
             {n: 'B', p: Lifecycle.COMPLETE}
         ]);
@@ -117,7 +117,7 @@ describe('TimestampOracleService', () => {
         // |-A-|
         //   B
         trace = createMockTrace([
-            {n: 'A',p: Lifecycle.START},
+            {n: 'A', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE},
             {n: 'A', p: Lifecycle.COMPLETE}
         ]);
@@ -125,6 +125,29 @@ describe('TimestampOracleService', () => {
         concurrency = service.determineConcurrency([trace]);
         expect(concurrency).toBeTruthy();
         expect(concurrency.isConcurrent('A', 'B')).toBeTrue();
+    });
+
+    it('should detect unique concurrency', () => {
+        // |-A-|
+        //   |--B--|
+        //       |-A-|
+        let trace = createMockTrace([
+            {n: 'A', p: Lifecycle.START},
+            {n: 'B', p: Lifecycle.START},
+            {n: 'A', p: Lifecycle.COMPLETE},
+            {n: 'A', p: Lifecycle.START},
+            {n: 'B', p: Lifecycle.COMPLETE},
+            {n: 'A', p: Lifecycle.COMPLETE}
+        ]);
+
+        let concurrency = service.determineConcurrency([trace], {distinguishSameLabels: true});
+        expect(concurrency).toBeTruthy();
+        const aLabels = concurrency.relabeler.getLabelOrder().get('A')!;
+        expect(aLabels).toBeTruthy();
+        expect(aLabels.length).toBe(2);
+        expect(concurrency.isConcurrent(aLabels[0], 'B')).toBeTrue();
+        expect(concurrency.isConcurrent(aLabels[1], 'B')).toBeTrue();
+        expect(concurrency.isConcurrent(aLabels[0], aLabels[1])).toBeFalse();
     });
 
 });

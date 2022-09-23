@@ -6,13 +6,16 @@ import {Relabeler} from '../../../../utility/relabeler';
 import {LogEvent} from '../../../../models/log/model/logEvent';
 import {Lifecycle} from '../../../../models/log/model/lifecycle';
 import {OccurenceMatrixType, OccurrenceMatrix} from '../occurrence-matrix';
+import {TimestampOracleConfiguration} from './timestamp-oracle-configuration';
+import {LogCleaner} from '../../log-cleaner';
 
 
 @Injectable({
     providedIn: 'root'
 })
-export class TimestampOracleService implements ConcurrencyOracle {
-    determineConcurrency(log: Array<Trace>): ConcurrencyRelation {
+export class TimestampOracleService extends LogCleaner implements ConcurrencyOracle {
+
+    determineConcurrency(log: Array<Trace>, config: TimestampOracleConfiguration = {}): ConcurrencyRelation {
         if (log.length === 0) {
             return ConcurrencyRelation.noConcurrency();
         }
@@ -22,9 +25,13 @@ export class TimestampOracleService implements ConcurrencyOracle {
         })
 
         const relabeler = new Relabeler();
-        relabeler.relabelSequencesPreserveNonUniqueIdentities(log);
+        if (config.distinguishSameLabels) {
+            this.relabelPairedLog(log, relabeler);
+        } else {
+            relabeler.relabelSequencesPreserveNonUniqueIdentities(log);
+        }
 
-        const matrix = this.constructOccurrenceMatrix(log);
+        const matrix = this.constructOccurrenceMatrix(log, !!config.distinguishSameLabels);
         return ConcurrencyRelation.fromOccurrenceMatrix(matrix, relabeler);
     }
 
@@ -41,6 +48,9 @@ export class TimestampOracleService implements ConcurrencyOracle {
                     break;
                 case Lifecycle.COMPLETE:
                     if (startedEvents.has(e.name)) {
+                        const pair = startedEvents.get(e.name)!;
+                        e.setPairEvent(pair);
+                        pair.setPairEvent(e);
                         startedEvents.delete(e.name);
                     }
                     break;
@@ -54,8 +64,21 @@ export class TimestampOracleService implements ConcurrencyOracle {
         }
     }
 
-    protected constructOccurrenceMatrix(log: Array<Trace>): OccurrenceMatrix {
-        const matrix = new OccurrenceMatrix(OccurenceMatrixType.WILDCARD);
+    protected relabelPairedLog(log: Array<Trace>, relabeler: Relabeler) {
+        const filteredLog = this.cleanLog(log);
+        relabeler.uniquelyRelabelSequences(filteredLog);
+        for (const trace of filteredLog) {
+            for (const event of trace.events) {
+                const pair = event.getPairEvent();
+                if (pair !== undefined) {
+                    pair.name = event.name;
+                }
+            }
+        }
+    }
+
+    protected constructOccurrenceMatrix(log: Array<Trace>, unique: boolean): OccurrenceMatrix {
+        const matrix = new OccurrenceMatrix(unique ? OccurenceMatrixType.UNIQUE : OccurenceMatrixType.WILDCARD);
 
         for (const trace of log) {
             const startedEvents = new Set<string>();
