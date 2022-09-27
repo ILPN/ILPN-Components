@@ -5,6 +5,7 @@ import {Observable, Subject} from 'rxjs';
 import {createUniqueString, IncrementingCounter} from '../../../utility/incrementing-counter';
 import {NetUnionResult} from './net-union-result';
 import {getById} from '../../../utility/get-by-id';
+import {Marking} from './marking';
 
 export class PetriNet {
     private _places: Map<string, Place>;
@@ -103,6 +104,34 @@ export class PetriNet {
         })
 
         return {net: result, inputPlacesB, outputPlacesB};
+    }
+
+    public static fireTransitionInMarking(net: PetriNet, transitionId: string, marking: Marking): Marking {
+        const transition = net.getTransition(transitionId);
+        if (transition === undefined) {
+            throw new Error(`The given net does not contain a transition with id '${transitionId}'`);
+        }
+
+        const newMarking: Marking = Object.assign({}, marking);
+
+        for (const inArc of transition.ingoingArcs) {
+            if (marking[inArc.sourceId] === undefined) {
+                throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
+            }
+            if (marking[inArc.sourceId] - inArc.weight < 0) {
+                throw new Error(`The transition with id '${transitionId}' is not enabled in the provided marking! The place with id '${inArc.sourceId}' contains ${marking[inArc.sourceId]} tokens, but the arc weight is ${inArc.weight}.`);
+            }
+            newMarking[inArc.sourceId] = marking[inArc.sourceId] - inArc.weight;
+        }
+
+        for (const outArc of transition.outgoingArcs) {
+            if (marking[outArc.destinationId] === undefined) {
+                throw new Error(`The transition with id '${transitionId}' has an outgoing arc to a place with id '${outArc.destinationId}' but no such place is defined in the provided marking!`);
+            }
+            newMarking[outArc.destinationId] = marking[outArc.destinationId] + outArc.weight;
+        }
+
+        return newMarking;
     }
 
     private static determineInOut(p: Place, input: Set<string>, output: Set<string>) {
@@ -248,6 +277,16 @@ export class PetriNet {
 
     get outputPlaces(): Set<string> {
         return this._outputPlaces;
+    }
+
+    public getInitialMarking(): Marking {
+        const result: Marking = {};
+
+        this.getPlaces().forEach(p => {
+            result[p.id!] = p.marking;
+        });
+
+        return result;
     }
 
     public isEmpty(): boolean {

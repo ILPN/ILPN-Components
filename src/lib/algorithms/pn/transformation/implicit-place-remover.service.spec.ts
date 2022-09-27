@@ -81,4 +81,41 @@ D z`)!;
         expect(noImplicit.getPlaces().every(p => p.id !== 'x')).toBeTrue();
     });
 
+    it('should keep non-implicit places', () => {
+        const net = netParser.parse(`.type pn
+.places
+s 1
+z 0
+x 0
+y 0
+a 0
+b 0
+.transitions
+A A
+B B
+C C
+X X
+Y Y
+.arcs
+s A
+A x
+A a
+a B
+B b
+b C
+C z
+x C
+x X
+X y
+y Y
+Y x`)!;
+
+        const noImplicit = service.removeImplicitPlaces(net, [createMockTrace([{n: 'A'}, {n: 'B'}, {n: 'C'}]),createMockTrace([{n: 'A'}, {n: 'X'}, {n: 'B'}, {n: 'Y'}, {n: 'C'}])])
+
+        expect(noImplicit).toBeTruthy();
+        expect(noImplicit.getTransitions().length).toBe(5);
+        expect(noImplicit.getPlaces().length).toBe(6);
+        expect(noImplicit.getArcs().length).toBe(12);
+    });
+
 });
