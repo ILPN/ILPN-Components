@@ -29,9 +29,9 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
         super();
     }
 
-    public transformToPartialOrders(log: Array<Trace>, concurrencyRelation: ConcurrencyRelation, config: LogToPartialOrderTransformerConfiguration = {}): Array<PetriNet> {
+    public transformToPartialOrders(log: Array<Trace>, concurrencyRelation: ConcurrencyRelation, config: LogToPartialOrderTransformerConfiguration = {}): [Array<PetriNet>, Array<Trace>] {
         if (log.length === 0) {
-            return [];
+            return [[], []];
         }
 
         if (!!config.cleanLog) {
@@ -42,7 +42,7 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
 
         concurrencyRelation.relabeler.relabelSequencesPreserveNonUniqueIdentities(log);
 
-        const sequences = this.convertLogToPetriNetSequences(log, !!config.discardPrefixes);
+        const [sequences, uniqueTraces] = this.convertLogToPetriNetSequences(log, !!config.discardPrefixes);
 
         // transitive reduction requires all places to be internal => always add start/stop and remove later
         sequences.forEach(seq => {
@@ -59,11 +59,11 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
 
         concurrencyRelation.relabeler.undoSequencesLabeling(result.map(pn => new EditableStringSequenceWrapper(pn.getTransitions())));
 
-        return result;
+        return [result, uniqueTraces];
     }
 
-    private convertLogToPetriNetSequences(log: Array<Trace>, discardPrefixes: boolean): Array<PetriNet> {
-        const netSequences = new Set<PetriNet>();
+    private convertLogToPetriNetSequences(log: Array<Trace>, discardPrefixes: boolean): [Array<PetriNet>, Array<Trace>] {
+        const netSequences = new Set<PetriNetSequence>();
         const tree = new PrefixTree<PetriNetSequence>(new PetriNetSequence());
 
         for (const trace of log) {
@@ -74,27 +74,35 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
                 (node, treeNode) => {
                     if (discardPrefixes && treeNode.hasChildren()) {
                         node.net.frequency = 0;
-                        netSequences.delete(node.net);
+                        netSequences.delete(node);
                     } else {
                         node.net.frequency = node.net.frequency === undefined ? 1 : node.net.frequency + 1;
-                        netSequences.add(node.net);
+                        netSequences.add(node);
                     }
                 },
                 discardPrefixes ? (s, node, treeNode) => {
                     if (treeNode.hasChildren()) {
                         node!.net.frequency = 0;
-                        netSequences.delete(node!.net);
+                        netSequences.delete(node!);
                     }
                 } : undefined,
                 (step, prefix, previousNode) => {
                     const newNode = previousNode!.clone();
-                    newNode.appendTransition(step);
+                    newNode.appendEvent(step);
                     return newNode;
                 }
             );
         }
 
-        return Array.from(netSequences.values());
+        const nets: Array<PetriNet> = [];
+        const traces: Array<Trace> = [];
+
+        for (const pnSequence of netSequences) {
+            nets.push(pnSequence.net);
+            traces.push(pnSequence.log);
+        }
+
+        return [nets, traces];
     }
 
     private addStartAndStopEvent(sequenceNet: PetriNet) {

@@ -5,16 +5,20 @@ import {PetriNetRegionSynthesisService} from '../regions/petri-net-region-synthe
 import {RegionsConfiguration} from '../regions/classes/regions-configuration';
 import {PrimeMinerResult} from './prime-miner-result';
 import {PetriNetIsomorphismService} from '../isomorphism/petri-net-isomorphism.service';
+import {ImplicitPlaceRemoverService} from '../transformation/implicit-place-remover.service';
+import {Trace} from '../../../models/log/model/trace';
 
 @Injectable({
     providedIn: 'root'
 })
 export class PrimeMinerService {
 
-    constructor(protected _synthesisService: PetriNetRegionSynthesisService, protected _isomorphismService: PetriNetIsomorphismService) {
+    constructor(protected _synthesisService: PetriNetRegionSynthesisService,
+                protected _isomorphismService: PetriNetIsomorphismService,
+                protected _implicitPlaceRemover: ImplicitPlaceRemoverService) {
     }
 
-    public mine(partialOrders: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<PrimeMinerResult> {
+    public mine(partialOrders: Array<PetriNet>, log: Array<Trace>, config: RegionsConfiguration = {}): Observable<PrimeMinerResult> {
         if (partialOrders.length === 0) {
             console.error('Miner input must be non empty');
             return EMPTY;
@@ -35,12 +39,14 @@ export class PrimeMinerService {
 
                 const r: Array<PrimeMinerResult> = [];
                 if (this.isConnected(result.result)) {
-                    if (!this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, result.result)
+                    const noImplicit = this._implicitPlaceRemover.removeImplicitPlaces(result.result, log);
+
+                    if (!this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, noImplicit)
                         && !bestResult.net.isEmpty()) {
                         r.push(bestResult);
                     }
 
-                    bestResult = new PrimeMinerResult(result.result, [...bestResult.supportedPoIndices, nextInputIndex]);
+                    bestResult = new PrimeMinerResult(noImplicit, [...bestResult.supportedPoIndices, nextInputIndex]);
 
                     if (nextInputIndex === partialOrders.length) {
                         r.push(bestResult);

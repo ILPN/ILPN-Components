@@ -29,4 +29,12 @@ export class Trace implements EditableStringSequence {
     length(): number {
         return this.events.length;
     }
+
+    clone(): Trace {
+        const clone = new Trace();
+        clone.name = this.name;
+        clone.description = this.description;
+        clone.events = [...this.events];
+        return clone;
+    }
 }
