@@ -34,6 +34,9 @@ export class Relabeler {
         this._labelOrder.forEach((v, k) => {
             result._labelOrder.set(k, [...v]);
         });
+        this._nonUniqueIdentities.forEach(nui => {
+            result._nonUniqueIdentities.add(nui);
+        })
         return result;
     }
 
