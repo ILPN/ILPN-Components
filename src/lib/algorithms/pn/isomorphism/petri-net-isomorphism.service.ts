@@ -3,13 +3,18 @@ import {PetriNet} from '../../../models/pn/model/petri-net';
 import {MapSet} from '../../../utility/map-set';
 import {MappingManager} from './classes/mapping-manager';
 import {Transition} from '../../../models/pn/model/transition';
+import {
+    PetriNetToPartialOrderTransformerService
+} from '../transformation/petri-net-to-partial-order-transformer.service';
+import {PartialOrderIsomorphismService} from '../../po/isomorphism/partial-order-isomorphism.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class PetriNetIsomorphismService {
 
-    constructor() {
+    constructor(protected _pnToPoTransformer: PetriNetToPartialOrderTransformerService,
+                protected _poIsomorphism: PartialOrderIsomorphismService) {
     }
 
     public arePartialOrderPetriNetsIsomorphic(partialOrderA: PetriNet, partialOrderB: PetriNet): boolean {
@@ -17,27 +22,10 @@ export class PetriNetIsomorphismService {
             return false;
         }
 
-        const transitionMapping = this.determinePossibleTransitionMappings(partialOrderA, partialOrderB);
-        if (transitionMapping === undefined) {
-            return false;
-        }
-
-        const transitionMappingManager = new MappingManager(transitionMapping);
-
-        let done = false;
-        do {
-            const mapping = transitionMappingManager.getCurrentMapping();
-            const uniqueMapped = new Set<string>(mapping.values());
-
-            if (uniqueMapped.size === mapping.size // ist the mapping a bijection?
-                && this.isMappingAPartialOrderIsomorphism(partialOrderA, partialOrderB, mapping)) {
-                return true;
-            }
-
-            done = transitionMappingManager.moveToNextMapping();
-        } while (!done);
-
-        return false;
+        return this._poIsomorphism.arePartialOrdersIsomorphic(
+            this._pnToPoTransformer.transform(partialOrderA),
+            this._pnToPoTransformer.transform(partialOrderB)
+        );
     }
 
     public arePetriNetsIsomorphic(netA: PetriNet, netB: PetriNet): boolean {
