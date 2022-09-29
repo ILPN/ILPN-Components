@@ -10,6 +10,8 @@ import {Transition} from '../../models/pn/model/transition';
 import {MapSet} from '../../utility/map-set';
 import {EditableStringSequenceWrapper} from '../../utility/string-sequence';
 import {PetriNetIsomorphismService} from '../pn/isomorphism/petri-net-isomorphism.service';
+import {PartialOrderNetWithContainedTraces} from '../../models/pn/model/partial-order-net-with-contained-traces';
+import {LogEvent} from '../../models/log/model/logEvent';
 
 export interface LogToPartialOrderTransformerConfiguration {
     cleanLog?: boolean;
@@ -29,9 +31,9 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
         super();
     }
 
-    public transformToPartialOrders(log: Array<Trace>, concurrencyRelation: ConcurrencyRelation, config: LogToPartialOrderTransformerConfiguration = {}): [Array<PetriNet>, Array<Trace>] {
+    public transformToPartialOrders(log: Array<Trace>, concurrencyRelation: ConcurrencyRelation, config: LogToPartialOrderTransformerConfiguration = {}): Array<PartialOrderNetWithContainedTraces> {
         if (log.length === 0) {
-            return [[], []];
+            return [];
         }
 
         if (!!config.cleanLog) {
@@ -42,7 +44,7 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
 
         concurrencyRelation.relabeler.relabelSequencesPreserveNonUniqueIdentities(log);
 
-        const [sequences, uniqueTraces] = this.convertLogToPetriNetSequences(log, !!config.discardPrefixes);
+        const sequences = this.convertLogToPetriNetSequences(log, !!config.discardPrefixes);
 
         // transitive reduction requires all places to be internal => always add start/stop and remove later
         sequences.forEach(seq => {
@@ -57,12 +59,12 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
         }
         const result = this.filterAndCombinePartialOrderNets(partialOrders);
 
-        concurrencyRelation.relabeler.undoSequencesLabeling(result.map(pn => new EditableStringSequenceWrapper(pn.getTransitions())));
+        concurrencyRelation.relabeler.undoSequencesLabeling(result.map(po => new EditableStringSequenceWrapper(po.net.getTransitions())));
 
-        return [result, uniqueTraces];
+        return result;
     }
 
-    private convertLogToPetriNetSequences(log: Array<Trace>, discardPrefixes: boolean): [Array<PetriNet>, Array<Trace>] {
+    private convertLogToPetriNetSequences(log: Array<Trace>, discardPrefixes: boolean): Array<PetriNetSequence> {
         const netSequences = new Set<PetriNetSequence>();
         const tree = new PrefixTree<PetriNetSequence>(new PetriNetSequence());
 
@@ -94,18 +96,12 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
             );
         }
 
-        const nets: Array<PetriNet> = [];
-        const traces: Array<Trace> = [];
-
-        for (const pnSequence of netSequences) {
-            nets.push(pnSequence.net);
-            traces.push(pnSequence.log);
-        }
-
-        return [nets, traces];
+        return Array.from(netSequences);
     }
 
-    private addStartAndStopEvent(sequenceNet: PetriNet) {
+    private addStartAndStopEvent(sequence: PetriNetSequence) {
+        // add events to net
+        const sequenceNet = sequence.net;
         const firstLast = sequenceNet.getPlaces().filter(p => p.ingoingArcs.length === 0 || p.outgoingArcs.length === 0);
         if (firstLast.length !== 2) {
             console.debug(sequenceNet);
@@ -133,45 +129,56 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
         sequenceNet.addPlace(postStop);
         sequenceNet.addArc(last, stop);
         sequenceNet.addArc(stop, postStop);
+
+        // add events to trace
+        sequence.trace.events.unshift(new LogEvent(LogToPartialOrderTransformerService.START_SYMBOL));
+        sequence.trace.events.push(new LogEvent(LogToPartialOrderTransformerService.STOP_SYMBOL));
     }
 
-    private removeStartAndStopEvent(partialOrder: PetriNet) {
-        if (partialOrder.inputPlaces.size !== 1 || partialOrder.outputPlaces.size !== 1) {
-            console.debug(partialOrder);
+    private removeStartAndStopEvent(partialOrder: PartialOrderNetWithContainedTraces) {
+        // remove from net
+        const partialOrderNet = partialOrder.net;
+        if (partialOrderNet.inputPlaces.size !== 1 || partialOrderNet.outputPlaces.size !== 1) {
+            console.debug(partialOrderNet);
             throw new Error('illegal state');
         }
 
         let startTransition: Transition | undefined = undefined;
-        partialOrder.inputPlaces.forEach(id => {
-            const inPlace = partialOrder.getPlace(id)!;
+        partialOrderNet.inputPlaces.forEach(id => {
+            const inPlace = partialOrderNet.getPlace(id)!;
             startTransition = inPlace.outgoingArcs[0].destination as Transition;
-            partialOrder.removePlace(id);
+            partialOrderNet.removePlace(id);
         });
 
         if (startTransition === undefined || (startTransition as Transition).label !== LogToPartialOrderTransformerService.START_SYMBOL) {
             throw new Error('illegal state');
         }
-        partialOrder.removeTransition(startTransition);
+        partialOrderNet.removeTransition(startTransition);
 
         let stopTransition: Transition | undefined = undefined;
-        partialOrder.outputPlaces.forEach(id => {
-            const outPlace = partialOrder.getPlace(id)!;
+        partialOrderNet.outputPlaces.forEach(id => {
+            const outPlace = partialOrderNet.getPlace(id)!;
             stopTransition = outPlace.ingoingArcs[0].source as Transition;
-            partialOrder.removePlace(id);
+            partialOrderNet.removePlace(id);
         });
 
         if (stopTransition === undefined || (stopTransition as Transition).label !== LogToPartialOrderTransformerService.STOP_SYMBOL) {
             throw new Error('illegal state');
         }
-        partialOrder.removeTransition(stopTransition);
+        partialOrderNet.removeTransition(stopTransition);
+
+        // remove from trace
+        partialOrder.containedTraces[0].events.shift();
+        partialOrder.containedTraces[0].events.pop();
     }
 
-    private convertSequencesToPartialOrders(sequences: Array<PetriNet>, concurrencyRelation: ConcurrencyRelation): Array<PetriNet> {
+    private convertSequencesToPartialOrders(sequences: Array<PetriNetSequence>, concurrencyRelation: ConcurrencyRelation): Array<PartialOrderNetWithContainedTraces> {
         return sequences.map(seq => this.convertSequenceToPartialOrder(seq, concurrencyRelation));
     }
 
-    private convertSequenceToPartialOrder(sequence: PetriNet, concurrencyRelation: ConcurrencyRelation): PetriNet {
-        const placeQueue = sequence.getPlaces();
+    private convertSequenceToPartialOrder(sequence: PetriNetSequence, concurrencyRelation: ConcurrencyRelation): PartialOrderNetWithContainedTraces {
+        const net = sequence.net;
+        const placeQueue = net.getPlaces();
 
         while (placeQueue.length > 0) {
             const place = placeQueue.shift() as Place;
@@ -194,7 +201,7 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
                 continue;
             }
 
-            sequence.removePlace(place);
+            net.removePlace(place);
 
             for (const a of preEvent.ingoingArcs) {
                 const inPlace = a.source as Place;
@@ -210,14 +217,14 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
                 }
 
                 const clone = new Place();
-                sequence.addPlace(clone);
+                net.addPlace(clone);
                 placeQueue.push(clone);
 
                 if (inPlace.ingoingArcs.length > 0) {
-                    sequence.addArc(inPlace.ingoingArcs[0].source as Transition, clone);
+                    net.addArc(inPlace.ingoingArcs[0].source as Transition, clone);
                 }
 
-                sequence.addArc(clone, postEvent)
+                net.addArc(clone, postEvent)
             }
 
             for (const a of postEvent.outgoingArcs) {
@@ -234,22 +241,22 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
                 }
 
                 const clone = new Place();
-                sequence.addPlace(clone);
+                net.addPlace(clone);
                 placeQueue.push(clone);
 
                 if (outPlace.outgoingArcs.length > 0) {
-                    sequence.addArc(clone, outPlace.outgoingArcs[0].destination as Transition);
+                    net.addArc(clone, outPlace.outgoingArcs[0].destination as Transition);
                 }
 
-                sequence.addArc(preEvent, clone)
+                net.addArc(preEvent, clone)
             }
         }
 
-        return sequence;
+        return new PartialOrderNetWithContainedTraces(net, [sequence.trace]);
     }
 
-    private removeTransitiveDependencies(nets: Array<PetriNet>) {
-        nets.forEach(n => this.performTransitiveReduction(n));
+    private removeTransitiveDependencies(pos: Array<PartialOrderNetWithContainedTraces>) {
+        pos.forEach(po => this.performTransitiveReduction(po.net));
     }
 
     private performTransitiveReduction(partialOrder: PetriNet) {
@@ -324,15 +331,16 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
         resultStack.push(t);
     }
 
-    private filterAndCombinePartialOrderNets(nets: Array<PetriNet>): Array<PetriNet> {
-        const unique: Array<PetriNet> = [nets.shift()!];
+    private filterAndCombinePartialOrderNets(partialOrders: Array<PartialOrderNetWithContainedTraces>): Array<PartialOrderNetWithContainedTraces> {
+        const unique: Array<PartialOrderNetWithContainedTraces> = [partialOrders.shift()!];
 
-        for (const uncheckedOrder of nets) {
+        for (const uncheckedOrder of partialOrders) {
             let discard = false;
             for (const uniqueOrder of unique) {
-                if (this._pnIsomorphismService.arePartialOrderPetriNetsIsomorphic(uncheckedOrder, uniqueOrder)) {
+                if (this._pnIsomorphismService.arePartialOrderPetriNetsIsomorphic(uncheckedOrder.net, uniqueOrder.net)) {
                     discard = true;
-                    uniqueOrder.frequency = uniqueOrder.frequency! + uncheckedOrder.frequency!;
+                    uniqueOrder.net.frequency = uniqueOrder.net.frequency! + uncheckedOrder.net.frequency!;
+                    uniqueOrder.containedTraces.push(...uncheckedOrder.containedTraces);
                     break;
                 }
             }

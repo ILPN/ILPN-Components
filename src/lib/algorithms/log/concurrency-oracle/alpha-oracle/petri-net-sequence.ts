@@ -8,33 +8,33 @@ export class PetriNetSequence {
 
     private _net: PetriNet;
     private _lastPlace: Place;
-    private _log: Trace;
+    private _trace: Trace;
 
     constructor() {
         this._net = new PetriNet();
         this._lastPlace = new Place();
         this._net.addPlace(this._lastPlace);
-        this._log = new Trace();
+        this._trace = new Trace();
     }
 
     get net(): PetriNet {
         return this._net;
     }
 
-    get log(): Trace {
-        return this._log;
+    get trace(): Trace {
+        return this._trace;
     }
 
     public clone(): PetriNetSequence {
         const clone = new PetriNetSequence();
         clone._net = this._net.clone();
         clone._lastPlace = clone._net.getPlace(this._lastPlace.getId())!;
-        clone._log = this._log.clone();
+        clone._trace = this._trace.clone();
         return clone;
     }
 
     public appendEvent(label: string) {
-        this._log.events.push(new LogEvent(label));
+        this._trace.events.push(new LogEvent(label));
         this.appendTransition(label);
     }
 
