@@ -49,7 +49,9 @@ export class RegionIlpSolver {
 
                 // TODO check if the region is new and we are not trapped in a loop
 
-                regions$.next({net: region, inputs: Array.from(combined.inputs[0])});
+                const nonEmptyInputSet = combined.inputs.find(inputs => inputs.size > 0) ?? [];
+
+                regions$.next({net: region, inputs: Array.from(nonEmptyInputSet)});
                 ilp$.next(this.addConstraintsToILP(ps));
             } else {
                 // we are done, there are no more regions
