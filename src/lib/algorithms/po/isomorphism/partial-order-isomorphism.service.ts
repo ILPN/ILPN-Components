@@ -22,12 +22,16 @@ export class PartialOrderIsomorphismService {
 
         const mappingAB = new Map<string, Event>();
         const mappingBA = new Map<string, Event>();
+        const pushedToBack = new Set<IsomorphismCandidate>();
         while (unsolved.length > 0) {
             const problem = unsolved.shift()!;
             const previous: Array<Event> = Array.from(problem.target.previousEvents);
             if (previous.some(p => !mappingAB.has(p.id))) {
                 // pre-set was not yet determined, we have to wait
-                // TODO prevent infinite looping
+                if (pushedToBack.has(problem)) {
+                    return false;
+                }
+                pushedToBack.add(problem);
                 unsolved.push(problem);
                 continue;
             }
@@ -56,6 +60,8 @@ export class PartialOrderIsomorphismService {
             if (match === undefined) {
                 return false;
             }
+
+            pushedToBack.clear();
 
             mappingAB.set(problem.target.id, match);
             mappingBA.set(match.id, problem.target);
