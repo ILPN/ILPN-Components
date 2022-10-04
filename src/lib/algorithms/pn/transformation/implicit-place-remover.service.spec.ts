@@ -82,7 +82,7 @@ D z`)!;
     });
 
     it('should keep non-implicit places', () => {
-        const net = netParser.parse(`.type pn
+        let net = netParser.parse(`.type pn
 .places
 s 1
 z 0
@@ -110,12 +110,51 @@ X y
 y Y
 Y x`)!;
 
-        const noImplicit = service.removeImplicitPlaces(net, [createMockTrace([{n: 'A'}, {n: 'B'}, {n: 'C'}]),createMockTrace([{n: 'A'}, {n: 'X'}, {n: 'B'}, {n: 'Y'}, {n: 'C'}])])
+        let noImplicit = service.removeImplicitPlaces(net, [createMockTrace([{n: 'A'}, {n: 'B'}, {n: 'C'}]),createMockTrace([{n: 'A'}, {n: 'X'}, {n: 'B'}, {n: 'Y'}, {n: 'C'}])])
 
         expect(noImplicit).toBeTruthy();
         expect(noImplicit.getTransitions().length).toBe(5);
         expect(noImplicit.getPlaces().length).toBe(6);
         expect(noImplicit.getArcs().length).toBe(12);
+
+        net = netParser.parse(`.type pn
+.places
+s 1
+z 0
+a1 0
+a2 0
+b1 0
+b2 0
+c1 0
+c2 0
+.transitions
+A A
+B B
+C C
+S S
+Z Z
+.arcs
+s S
+S a1
+S b1
+S c1
+a1 A
+A a2
+b1 B
+B b2
+c1 C
+C c2
+a2 Z
+b2 Z
+c2 Z
+Z z`)!;
+
+        noImplicit = service.removeImplicitPlaces(net, [createMockTrace([{n: 'S'}, {n: 'A'}, {n: 'B'}, {n: 'C'}, {n: 'Z'}, {n: 'S'}, {n: 'C'}, {n: 'B'}, {n: 'A'}, {n: 'Z'}])])
+
+        expect(noImplicit).toBeTruthy();
+        expect(noImplicit.getTransitions().length).toBe(5);
+        expect(noImplicit.getPlaces().length).toBe(8);
+        expect(noImplicit.getArcs().length).toBe(14);
     });
 
 });

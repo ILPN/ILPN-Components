@@ -41,16 +41,21 @@ export class ImplicitPlaceRemoverService extends LogCleaner {
                     continue;
                 }
 
+                let isGreater = false;
                 for (const marking of reachableMarkings.values()) {
                     if (marking[p1] < marking[p2]) {
                         continue p2For;
+                    } else if (marking[p1] > marking[p2]) {
+                        isGreater = true;
                     }
                 }
 
-                // p1 is always >= than some place => p1 is an implicit place and can be removed from the net
-                removedPlaceIds.add(p1);
-                result.removePlace(p1);
-                continue p1For;
+                if (isGreater) {
+                    // p1 is > than some other place p2 => p1 is an implicit place and can be removed from the net
+                    removedPlaceIds.add(p1);
+                    result.removePlace(p1);
+                    continue p1For;
+                }
             }
         }
 
