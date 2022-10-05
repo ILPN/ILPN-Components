@@ -112,26 +112,50 @@ export class PetriNet {
             throw new Error(`The given net does not contain a transition with id '${transitionId}'`);
         }
 
-        const newMarking: Marking = Object.assign({}, marking);
+        const newMarking: Marking = new Marking(marking);
 
         for (const inArc of transition.ingoingArcs) {
-            if (marking[inArc.sourceId] === undefined) {
+            const m = marking.get(inArc.sourceId);
+            if (m === undefined) {
                 throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
             }
-            if (marking[inArc.sourceId] - inArc.weight < 0) {
-                throw new Error(`The transition with id '${transitionId}' is not enabled in the provided marking! The place with id '${inArc.sourceId}' contains ${marking[inArc.sourceId]} tokens, but the arc weight is ${inArc.weight}.`);
+            if (m - inArc.weight < 0) {
+                throw new Error(`The transition with id '${transitionId}' is not enabled in the provided marking! The place with id '${inArc.sourceId}' contains ${m} tokens, but the arc weight is ${inArc.weight}.`);
             }
-            newMarking[inArc.sourceId] = marking[inArc.sourceId] - inArc.weight;
+            newMarking.set(inArc.sourceId, m - inArc.weight);
         }
 
         for (const outArc of transition.outgoingArcs) {
-            if (marking[outArc.destinationId] === undefined) {
+            const m = marking.get(outArc.destinationId);
+            if (m === undefined) {
                 throw new Error(`The transition with id '${transitionId}' has an outgoing arc to a place with id '${outArc.destinationId}' but no such place is defined in the provided marking!`);
             }
-            newMarking[outArc.destinationId] = marking[outArc.destinationId] + outArc.weight;
+            newMarking.set(outArc.destinationId, m + outArc.weight);
         }
 
         return newMarking;
+    }
+
+    public static getAllEnabledTransitions(net: PetriNet, marking: Marking): Array<Transition> {
+        return net.getTransitions().filter(t => PetriNet.isTransitionEnabledInMarking(net, t.id!, marking));
+    }
+
+    public static isTransitionEnabledInMarking(net: PetriNet, transitionId: string, marking: Marking): boolean {
+        const transition = net.getTransition(transitionId);
+        if (transition === undefined) {
+            throw new Error(`The given net does not contain a transition with id '${transitionId}'`);
+        }
+
+        for (const inArc of transition.ingoingArcs) {
+            const m = marking.get(inArc.sourceId);
+            if (m === undefined) {
+                throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
+            }
+            if (m - inArc.weight < 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static determineInOut(p: Place, input: Set<string>, output: Set<string>) {
@@ -280,13 +304,13 @@ export class PetriNet {
     }
 
     public getInitialMarking(): Marking {
-        const result: Marking = {};
+        const m = new Marking({});
 
         this.getPlaces().forEach(p => {
-            result[p.id!] = p.marking;
+            m.set(p.id!, p.marking);
         });
 
-        return result;
+        return m;
     }
 
     public isEmpty(): boolean {

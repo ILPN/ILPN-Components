@@ -42,11 +42,7 @@ export class PrimeMinerService {
                 const synthesisedNet = result.result.result;
                 const r: Array<PrimeMinerResult> = [];
                 if (this.isConnected(synthesisedNet)) {
-                    // TODO non implicit places are removed with few traces (reviewing example)
-                    let noImplicit = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet, result.containedTraces);
-                    if (!this.isConnected(noImplicit)) {
-                        noImplicit = synthesisedNet;
-                    }
+                    let noImplicit = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
 
                     if (!this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, noImplicit)
                         && !bestResult.net.isEmpty()) {

@@ -13,3 +13,5 @@ export * from './synthesis/prime-miner-result';
 export * from './isomorphism/petri-net-isomorphism.service';
 
 export * from './transformation/implicit-place-remover.service';
+
+export * from './reachability/petri-net-coverability.service';

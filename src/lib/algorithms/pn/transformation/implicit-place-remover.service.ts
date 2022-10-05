@@ -1,26 +1,24 @@
 import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
-import {Trace} from '../../../models/log/model/trace';
 import {LogCleaner} from '../../log/log-cleaner';
 import {Marking} from '../../../models/pn/model/marking';
-import {PrefixTree} from '../../../utility/prefix-tree';
+import {PetriNetCoverabilityService} from '../reachability/petri-net-coverability.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ImplicitPlaceRemoverService extends LogCleaner {
 
-    constructor() {
+    constructor(protected _coverabilityTreeService: PetriNetCoverabilityService) {
         super();
     }
 
     /**
-     * @param net a labeled Petri Net containing implicit places with no label-splitting and no silent transitions
-     * @param log a firing sequences of the labels contained in the net, for which the places are implicit
+     * @param net a labeled Petri Net containing implicit places with no label-splitting
      * @returns a copy of the input Petri net without the implicit places
      */
-    public removeImplicitPlaces(net: PetriNet, log: Array<Trace>): PetriNet {
-        const reachableMarkings = this.generateReachableMarkings(net, log);
+    public removeImplicitPlaces(net: PetriNet): PetriNet {
+        const reachableMarkings = this.generateReachableMarkings(net);
 
         const placeOrdering = net.getPlaces().map(p => p.id!);
         const removedPlaceIds = new Set<string>();
@@ -43,9 +41,9 @@ export class ImplicitPlaceRemoverService extends LogCleaner {
 
                 let isGreater = false;
                 for (const marking of reachableMarkings.values()) {
-                    if (marking[p1] < marking[p2]) {
+                    if (marking.get(p1)! < marking.get(p2)!) {
                         continue p2For;
-                    } else if (marking[p1] > marking[p2]) {
+                    } else if (marking.get(p1)! > marking.get(p2)!) {
                         isGreater = true;
                     }
                 }
@@ -62,24 +60,16 @@ export class ImplicitPlaceRemoverService extends LogCleaner {
         return result;
     }
 
-    protected generateReachableMarkings(net: PetriNet, log: Array<Trace>): Map<string, Marking> {
-        const cleanLog = this.cleanLog(log);
-
-        const labelMapping = this.getLabelMapping(net);
-        const initialMarking = net.getInitialMarking();
-        const placeOrdering = Object.keys(initialMarking);
-
+    protected generateReachableMarkings(net: PetriNet): Map<string, Marking> {
         const reachableMarkings = new Map<string, Marking>();
-        reachableMarkings.set(this.stringifyMarking(initialMarking, placeOrdering), initialMarking);
+        const toExplore = [this._coverabilityTreeService.getCoverabilityTree(net)];
+        const placeOrdering = toExplore[0].omegaMarking.getKeys();
 
-        const prefixTree = new PrefixTree<Marking>(initialMarking);
-        for (const trace of cleanLog) {
-            prefixTree.insert(trace, () => ({}), () => {
-            }, undefined, (label, _, oldMarking) => {
-                const newMarking = PetriNet.fireTransitionInMarking(net, labelMapping.get(label)!, oldMarking!);
-                reachableMarkings.set(this.stringifyMarking(newMarking, placeOrdering), newMarking);
-                return newMarking;
-            });
+        while (toExplore.length > 0) {
+            const next = toExplore.shift()!;
+            toExplore.push(...next.getChildren())
+            const m = next.omegaMarking;
+            reachableMarkings.set(this.stringifyMarking(m, placeOrdering), m);
         }
 
         return reachableMarkings;
@@ -100,6 +90,6 @@ export class ImplicitPlaceRemoverService extends LogCleaner {
     }
 
     protected stringifyMarking(marking: Marking, placeOrdering: Array<string>): string {
-        return placeOrdering.map(pid => marking[pid]).join(',');
+        return placeOrdering.map(pid => marking.get(pid)).join(',');
     }
 }

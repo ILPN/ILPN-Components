@@ -1,7 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {ImplicitPlaceRemoverService} from './implicit-place-remover.service';
 import {PetriNetParserService} from '../../../models/pn/parser/petri-net-parser.service';
-import {createMockTrace} from '../../../utility/test/create-mock-trace';
 
 describe('ImplicitPlaceRemoverService', () => {
     let service: ImplicitPlaceRemoverService;
@@ -39,7 +38,7 @@ x C
 b C
 C z`)!;
 
-        let noImplicit = service.removeImplicitPlaces(net, [createMockTrace([{n: 'A'}, {n: 'B'}, {n: 'C'}])])
+        let noImplicit = service.removeImplicitPlaces(net)
 
         expect(noImplicit).toBeTruthy();
         expect(noImplicit.getTransitions().length).toBe(3);
@@ -72,7 +71,7 @@ x D
 c D
 D z`)!;
 
-        noImplicit = service.removeImplicitPlaces(net, [createMockTrace([{n: 'A'}, {n: 'B'}, {n: 'C'}, {n: 'D'}])])
+        noImplicit = service.removeImplicitPlaces(net)
 
         expect(noImplicit).toBeTruthy();
         expect(noImplicit.getTransitions().length).toBe(4);
@@ -110,7 +109,7 @@ X y
 y Y
 Y x`)!;
 
-        let noImplicit = service.removeImplicitPlaces(net, [createMockTrace([{n: 'A'}, {n: 'B'}, {n: 'C'}]),createMockTrace([{n: 'A'}, {n: 'X'}, {n: 'B'}, {n: 'Y'}, {n: 'C'}])])
+        let noImplicit = service.removeImplicitPlaces(net)
 
         expect(noImplicit).toBeTruthy();
         expect(noImplicit.getTransitions().length).toBe(5);
@@ -149,7 +148,7 @@ b2 Z
 c2 Z
 Z z`)!;
 
-        noImplicit = service.removeImplicitPlaces(net, [createMockTrace([{n: 'S'}, {n: 'A'}, {n: 'B'}, {n: 'C'}, {n: 'Z'}, {n: 'S'}, {n: 'C'}, {n: 'B'}, {n: 'A'}, {n: 'Z'}])])
+        noImplicit = service.removeImplicitPlaces(net)
 
         expect(noImplicit).toBeTruthy();
         expect(noImplicit.getTransitions().length).toBe(5);
