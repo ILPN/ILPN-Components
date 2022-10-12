@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {BehaviorSubject, concatMap, EMPTY, filter, from, map, Observable} from 'rxjs';
+import {BehaviorSubject, concatMap, EMPTY, filter, from, map, Observable, of} from 'rxjs';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {PetriNetRegionSynthesisService} from '../regions/petri-net-region-synthesis.service';
 import {RegionsConfiguration} from '../regions/classes/regions-configuration';
@@ -7,6 +7,14 @@ import {PrimeMinerResult} from './prime-miner-result';
 import {PetriNetIsomorphismService} from '../isomorphism/petri-net-isomorphism.service';
 import {ImplicitPlaceRemoverService} from '../transformation/implicit-place-remover.service';
 import {PartialOrderNetWithContainedTraces} from '../../../models/pn/model/partial-order-net-with-contained-traces';
+import {PrimeMinerInput} from './prime-miner-input';
+import {LpoFireValidator} from '../validation/lpo-fire-validator';
+import {
+    PetriNetToPartialOrderTransformerService
+} from '../transformation/petri-net-to-partial-order-transformer.service';
+import {SynthesisResult} from '../regions/classes/synthesis-result';
+import {Trace} from '../../../models/log/model/trace';
+
 
 @Injectable({
     providedIn: 'root'
@@ -15,7 +23,8 @@ export class PrimeMinerService {
 
     constructor(protected _synthesisService: PetriNetRegionSynthesisService,
                 protected _isomorphismService: PetriNetIsomorphismService,
-                protected _implicitPlaceRemover: ImplicitPlaceRemoverService) {
+                protected _implicitPlaceRemover: ImplicitPlaceRemoverService,
+                protected _pnToPoTransformer: PetriNetToPartialOrderTransformerService) {
     }
 
     public mine(minerInputs: Array<PartialOrderNetWithContainedTraces>, config: RegionsConfiguration = {}): Observable<PrimeMinerResult> {
@@ -29,35 +38,59 @@ export class PrimeMinerService {
         let bestResult = new PrimeMinerResult(new PetriNet(), [], []);
         let nextInputIndex = 1;
 
-        const minerInput$ = new BehaviorSubject(minerInputs[0]);
+        const minerInput$ = new BehaviorSubject<PrimeMinerInput>(PrimeMinerInput.fromPartialOrder(minerInputs[0], true));
         return minerInput$.pipe(
             concatMap(nextInput => {
-                return this._synthesisService.synthesise([bestResult.net, nextInput.net], config).pipe(map(
-                    result => ({result, containedTraces: [...bestResult.containedTraces, ...nextInput.containedTraces]})
-                ));
+                let mustSynthesise = nextInput.lastIterationChangedModel;
+                if (!nextInput.lastIterationChangedModel) {
+                    const po = this._pnToPoTransformer.transform(nextInput.net);
+                    try {
+                        const validator = new LpoFireValidator(bestResult.net, po);
+                        mustSynthesise = validator.validate().some(r => !r.valid);
+                    } catch (e) {
+                        mustSynthesise = true;
+                    }
+                }
+
+                if (mustSynthesise) {
+                    return this._synthesisService.synthesise([bestResult.net, nextInput.net], config).pipe(map(
+                        result => ({
+                            result,
+                            containedTraces: [...bestResult.containedTraces, ...nextInput.containedTraces]
+                        })
+                    ));
+                } else {
+                    return of({
+                        result: new SynthesisResult([bestResult.net], bestResult.net),
+                        containedTraces: bestResult.containedTraces,
+                        unchanged: true
+                    });
+                }
             }),
-            map(result => {
+            map((result: {result: SynthesisResult, containedTraces: Array<Trace>, unchanged?: boolean}) => {
                 console.debug(`Iteration ${nextInputIndex} completed`, result);
 
                 const synthesisedNet = result.result.result;
                 const r: Array<PrimeMinerResult> = [];
-                if (this.isConnected(synthesisedNet)) {
+
+                let changed = !result.unchanged;
+                if (changed && this.isConnected(synthesisedNet)) {
                     let noImplicit = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
 
-                    if (!this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, noImplicit)
-                        && !bestResult.net.isEmpty()) {
+                    changed = !this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, noImplicit);
+                    if (changed && !bestResult.net.isEmpty()) {
                         r.push(bestResult);
                     }
 
                     bestResult = new PrimeMinerResult(noImplicit, [...bestResult.supportedPoIndices, nextInputIndex], result.containedTraces);
+                }
 
-                    if (nextInputIndex === minerInputs.length) {
-                        r.push(bestResult);
-                    }
+                if (nextInputIndex === minerInputs.length) {
+                    r.push(bestResult);
                 }
 
                 if (nextInputIndex < minerInputs.length) {
-                    minerInput$.next(minerInputs[nextInputIndex]);
+                    minerInput$.next(PrimeMinerInput.fromPartialOrder(minerInputs[nextInputIndex], changed));
                     nextInputIndex++;
                 } else {
                     minerInput$.complete();
