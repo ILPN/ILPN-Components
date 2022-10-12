@@ -13,5 +13,6 @@ export * from './synthesis/prime-miner-result';
 export * from './isomorphism/petri-net-isomorphism.service';
 
 export * from './transformation/implicit-place-remover.service';
+export * from './transformation/petri-net-to-partial-order-transformer.service';
 
 export * from './reachability/petri-net-coverability.service';
