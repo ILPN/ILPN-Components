@@ -13,6 +13,7 @@ import {PnRendererService} from './internals/services/pn-renderer.service';
 import {Point} from '../../models/pn/model/point';
 import {PnLayoutingService} from './internals/services/pn-layouting.service';
 import {OriginAndZoom} from './internals/model/origin-and-zoom';
+import {zoomFactor} from './internals/zoom-factor';
 
 
 @Component({
@@ -40,7 +41,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         this._mouseMoved$ = new Subject<MouseEvent>();
         this._mouseUp$ = new Subject<MouseEvent>();
         this._subs = [];
-        this.originAndZoom = new OriginAndZoom(0, 0, 1);
+        this.originAndZoom = new OriginAndZoom(0, 0, 0);
 
         this._subs.push(
             this._mouseUp$.subscribe(e => this.processMouseUp(e))
@@ -75,7 +76,8 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
             const canvasDimensions = this.drawingArea?.nativeElement.getBoundingClientRect() as DOMRect;
             this.originAndZoom = this.originAndZoom.update({
                 x: -((canvasDimensions.width - dimensions.x) / 2),
-                y: -((canvasDimensions.height - dimensions.y) / 2)
+                y: -((canvasDimensions.height - dimensions.y) / 2),
+                zoom: 0
             });
             this.draw();
         }))
@@ -106,6 +108,12 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         this._mouseUp$.next(event);
     }
 
+    processMouseScroll(event: WheelEvent) {
+        this.originAndZoom = this.originAndZoom.update({
+            zoom: this.originAndZoom.zoom + event.deltaY
+        });
+    }
+
     private processMouseUp(event: MouseEvent) {
         this._dragging = false;
         this._lastPoint = undefined;
@@ -113,9 +121,10 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
 
     private processMouseMove(event: MouseEvent) {
         if (this._dragging) {
+            const factor = zoomFactor(this.originAndZoom.zoom);
             this.originAndZoom = this.originAndZoom.update({
-                x: this.originAndZoom.x - (event.x - this._lastPoint!.x),
-                y: this.originAndZoom.y - (event.y - this._lastPoint!.y)
+                x: this.originAndZoom.x - (event.x - this._lastPoint!.x) * factor,
+                y: this.originAndZoom.y - (event.y - this._lastPoint!.y) * factor
             });
             this._lastPoint!.x = event.x;
             this._lastPoint!.y = event.y;

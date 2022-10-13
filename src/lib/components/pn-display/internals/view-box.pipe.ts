@@ -1,5 +1,6 @@
 import {Pipe, PipeTransform} from '@angular/core';
 import {OriginAndZoom} from './model/origin-and-zoom';
+import {zoomFactor} from './zoom-factor';
 
 
 @Pipe({
@@ -8,7 +9,8 @@ import {OriginAndZoom} from './model/origin-and-zoom';
 export class ViewBoxPipe implements PipeTransform {
 
     transform(value: OriginAndZoom): string {
-        return `${value.x} ${value.y} ${value.width * value.zoom} ${value.height * value.zoom}`;
+        const factor = zoomFactor(value.zoom);
+        return `${value.x} ${value.y} ${value.width * factor} ${value.height * factor}`;
     }
 
 }
