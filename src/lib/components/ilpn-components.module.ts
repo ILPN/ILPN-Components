@@ -9,6 +9,7 @@ import {InfoCardComponent} from './interaction/info-card/info-card.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {FileDisplayComponent} from './interaction/file-display/file-display.component';
 import {PnDisplayComponent} from './pn-display/pn-display.component';
+import { ViewBoxPipe } from './pn-display/internals/view-box.pipe';
 
 
 @NgModule({
@@ -20,7 +21,8 @@ import {PnDisplayComponent} from './pn-display/pn-display.component';
         DescriptiveLinkComponent,
         InfoCardComponent,
         FileDisplayComponent,
-        PnDisplayComponent
+        PnDisplayComponent,
+        ViewBoxPipe
     ],
     imports: [
         FlexLayoutModule,

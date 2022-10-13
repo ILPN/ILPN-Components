@@ -22,57 +22,57 @@ export class PnRendererService {
     private readonly ARC_WEIGHT_OFFSET_VERTICAL = 15;
     private readonly ARC_WEIGHT_OFFSET_HORIZONTAL = 10;
 
-    public createNetElements(net: PetriNet, offset: Point): Array<SVGElement> {
+    public createNetElements(net: PetriNet): Array<SVGElement> {
         const result: Array<SVGElement> = [];
         for (const transition of net.getTransitions()) {
-            result.push(...this.createTransitionElement(transition, offset));
+            result.push(...this.createTransitionElement(transition));
         }
         for (const place of net.getPlaces()) {
-            result.push(...this.createPlaceElement(place, offset));
+            result.push(...this.createPlaceElement(place));
         }
         for (const arc of net.getArcs()) {
-            result.push(...this.createArc(arc, offset));
+            result.push(...this.createArc(arc));
         }
         return result;
     }
 
-    private createTransitionElement(transition: Transition, offset: Point): Array<SVGElement> {
+    private createTransitionElement(transition: Transition): Array<SVGElement> {
         const transEl = this.createSvgElement('rect');
         const style = this.resolveTransitionStyle(transition);
-        transEl.setAttribute('x', '' + (transition.x - parseInt(style.width) / 2 + offset.x));
-        transEl.setAttribute('y', '' + (transition.y - parseInt(style.height) / 2 + offset.y));
+        transEl.setAttribute('x', '' + (transition.x - parseInt(style.width) / 2));
+        transEl.setAttribute('y', '' + (transition.y - parseInt(style.height) / 2));
         this.applyStyle(transEl, style);
         transition.registerElement(transEl);
         if (transition.isSilent) {
             return [transEl];
         }
         const textEl = this.createTextElement(transition.label as string);
-        textEl.setAttribute('x', '' + (transition.x + offset.x))
-        textEl.setAttribute('y', '' + (transition.y + parseInt(style.height) / 2 + this.TEXT_OFFSET + offset.y));
+        textEl.setAttribute('x', '' + transition.x)
+        textEl.setAttribute('y', '' + (transition.y + parseInt(style.height) / 2 + this.TEXT_OFFSET));
         return [transEl, textEl];
     }
 
-    private createPlaceElement(place: Place, offset: Point): Array<SVGElement> {
+    private createPlaceElement(place: Place): Array<SVGElement> {
         const placeEl = this.createSvgElement('circle');
-        placeEl.setAttribute('cx', '' + (place.x + offset.x));
-        placeEl.setAttribute('cy', '' + (place.y + offset.y));
+        placeEl.setAttribute('cx', '' + place.x);
+        placeEl.setAttribute('cy', '' + place.y);
         this.applyStyle(placeEl, PLACE_STYLE);
         place.registerElement(placeEl);
         const textEl = this.createTextElement(place.id!);
-        textEl.setAttribute('x', '' + (place.x + offset.x))
-        textEl.setAttribute('y', '' + (place.y + parseInt(PLACE_STYLE.r) + this.TEXT_OFFSET + offset.y));
+        textEl.setAttribute('x', '' + place.x)
+        textEl.setAttribute('y', '' + (place.y + parseInt(PLACE_STYLE.r) + this.TEXT_OFFSET));
         const result = [placeEl, textEl];
         if (place.marking > 0) {
             const markingEl = this.createTextElement('' + place.marking);
-            markingEl.setAttribute('x', '' + (place.x + offset.x))
-            markingEl.setAttribute('y', '' + (place.y + offset.y));
+            markingEl.setAttribute('x', '' + place.x)
+            markingEl.setAttribute('y', '' + place.y);
             markingEl.setAttribute('font-size', '1.5em');
             result.push(markingEl);
         }
         return result;
     }
 
-    private createArc(arc: Arc, offset: Point): Array<SVGElement> {
+    private createArc(arc: Arc): Array<SVGElement> {
         let source: Node | undefined = arc.source;
         let destination;
         let sourcePoint;
@@ -98,46 +98,46 @@ export class PnRendererService {
         } else {
             throw new Error('Unexpected arc source type! Arc source is neither Place nor Transition.');
         }
-        const result = this.createSvgLines(arc, sourcePoint, destinationPoint, offset);
+        const result = this.createSvgLines(arc, sourcePoint, destinationPoint);
         if (arc.weight > 1) {
             const location = this.computeWeightPoint(sourcePoint, destinationPoint, arc);
             const weightEl = this.createTextElement('' + arc.weight);
-            weightEl.setAttribute('x', '' + (location.x + offset.x));
-            weightEl.setAttribute('y', '' + (location.y + offset.y));
+            weightEl.setAttribute('x', '' + location.x);
+            weightEl.setAttribute('y', '' + location.y);
             result.push(weightEl);
         }
         return result;
     }
 
-    private createSvgLines(arc: Arc, src: Point, dest: Point, offset: Point): Array<SVGElement> {
+    private createSvgLines(arc: Arc, src: Point, dest: Point): Array<SVGElement> {
         const result = [];
         const points = [src, ...arc.breakpoints, dest];
         for (let i = 0; i < points.length - 1; i++) {
-            result.push(this.createSvgLine(points[i], points[i + 1], offset));
+            result.push(this.createSvgLine(points[i], points[i + 1]));
         }
         this.applyStyle(result[result.length - 1], ARC_END_STYLE);
         for (let i = 0; i < arc.breakpoints.length; i++) {
-            result.push(this.createSvgDragPoint(arc.breakpoints[i], offset));
+            result.push(this.createSvgDragPoint(arc.breakpoints[i]));
         }
         return result
     }
 
-    private createSvgLine(src: Point, dest: Point, offset: Point): SVGElement {
+    private createSvgLine(src: Point, dest: Point): SVGElement {
         const result = this.createSvgElement('line');
         this.applyStyle(result, ARC_STYLE);
-        result.setAttribute('x1', '' + (src.x + offset.x));
-        result.setAttribute('y1', '' + (src.y + offset.y));
-        result.setAttribute('x2', '' + (dest.x + offset.x));
-        result.setAttribute('y2', '' + (dest.y + offset.y));
+        result.setAttribute('x1', '' + src.x);
+        result.setAttribute('y1', '' + src.y);
+        result.setAttribute('x2', '' + dest.x);
+        result.setAttribute('y2', '' + dest.y);
         return result;
     }
 
-    private createSvgDragPoint(dragPoint: DragPoint, offset: Point): SVGElement {
+    private createSvgDragPoint(dragPoint: DragPoint): SVGElement {
         const result = this.createSvgElement('circle');
         this.applyStyle(result, DRAG_POINT_STYLE);
         result.classList.add('drag-point');
-        result.setAttribute('cx', '' + (dragPoint.x + offset.x));
-        result.setAttribute('cy', '' + (dragPoint.y + offset.y));
+        result.setAttribute('cx', '' + dragPoint.x);
+        result.setAttribute('cy', '' + dragPoint.y);
         dragPoint.registerElement(result);
         return result;
     }

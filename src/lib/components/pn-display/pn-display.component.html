@@ -1,4 +1,5 @@
 <svg #drawingArea class="canvas"
+     [attr.viewBox]="originAndZoom | viewBox"
      (mousedown)="processMouseDown($event)"
      (mousemove)="shareMouseMoved($event)"
      (mouseup)="shareMouseUp($event)"

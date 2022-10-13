@@ -1,9 +1,18 @@
-import {Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation} from '@angular/core';
+import {
+    AfterViewInit,
+    Component,
+    ElementRef,
+    Input,
+    OnDestroy,
+    ViewChild,
+    ViewEncapsulation
+} from '@angular/core';
 import {PetriNet} from '../../models/pn/model/petri-net';
 import {Observable, Subject, Subscription} from 'rxjs';
 import {PnRendererService} from './internals/services/pn-renderer.service';
 import {Point} from '../../models/pn/model/point';
 import {PnLayoutingService} from './internals/services/pn-layouting.service';
+import {OriginAndZoom} from './internals/model/origin-and-zoom';
 
 
 @Component({
@@ -12,13 +21,13 @@ import {PnLayoutingService} from './internals/services/pn-layouting.service';
     styleUrls: ['./pn-display.component.scss'],
     encapsulation: ViewEncapsulation.None
 })
-export class PnDisplayComponent implements OnInit, OnDestroy {
+export class PnDisplayComponent implements AfterViewInit, OnDestroy {
 
     @ViewChild('drawingArea') drawingArea: ElementRef<SVGElement> | undefined;
     @Input() petriNet$: Observable<PetriNet> | undefined;
+    originAndZoom: OriginAndZoom;
 
     private _subs: Array<Subscription>;
-    private _offset: Point;
     private _dragging = false;
     private _lastPoint: Point | undefined;
     private readonly _mouseMoved$: Subject<MouseEvent>;
@@ -31,7 +40,7 @@ export class PnDisplayComponent implements OnInit, OnDestroy {
         this._mouseMoved$ = new Subject<MouseEvent>();
         this._mouseUp$ = new Subject<MouseEvent>();
         this._subs = [];
-        this._offset = {x: 0, y: 0};
+        this.originAndZoom = new OriginAndZoom(0, 0, 1);
 
         this._subs.push(
             this._mouseUp$.subscribe(e => this.processMouseUp(e))
@@ -41,30 +50,35 @@ export class PnDisplayComponent implements OnInit, OnDestroy {
         );
     }
 
-    ngOnInit(): void {
-        if (this.petriNet$ !== undefined) {
-            this._subs.push(this.petriNet$.subscribe(net => {
-                if (this._net !== undefined) {
-                    this._net.destroy();
-                }
-                if (this._redrawSub !== undefined) {
-                    this._redrawSub.unsubscribe();
-                }
-                this._net = net;
-                this._redrawSub = this._net.redrawRequest$().subscribe(() => this.draw());
-                const dimensions = this._layoutingService.layout(this._net);
-                this._net.bindEvents(this._mouseMoved$, this._mouseUp$);
-                const canvasDimensions = this.drawingArea?.nativeElement.getBoundingClientRect() as DOMRect;
-                if (canvasDimensions === undefined) {
-                    return;
-                }
-                this._offset = {
-                    x: (canvasDimensions.width - dimensions.x) / 2,
-                    y: (canvasDimensions.height - dimensions.y) / 2
-                }
-                this.draw();
-            }))
+    ngAfterViewInit(): void {
+        if (this.drawingArea === undefined || this.petriNet$ === undefined) {
+            return;
         }
+
+        const canvasDimensions = this.drawingArea.nativeElement.getBoundingClientRect() as DOMRect;
+        this.originAndZoom = this.originAndZoom.update({
+            width: canvasDimensions.width,
+            height: canvasDimensions.height
+        });
+
+        this._subs.push(this.petriNet$.subscribe(net => {
+            if (this._net !== undefined) {
+                this._net.destroy();
+            }
+            if (this._redrawSub !== undefined) {
+                this._redrawSub.unsubscribe();
+            }
+            this._net = net;
+            this._redrawSub = this._net.redrawRequest$().subscribe(() => this.draw());
+            const dimensions = this._layoutingService.layout(this._net);
+            this._net.bindEvents(this._mouseMoved$, this._mouseUp$);
+            const canvasDimensions = this.drawingArea?.nativeElement.getBoundingClientRect() as DOMRect;
+            this.originAndZoom = this.originAndZoom.update({
+                x: -((canvasDimensions.width - dimensions.x) / 2),
+                y: -((canvasDimensions.height - dimensions.y) / 2)
+            });
+            this.draw();
+        }))
     }
 
     ngOnDestroy(): void {
@@ -99,13 +113,12 @@ export class PnDisplayComponent implements OnInit, OnDestroy {
 
     private processMouseMove(event: MouseEvent) {
         if (this._dragging) {
-            this._offset = {
-                x: this._offset.x + event.x - (this._lastPoint as Point).x,
-                y: this._offset.y + event.y - (this._lastPoint as Point).y
-            };
-            (this._lastPoint as Point).x = event.x;
-            (this._lastPoint as Point).y = event.y;
-            this.draw();
+            this.originAndZoom = this.originAndZoom.update({
+                x: this.originAndZoom.x - (event.x - this._lastPoint!.x),
+                y: this.originAndZoom.y - (event.y - this._lastPoint!.y)
+            });
+            this._lastPoint!.x = event.x;
+            this._lastPoint!.y = event.y;
         }
     }
 
@@ -116,7 +129,7 @@ export class PnDisplayComponent implements OnInit, OnDestroy {
         }
 
         this.clearDrawingArea();
-        const elements = this._renderingService.createNetElements(this._net!, this._offset);
+        const elements = this._renderingService.createNetElements(this._net!);
         for (const element of elements) {
             this.drawingArea.nativeElement.appendChild(element);
         }
