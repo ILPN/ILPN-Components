@@ -1,4 +1,4 @@
-import {Component, ElementRef, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation} from '@angular/core';
 import {PetriNet} from '../../models/pn/model/petri-net';
 import {Observable, Subject, Subscription} from 'rxjs';
 import {PnRendererService} from './internals/services/pn-renderer.service';
@@ -9,7 +9,8 @@ import {PnLayoutingService} from './internals/services/pn-layouting.service';
 @Component({
     selector: 'ilpn-pn-display',
     templateUrl: './pn-display.component.html',
-    styleUrls: ['./pn-display.component.scss']
+    styleUrls: ['./pn-display.component.scss'],
+    encapsulation: ViewEncapsulation.None
 })
 export class PnDisplayComponent implements OnInit, OnDestroy {
 
