@@ -32,6 +32,7 @@ import {PnDisplayComponent} from './pn-display/pn-display.component';
         FileUploadComponent,
         FileDownloadComponent,
         DescriptiveLinkComponent,
+        PnDisplayComponent,
     ]
 })
 export class IlpnComponentsModule {
