@@ -1,0 +1,11 @@
+<svg #drawingArea class="canvas"
+     (mousedown)="processMouseDown($event)"
+     (mousemove)="shareMouseMoved($event)"
+     (mouseup)="shareMouseUp($event)"
+     (mouseleave)="shareMouseExited($event)">
+    <defs>
+        <marker id="arrowhead" markerWidth="15" markerHeight="9" refX="13.5" refY="4.5" orient="auto">
+            <polygon points="0 0, 15 4.5, 0 9"/>
+        </marker>
+    </defs>
+</svg>

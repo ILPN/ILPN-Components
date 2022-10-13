@@ -5,9 +5,10 @@ import {FileUploadComponent} from './interaction/file-upload/file-upload.compone
 import {FlexLayoutModule} from '@angular/flex-layout';
 import {FileDownloadComponent} from './interaction/file-download/file-download.component';
 import {DescriptiveLinkComponent} from './interaction/descriptive-link/descriptive-link.component';
-import { InfoCardComponent } from './interaction/info-card/info-card.component';
+import {InfoCardComponent} from './interaction/info-card/info-card.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import { FileDisplayComponent } from './interaction/file-display/file-display.component';
+import {FileDisplayComponent} from './interaction/file-display/file-display.component';
+import {PnDisplayComponent} from './pn-display/pn-display.component';
 
 
 @NgModule({
@@ -18,12 +19,13 @@ import { FileDisplayComponent } from './interaction/file-display/file-display.co
         FileDownloadComponent,
         DescriptiveLinkComponent,
         InfoCardComponent,
-        FileDisplayComponent
+        FileDisplayComponent,
+        PnDisplayComponent
     ],
-	imports: [
-		FlexLayoutModule,
-		BrowserAnimationsModule
-	],
+    imports: [
+        FlexLayoutModule,
+        BrowserAnimationsModule
+    ],
     exports: [
         FooterComponent,
         PageLayoutComponent,
