@@ -9,6 +9,7 @@ export * from './validation/classes/validation-result';
 
 export * from './synthesis/prime-miner.service';
 export * from './synthesis/prime-miner-result';
+export * from './synthesis/prime-miner-configuration';
 
 export * from './isomorphism/petri-net-isomorphism.service';
 

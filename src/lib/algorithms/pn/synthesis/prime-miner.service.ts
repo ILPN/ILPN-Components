@@ -2,7 +2,6 @@ import {Injectable} from '@angular/core';
 import {BehaviorSubject, concatMap, EMPTY, filter, from, map, Observable, of} from 'rxjs';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {PetriNetRegionSynthesisService} from '../regions/petri-net-region-synthesis.service';
-import {RegionsConfiguration} from '../regions/classes/regions-configuration';
 import {PrimeMinerResult} from './prime-miner-result';
 import {PetriNetIsomorphismService} from '../isomorphism/petri-net-isomorphism.service';
 import {ImplicitPlaceRemoverService} from '../transformation/implicit-place-remover.service';
@@ -14,6 +13,7 @@ import {
 } from '../transformation/petri-net-to-partial-order-transformer.service';
 import {SynthesisResult} from '../regions/classes/synthesis-result';
 import {Trace} from '../../../models/log/model/trace';
+import {PrimeMinerConfiguration} from './prime-miner-configuration';
 
 
 @Injectable({
@@ -27,7 +27,7 @@ export class PrimeMinerService {
                 protected _pnToPoTransformer: PetriNetToPartialOrderTransformerService) {
     }
 
-    public mine(minerInputs: Array<PartialOrderNetWithContainedTraces>, config: RegionsConfiguration = {}): Observable<PrimeMinerResult> {
+    public mine(minerInputs: Array<PartialOrderNetWithContainedTraces>, config: PrimeMinerConfiguration = {}): Observable<PrimeMinerResult> {
         if (minerInputs.length === 0) {
             console.error('Miner input must be non empty');
             return EMPTY;
@@ -74,7 +74,7 @@ export class PrimeMinerService {
                 const r: Array<PrimeMinerResult> = [];
 
                 let changed = !result.unchanged;
-                if (changed && this.isConnected(synthesisedNet)) {
+                if (changed && (config.skipConnectivityCheck || this.isConnected(synthesisedNet))) {
                     let noImplicit = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
 
                     changed = !this._isomorphismService.arePetriNetsIsomorphic(bestResult.net, noImplicit);
