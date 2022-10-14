@@ -70,6 +70,9 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                 this._redrawSub.unsubscribe();
             }
             this._net = net;
+            if (this._net.isEmpty()) {
+                return;
+            }
             this._redrawSub = this._net.redrawRequest$().subscribe(() => this.draw());
             const dimensions = this._layoutingService.layout(this._net);
             this._net.bindEvents(this._mouseMoved$, this._mouseUp$);
@@ -109,9 +112,20 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     }
 
     processMouseScroll(event: WheelEvent) {
+        const oldF = zoomFactor(this.originAndZoom.zoom);
+        const newF = zoomFactor(this.originAndZoom.zoom + event.deltaY);
+        const mouseSvgX = event.pageX - (event.target as SVGElement).getBoundingClientRect().x;
+        const mouseSvgY = event.pageY - (event.target as SVGElement).getBoundingClientRect().y;
         this.originAndZoom = this.originAndZoom.update({
+            x: this.computeZoomOffset(oldF, newF, this.originAndZoom.x, mouseSvgX),
+            y: this.computeZoomOffset(oldF, newF, this.originAndZoom.y, mouseSvgY),
             zoom: this.originAndZoom.zoom + event.deltaY
         });
+        event.preventDefault();
+    }
+
+    private computeZoomOffset(oldF: number, newF: number, offset: number, z: number): number {
+        return offset + z * (oldF - newF);
     }
 
     private processMouseUp(event: MouseEvent) {
