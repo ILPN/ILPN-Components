@@ -28,6 +28,9 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     @Input() petriNet$: Observable<PetriNet> | undefined;
     originAndZoom: OriginAndZoom;
 
+    _width: number | string = '100%';
+    _height: number | string = '100%';
+
     private _subs: Array<Subscription>;
     private _dragging = false;
     private _lastPoint: Point | undefined;
@@ -92,6 +95,18 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         this._mouseUp$.complete();
         this._net?.destroy();
         this._redrawSub?.unsubscribe();
+    }
+
+    @Input()
+    public set width(width: number | string) {
+        this._width = width;
+        this.delayedResize();
+    }
+
+    @Input()
+    public set height(height: number | string) {
+        this._height = height;
+        this.delayedResize();
     }
 
     processMouseDown(event: MouseEvent) {
@@ -167,6 +182,20 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         while (drawingArea.childElementCount > 1) {
             drawingArea.removeChild(drawingArea.lastChild as ChildNode);
         }
+    }
+
+    private delayedResize() {
+        setTimeout(() => {
+            const canvasDimensions = this.drawingArea?.nativeElement?.getBoundingClientRect() as DOMRect;
+            if (canvasDimensions === undefined) {
+                return;
+            }
+            this.resize(canvasDimensions.width, canvasDimensions.height);
+        });
+    }
+
+    private resize(newWidth: number, newHeight: number) {
+        this.originAndZoom = this.originAndZoom.update({width: newWidth, height: newHeight});
     }
 
 }
