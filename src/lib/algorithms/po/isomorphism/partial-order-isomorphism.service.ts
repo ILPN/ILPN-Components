@@ -25,6 +25,10 @@ export class PartialOrderIsomorphismService {
         const pushedToBack = new Set<IsomorphismCandidate>();
         while (unsolved.length > 0) {
             const problem = unsolved.shift()!;
+            if (mappingAB.has(problem.target.id)) {
+                continue;
+            }
+
             const previous: Array<Event> = Array.from(problem.target.previousEvents);
             if (previous.some(p => !mappingAB.has(p.id))) {
                 // pre-set was not yet determined, we have to wait
