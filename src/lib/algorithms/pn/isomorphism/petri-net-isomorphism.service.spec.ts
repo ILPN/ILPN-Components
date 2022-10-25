@@ -345,4 +345,82 @@ p9 Restart_Repair`
         expect(po2).toBeTruthy();
         expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeFalse();
     });
+
+    it('repair example partial orders bug', () => {
+        const po1 = parserService.parse(
+            `.type pn
+.frequency 328
+.transitions
+t0 Register
+t1 Analyze_Defect
+t2 Inform_User
+t3 Repair_Complex
+t4 Test_Repair
+t5 Archive_Repair
+.places
+p0 0
+p1 0
+p2 0
+p4 0
+p5 0
+p6 0
+p9 0
+p12 0
+.arcs
+p0 t0
+t0 p1
+p1 t1
+t1 p2
+p2 t2
+t3 p4
+p4 t4
+t4 p5
+p5 t5
+t5 p6
+t1 p9
+p9 t3
+p12 t5
+t2 p12`
+        );
+        expect(po1).toBeTruthy();
+        const po2 = parserService.parse(
+            `.type pn
+.frequency 129
+.transitions
+t0 Register
+t1 Analyze_Defect
+t2 Repair_Complex
+t3 Test_Repair
+t4 Inform_User
+t5 Archive_Repair
+.places
+p0 0
+p1 0
+p2 0
+p3 0
+p5 0
+p6 0
+p10 0
+p11 0
+.arcs
+p0 t0
+t0 p1
+p1 t1
+t1 p2
+p2 t2
+t2 p3
+p3 t3
+t4 p5
+p5 t5
+t5 p6
+p10 t5
+t3 p10
+t1 p11
+p11 t4
+`
+        );
+        expect(po2).toBeTruthy();
+        expect(isomorphismService.arePartialOrderPetriNetsIsomorphic(po1!, po2!)).toBeTrue();
+        expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeTrue();
+    });
 });

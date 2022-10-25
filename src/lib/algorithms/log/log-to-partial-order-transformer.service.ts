@@ -13,6 +13,7 @@ import {PetriNetIsomorphismService} from '../pn/isomorphism/petri-net-isomorphis
 import {PartialOrderNetWithContainedTraces} from '../../models/pn/model/partial-order-net-with-contained-traces';
 import {LogEvent} from '../../models/log/model/logEvent';
 
+
 export interface LogToPartialOrderTransformerConfiguration {
     cleanLog?: boolean;
     addStartStopEvent?: boolean;
