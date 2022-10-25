@@ -1,5 +1,7 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {PnDisplayComponent} from './pn-display.component';
+import {ViewBoxPipe} from './internals/view-box.pipe';
+
 
 describe('PnDisplayComponent', () => {
     let component: PnDisplayComponent;
@@ -7,7 +9,7 @@ describe('PnDisplayComponent', () => {
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            declarations: [PnDisplayComponent]
+            declarations: [PnDisplayComponent, ViewBoxPipe]
         })
             .compileComponents();
     });
