@@ -1,6 +1,6 @@
-import {PartialOrderNetWithContainedTraces} from '../../../models/pn/model/partial-order-net-with-contained-traces';
-import {PetriNet} from '../../../models/pn/model/petri-net';
-import {Trace} from '../../../models/log/model/trace';
+import {PartialOrderNetWithContainedTraces} from '../../../../models/pn/model/partial-order-net-with-contained-traces';
+import {PetriNet} from '../../../../models/pn/model/petri-net';
+import {Trace} from '../../../../models/log/model/trace';
 
 export class PrimeMinerInput extends PartialOrderNetWithContainedTraces {
 

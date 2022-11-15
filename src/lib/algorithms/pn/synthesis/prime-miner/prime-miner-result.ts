@@ -1,5 +1,5 @@
-import {PetriNet} from '../../../models/pn/model/petri-net';
-import {Trace} from '../../../models/log/model/trace';
+import {PetriNet} from '../../../../models/pn/model/petri-net';
+import {Trace} from '../../../../models/log/model/trace';
 
 /**
  * A single net in the Prime miner result sequence.
