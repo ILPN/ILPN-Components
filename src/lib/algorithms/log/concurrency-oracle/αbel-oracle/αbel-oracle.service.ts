@@ -8,7 +8,6 @@ import {Transition} from '../../../../models/pn/model/transition';
 import {forkJoin, map, Observable} from 'rxjs';
 import {TraceConversionResult} from './trace-conversion-result';
 import {Relabeler} from '../../../../utility/relabeler';
-import {LogCleaner} from '../../log-cleaner';
 import {
     TraceMultisetEquivalentStateTraverser
 } from '../../../../utility/multiset/trace-multiset-equivalent-state-traverser';
@@ -17,10 +16,9 @@ import {
 @Injectable({
     providedIn: 'root'
 })
-export class AbelOracleService extends LogCleaner {
+export class AbelOracleService {
 
     constructor(private _regionSynthesisService: PetriNetRegionSynthesisService) {
-        super();
     }
 
     public determineConcurrency(log: Array<Trace>): Observable<Array<PetriNet>> {

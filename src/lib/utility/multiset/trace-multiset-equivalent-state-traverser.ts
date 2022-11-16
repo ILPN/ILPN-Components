@@ -1,11 +1,11 @@
-import {LogCleaner} from '../../algorithms/log/log-cleaner';
 import {Trace} from '../../models/log/model/trace';
 import {Multiset} from './multiset';
 import {MultisetEquivalentTraces} from './multiset-equivalent-traces';
 import {PrefixMultisetStateGraph} from '../prefix-graphs/prefix-multiset-state-graph';
+import {cleanTrace} from '../../algorithms/log/clean-log';
 
 
-export class TraceMultisetEquivalentStateTraverser extends LogCleaner {
+export class TraceMultisetEquivalentStateTraverser {
 
     /**
      * Traverses the state diagram defined by the list of traces.
@@ -24,7 +24,7 @@ export class TraceMultisetEquivalentStateTraverser extends LogCleaner {
         const multisetStateGraph = new PrefixMultisetStateGraph<MultisetEquivalentTraces>(new MultisetEquivalentTraces({}));
 
         for (const t of traces) {
-            const trace = this.cleanTrace(t);
+            const trace = cleanTrace(t);
 
             multisetStateGraph.insert(trace,
                 (_, newState) => {

@@ -7,13 +7,13 @@ import {LogEvent} from '../../../../models/log/model/logEvent';
 import {Lifecycle} from '../../../../models/log/model/lifecycle';
 import {OccurenceMatrixType, OccurrenceMatrix} from '../occurrence-matrix';
 import {TimestampOracleConfiguration} from './timestamp-oracle-configuration';
-import {LogCleaner} from '../../log-cleaner';
+import {cleanLog} from '../../clean-log';
 
 
 @Injectable({
     providedIn: 'root'
 })
-export class TimestampOracleService extends LogCleaner implements ConcurrencyOracle {
+export class TimestampOracleService implements ConcurrencyOracle {
 
     determineConcurrency(log: Array<Trace>, config: TimestampOracleConfiguration = {}): ConcurrencyRelation {
         if (log.length === 0) {
@@ -65,7 +65,7 @@ export class TimestampOracleService extends LogCleaner implements ConcurrencyOra
     }
 
     protected relabelPairedLog(log: Array<Trace>, relabeler: Relabeler) {
-        const filteredLog = this.cleanLog(log);
+        const filteredLog = cleanLog(log);
         relabeler.uniquelyRelabelSequences(filteredLog);
         for (const trace of filteredLog) {
             for (const event of trace.events) {

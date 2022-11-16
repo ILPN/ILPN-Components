@@ -4,7 +4,6 @@ import {ConcurrencyRelation} from '../../models/concurrency/model/concurrency-re
 import {PetriNet} from '../../models/pn/model/petri-net';
 import {PrefixTree} from '../../utility/prefix-graphs/prefix-tree';
 import {PetriNetSequence} from './concurrency-oracle/alpha-oracle/petri-net-sequence';
-import {LogCleaner} from './log-cleaner';
 import {Place} from '../../models/pn/model/place';
 import {Transition} from '../../models/pn/model/transition';
 import {MapSet} from '../../utility/map-set';
@@ -12,6 +11,7 @@ import {EditableStringSequenceWrapper} from '../../utility/string-sequence';
 import {PetriNetIsomorphismService} from '../pn/isomorphism/petri-net-isomorphism.service';
 import {PartialOrderNetWithContainedTraces} from '../../models/pn/model/partial-order-net-with-contained-traces';
 import {LogEvent} from '../../models/log/model/logEvent';
+import {cleanLog} from './clean-log';
 
 
 export interface LogToPartialOrderTransformerConfiguration {
@@ -23,13 +23,12 @@ export interface LogToPartialOrderTransformerConfiguration {
 @Injectable({
     providedIn: 'root'
 })
-export class LogToPartialOrderTransformerService extends LogCleaner {
+export class LogToPartialOrderTransformerService {
 
     public static readonly START_SYMBOL = '▶';
     public static readonly STOP_SYMBOL = '■';
 
     constructor(protected _pnIsomorphismService: PetriNetIsomorphismService) {
-        super();
     }
 
     public transformToPartialOrders(log: Array<Trace>, concurrencyRelation: ConcurrencyRelation, config: LogToPartialOrderTransformerConfiguration = {}): Array<PartialOrderNetWithContainedTraces> {
@@ -38,7 +37,7 @@ export class LogToPartialOrderTransformerService extends LogCleaner {
         }
 
         if (!!config.cleanLog) {
-            log = this.cleanLog(log);
+            log = cleanLog(log);
         } else {
             console.warn(`relabeling a log with both 'start' and 'complete' events will result in unexpected label associations!`);
         }
