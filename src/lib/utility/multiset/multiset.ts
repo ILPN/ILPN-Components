@@ -1,0 +1,13 @@
+export type Multiset = {[k: string]: number};
+
+export function addToMultiset(multiset: Multiset, value: string) {
+    if (multiset[value] === undefined) {
+        multiset[value] = 1;
+    } else {
+        multiset[value] += 1;
+    }
+}
+
+export function cloneMultiset(multiset: Multiset): Multiset {
+    return Object.assign({}, multiset);
+}

@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {Trace} from '../../models/log/model/trace';
 import {ConcurrencyRelation} from '../../models/concurrency/model/concurrency-relation';
 import {PetriNet} from '../../models/pn/model/petri-net';
-import {PrefixTree} from '../../utility/prefix-tree';
+import {PrefixTree} from '../../utility/prefix-graphs/prefix-tree';
 import {PetriNetSequence} from './concurrency-oracle/alpha-oracle/petri-net-sequence';
 import {LogCleaner} from './log-cleaner';
 import {Place} from '../../models/pn/model/place';

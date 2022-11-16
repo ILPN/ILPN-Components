@@ -1,11 +1,12 @@
+export * from './multiset/public-api';
+export * from './prefix-graphs/public-api';
+
 export * from './incrementing-counter';
 export * from './file-reader.service';
 export * from './drop-file';
 export * from './abstract-block-parser';
 export * from './algorithm-result';
 export * from './arraify';
-export * from './multiset-map';
-export * from './prefix-tree';
 export * from './relabeler';
 export * from './map-set';
 export * from './string-sequence';

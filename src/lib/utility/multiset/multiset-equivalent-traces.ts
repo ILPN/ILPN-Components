@@ -1,5 +1,7 @@
-import {Trace} from '../../../../models/log/model/trace';
-import {Multiset, MultisetEquivalent} from '../../../../utility/multiset-map';
+import {Trace} from '../../models/log/model/trace';
+import {MultisetEquivalent} from './multiset-equivalent';
+import {Multiset} from './multiset';
+
 
 export class MultisetEquivalentTraces extends MultisetEquivalent {
 
