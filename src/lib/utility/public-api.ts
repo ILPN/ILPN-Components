@@ -1,5 +1,6 @@
 export * from './multiset/public-api';
 export * from './prefix-graphs/public-api';
+export * from './glpk/public-api';
 
 export * from './incrementing-counter';
 export * from './file-reader.service';

@@ -5,7 +5,7 @@ import {Observable} from 'rxjs';
 import {Region} from './classes/region';
 import {RegionIlpSolver} from './classes/region-ilp-solver';
 import {PetriNetRegionTransformerService} from './petri-net-region-transformer.service';
-import {IlpSolverService} from '../../../utility/ilp-solver.service';
+import {IlpSolverService} from '../../../utility/glpk/ilp-solver.service';
 
 @Injectable({
     providedIn: 'root'

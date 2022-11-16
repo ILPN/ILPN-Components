@@ -1,4 +1,4 @@
-import {SubjectTo} from '../../../../models/glpk/subject-to';
+import {SubjectTo} from './subject-to';
 
 
 export class ConstraintsWithNewVariables {
