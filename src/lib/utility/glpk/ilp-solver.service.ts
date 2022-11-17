@@ -1,8 +1,9 @@
-import {OnDestroy} from '@angular/core';
+import {Injectable, OnDestroy} from '@angular/core';
 import {ReplaySubject} from 'rxjs';
 import {GLPK} from 'glpk.js';
 
 
+@Injectable()
 export abstract class IlpSolverService implements OnDestroy {
 
     protected readonly _solver$: ReplaySubject<GLPK>;
