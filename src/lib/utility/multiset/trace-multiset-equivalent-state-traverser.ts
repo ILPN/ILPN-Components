@@ -16,11 +16,13 @@ export class TraceMultisetEquivalentStateTraverser {
      *
      * @param traces a list of traces - an event log
      * @param newEdgeReaction a method that is called whenever a new state is reached
+     * @param stepReaction a method that is called whenever a step in the state graph is made
      * @returns a list of all final states. Each state contains the traces that terminate in it.
      */
     public traverseMultisetEquivalentStates(traces: Array<Trace>,
-                                            newEdgeReaction: (prefix: Multiset, step: string) => void = () => {
-                                           }): Array<MultisetEquivalentTraces> {
+                                            newEdgeReaction: (prefix: Multiset, step: string) => void = () => {},
+                                            stepReaction: (prefix: Array<string>, step: string) => void = () => {}
+                                            ): Array<MultisetEquivalentTraces> {
         const multisetStateGraph = new PrefixMultisetStateGraph<MultisetEquivalentTraces>(new MultisetEquivalentTraces({}));
 
         for (const t of traces) {
@@ -34,6 +36,9 @@ export class TraceMultisetEquivalentStateTraverser {
                     newEdgeReaction(previousNode.multiset, step);
                 }, node => {
                     node.addTrace(trace);
+                },
+                (prefix, step) => {
+                    stepReaction(prefix, step);
                 }
             );
         }

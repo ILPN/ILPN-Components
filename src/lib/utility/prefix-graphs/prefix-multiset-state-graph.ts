@@ -34,10 +34,13 @@ export class PrefixMultisetStateGraph<T> {
     public insert(path: StringSequence,
                   newStepNode: (step: string, newState: Multiset, previousNode: T & MultisetEquivalent) => (T & MultisetEquivalent),
                   newEdgeReaction: (step: string, previousNode: T & MultisetEquivalent) => void = () => {},
-                  finalNodeReaction: (node: T & MultisetEquivalent) => void = () => {}) {
+                  finalNodeReaction: (node: T & MultisetEquivalent) => void = () => {},
+                  stepReaction: (prefix: Array<string>, step: string) => void = () => {}) {
         let currentNode = this._root;
+        const prefix: Array<string> = [];
         for (let i = 0; i < path.length(); i++) {
             const step = path.get(i);
+            stepReaction(prefix, step);
             let child = currentNode.getChild(step);
             if (child !== undefined) {
                 currentNode = child;
@@ -58,6 +61,7 @@ export class PrefixMultisetStateGraph<T> {
                 currentNode.addChild(step, nextNode);
             }
             currentNode = nextNode;
+            prefix.push(step);
         }
         finalNodeReaction(currentNode.content!);
     }

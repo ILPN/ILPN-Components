@@ -1,6 +1,7 @@
 import {TestBed} from '@angular/core/testing';
 import {IlpMinerService} from './ilp-miner.service';
 
+
 describe('IlpMinerService', () => {
     let service: IlpMinerService;
 

@@ -1,4 +1,5 @@
 import {SubjectTo} from './subject-to';
+import {arraify} from '../../utility/arraify';
 
 
 export class ConstraintsWithNewVariables {
@@ -12,12 +13,12 @@ export class ConstraintsWithNewVariables {
                 integerVariables?: string | Array<string>) {
         this._constraints = Array.isArray(constraints) ? constraints : [constraints];
         if (binaryVariables !== undefined) {
-            this._binaryVariables = Array.isArray(binaryVariables) ? binaryVariables : [binaryVariables];
+            this._binaryVariables = arraify(binaryVariables);
         } else {
             this._binaryVariables = [];
         }
         if (integerVariables !== undefined) {
-            this._integerVariables = Array.isArray(integerVariables) ? integerVariables : [integerVariables];
+            this._integerVariables = arraify(integerVariables);
         } else {
             this._integerVariables = [];
         }
