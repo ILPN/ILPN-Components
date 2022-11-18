@@ -120,27 +120,28 @@ export class IlpMinerIlpSolver extends IlpSolver {
     }
 
     private setUpBaseIlp(): LP {
+        const allVariables = Array.from(this._allVariables).concat(IlpMinerIlpSolver.INITIAL_MARKING);
         return {
             name: 'ilp',
             objective: {
                 name: 'goal',
                 direction: Goal.MINIMUM,
-                vars: Array.from(this._allVariables).map(v => {
+                vars: allVariables.map(v => {
                     const coef = v.startsWith(IlpMinerIlpSolver.OUTGOING_ARC_WEIGHT_PREFIX) ? -1 : 1;
                     return this.variable(v, coef);
                 })
             },
             subjectTo: [],
             // TODO enable arc weights with a config setting?
-            binaries: Array.from(this._allVariables)
+            binaries: allVariables
         };
     }
 
     private populateIlp(baseIlp: LP, baseConstraints: Array<SubjectTo>, causalPair: Array<string>): LP {
         const result = Object.assign({}, baseIlp);
         result.subjectTo = [...baseConstraints];
-        result.subjectTo.concat(this.greaterEqualThan(this.variable(this.transitionVariableName(causalPair[0], IlpMinerIlpSolver.OUTGOING_ARC_WEIGHT_PREFIX)), 1).constraints);
-        result.subjectTo.concat(this.greaterEqualThan(this.variable(this.transitionVariableName(causalPair[1], IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX)), 1).constraints);
+        result.subjectTo = result.subjectTo.concat(this.greaterEqualThan(this.variable(this.transitionVariableName(causalPair[0], IlpMinerIlpSolver.OUTGOING_ARC_WEIGHT_PREFIX)), 1).constraints);
+        result.subjectTo = result.subjectTo.concat(this.greaterEqualThan(this.variable(this.transitionVariableName(causalPair[1], IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX)), 1).constraints);
         return result;
     }
 
