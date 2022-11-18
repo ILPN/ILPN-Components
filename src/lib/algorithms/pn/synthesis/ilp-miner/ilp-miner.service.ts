@@ -10,6 +10,7 @@ import {AlgorithmResult} from '../../../../utility/algorithm-result';
 import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
 import {VariableType} from './model/variable-type';
+import {DuplicatePlaceRemoverService} from '../../transformation/duplicate-place-remover.service';
 
 
 @Injectable({
@@ -17,7 +18,7 @@ import {VariableType} from './model/variable-type';
 })
 export class IlpMinerService extends IlpSolverService {
 
-    constructor() {
+    constructor(private _duplicatePlaceRemover: DuplicatePlaceRemoverService) {
         super();
     }
 
@@ -55,7 +56,7 @@ export class IlpMinerService extends IlpSolverService {
             }
 
             return {
-                net,
+                net: this._duplicatePlaceRemover.removeDuplicatePlaces(net),
                 report: new AlgorithmResult('ILP miner')
             }
         }));
