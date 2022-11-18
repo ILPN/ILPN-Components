@@ -87,7 +87,7 @@ export class IlpMinerIlpSolver extends IlpSolver {
                 c += 1;
                 foundStep = true;
             }
-            result.push(this.variable(this.transitionVariableName(name, IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX), c));
+            result.push(this.variable(this.transitionVariableName(name, IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX), -c));
             return result;
         }).reduce((accumulator, value) => accumulator.concat(value), []);
 
@@ -127,7 +127,14 @@ export class IlpMinerIlpSolver extends IlpSolver {
                 name: 'goal',
                 direction: Goal.MINIMUM,
                 vars: allVariables.map(v => {
-                    const coef = v.startsWith(IlpMinerIlpSolver.OUTGOING_ARC_WEIGHT_PREFIX) ? -1 : 1;
+                    let coef;
+                    if (v.startsWith(IlpMinerIlpSolver.INITIAL_MARKING)) {
+                        coef = 30;
+                    } else if (v.startsWith(IlpMinerIlpSolver.OUTGOING_ARC_WEIGHT_PREFIX)) {
+                        coef = 10;
+                    } else {
+                        coef = -1;
+                    }
                     return this.variable(v, coef);
                 })
             },

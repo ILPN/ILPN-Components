@@ -44,6 +44,7 @@ export class PrefixMultisetStateGraph<T> {
             let child = currentNode.getChild(step);
             if (child !== undefined) {
                 currentNode = child;
+                prefix.push(step);
                 continue;
             }
             const nextMultiset = this.stepState(currentNode.content!.multiset, step);
