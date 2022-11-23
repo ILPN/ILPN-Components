@@ -6,9 +6,7 @@ import {
     TraceMultisetEquivalentStateTraverser
 } from '../../../../utility/multiset/trace-multiset-equivalent-state-traverser';
 import {SubjectTo} from '../../../../models/glpk/subject-to';
-import {MapSet} from '../../../../utility/map-set';
 import {mapMultiset, Multiset} from '../../../../utility/multiset/multiset';
-import {ConstraintsWithNewVariables} from '../../../../models/glpk/constraints-with-new-variables';
 import {Variable} from '../../../../models/glpk/variable';
 import {Goal} from '../../../../models/glpk/glpk-constants';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
@@ -29,7 +27,7 @@ export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
         const traverser = new TraceMultisetEquivalentStateTraverser();
         traverser.traverseMultisetEquivalentStates(log,
             (prefix, step) => {
-                baseIlpConstraints.push(...this.firingRule(prefix, step).constraints);
+                baseIlpConstraints.push(...this.firingRule(prefix, step));
             },
             (prefix, step) => {
                 if (prefix.length === 0) {
@@ -57,7 +55,7 @@ export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
         );
     }
 
-    private firingRule(prefix: Multiset, step: string): ConstraintsWithNewVariables {
+    private firingRule(prefix: Multiset, step: string): Array<SubjectTo> {
         let foundStep = false;
         const variables = mapMultiset<Array<Variable>>(prefix, (name, cardinality) => {
             const result = [this.variable(this.transitionVariableName(name, VariableName.OUTGOING_ARC_WEIGHT_PREFIX), cardinality)];
@@ -76,7 +74,7 @@ export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
 
         variables.push(this.variable(VariableName.INITIAL_MARKING));
 
-        return this.greaterEqualThan(variables, 0);
+        return this.greaterEqualThan(variables, 0).constraints;
     }
 
     private setUpBaseIlp(): LP {
