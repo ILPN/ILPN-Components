@@ -1,4 +1,4 @@
-import {IlpSolver} from '../../../../utility/glpk/abstract-ilp-solver';
+import {ArcWeightIlpSolver} from '../../../../utility/glpk/ArcWeightIlpSolver';
 import {concatMap, from, Observable, toArray} from 'rxjs';
 import {GLPK, LP} from 'glpk.js';
 import {Trace} from '../../../../models/log/model/trace';
@@ -11,28 +11,14 @@ import {mapMultiset, Multiset} from '../../../../utility/multiset/multiset';
 import {ConstraintsWithNewVariables} from '../../../../models/glpk/constraints-with-new-variables';
 import {Variable} from '../../../../models/glpk/variable';
 import {Goal} from '../../../../models/glpk/glpk-constants';
-import {SolutionVariable} from './model/solution-variable';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
-import {VariableType} from './model/variable-type';
+import {VariableName} from '../../../../utility/glpk/model/variable-name';
 
 
-export class IlpMinerIlpSolver extends IlpSolver {
-
-    private static readonly INITIAL_MARKING = 'm0';
-    private static readonly INGOING_ARC_WEIGHT_PREFIX = 'y';
-    private static readonly OUTGOING_ARC_WEIGHT_PREFIX = 'x';
-
-    private readonly _labelVariableMapIngoing: Map<string, string>;
-    private readonly _labelVariableMapOutgoing: Map<string, string>;
-    private readonly _inverseLabelVariableMapIngoing: Map<string, string>;
-    private readonly _inverseLabelVariableMapOutgoing: Map<string, string>;
+export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
 
     constructor(solver$: Observable<GLPK>) {
         super(solver$);
-        this._labelVariableMapIngoing = new Map<string, string>();
-        this._labelVariableMapOutgoing = new Map<string, string>();
-        this._inverseLabelVariableMapIngoing = new Map<string, string>();
-        this._inverseLabelVariableMapOutgoing = new Map<string, string>();
     }
 
     public findSolutions(log: Array<Trace>): Observable<Array<ProblemSolution>> {
@@ -81,46 +67,27 @@ export class IlpMinerIlpSolver extends IlpSolver {
     private firingRule(prefix: Multiset, step: string): ConstraintsWithNewVariables {
         let foundStep = false;
         const variables = mapMultiset<Array<Variable>>(prefix, (name, cardinality) => {
-            const result = [this.variable(this.transitionVariableName(name, IlpMinerIlpSolver.OUTGOING_ARC_WEIGHT_PREFIX), cardinality)];
+            const result = [this.variable(this.transitionVariableName(name, VariableName.OUTGOING_ARC_WEIGHT_PREFIX), cardinality)];
             let c = cardinality;
             if (name === step) {
                 c += 1;
                 foundStep = true;
             }
-            result.push(this.variable(this.transitionVariableName(name, IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX), -c));
+            result.push(this.variable(this.transitionVariableName(name, VariableName.INGOING_ARC_WEIGHT_PREFIX), -c));
             return result;
         }).reduce((accumulator, value) => accumulator.concat(value), []);
 
         if (!foundStep) {
-            variables.push(this.variable(this.transitionVariableName(step, IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX), -1));
+            variables.push(this.variable(this.transitionVariableName(step, VariableName.INGOING_ARC_WEIGHT_PREFIX), -1));
         }
 
-        variables.push(this.variable(IlpMinerIlpSolver.INITIAL_MARKING));
+        variables.push(this.variable(VariableName.INITIAL_MARKING));
 
         return this.greaterEqualThan(variables, 0);
     }
 
-    private transitionVariableName(label: string, prefix: 'x' | 'y'): string {
-        let map, inverseMap;
-        if (prefix === IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX) {
-            map = this._labelVariableMapIngoing;
-            inverseMap = this._inverseLabelVariableMapIngoing;
-        } else {
-            map = this._labelVariableMapOutgoing;
-            inverseMap = this._inverseLabelVariableMapOutgoing;
-        }
-        const saved = map.get(label);
-        if (saved !== undefined) {
-            return saved;
-        }
-        const name = this.helperVariableName(prefix);
-        map.set(label, name);
-        inverseMap.set(name, label);
-        return name;
-    }
-
     private setUpBaseIlp(): LP {
-        const allVariables = Array.from(this._allVariables).concat(IlpMinerIlpSolver.INITIAL_MARKING);
+        const allVariables = Array.from(this._allVariables).concat(VariableName.INITIAL_MARKING);
         return {
             name: 'ilp',
             objective: {
@@ -128,9 +95,9 @@ export class IlpMinerIlpSolver extends IlpSolver {
                 direction: Goal.MINIMUM,
                 vars: allVariables.map(v => {
                     let coef;
-                    if (v.startsWith(IlpMinerIlpSolver.INITIAL_MARKING)) {
+                    if (v.startsWith(VariableName.INITIAL_MARKING)) {
                         coef = 30;
-                    } else if (v.startsWith(IlpMinerIlpSolver.OUTGOING_ARC_WEIGHT_PREFIX)) {
+                    } else if (v.startsWith(VariableName.OUTGOING_ARC_WEIGHT_PREFIX)) {
                         coef = 10;
                     } else {
                         coef = -1;
@@ -147,35 +114,8 @@ export class IlpMinerIlpSolver extends IlpSolver {
     private populateIlp(baseIlp: LP, baseConstraints: Array<SubjectTo>, causalPair: Array<string>): LP {
         const result = Object.assign({}, baseIlp);
         result.subjectTo = [...baseConstraints];
-        result.subjectTo = result.subjectTo.concat(this.greaterEqualThan(this.variable(this.transitionVariableName(causalPair[0], IlpMinerIlpSolver.OUTGOING_ARC_WEIGHT_PREFIX)), 1).constraints);
-        result.subjectTo = result.subjectTo.concat(this.greaterEqualThan(this.variable(this.transitionVariableName(causalPair[1], IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX)), 1).constraints);
+        result.subjectTo = result.subjectTo.concat(this.greaterEqualThan(this.variable(this.transitionVariableName(causalPair[0], VariableName.OUTGOING_ARC_WEIGHT_PREFIX)), 1).constraints);
+        result.subjectTo = result.subjectTo.concat(this.greaterEqualThan(this.variable(this.transitionVariableName(causalPair[1], VariableName.INGOING_ARC_WEIGHT_PREFIX)), 1).constraints);
         return result;
-    }
-
-    public getInverseVariableMapping(variable: string): SolutionVariable {
-        if (variable === IlpMinerIlpSolver.INITIAL_MARKING) {
-            return {
-                label: IlpMinerIlpSolver.INITIAL_MARKING,
-                type: VariableType.INITIAL_MARKING
-            }
-        } else if (variable.startsWith(IlpMinerIlpSolver.INGOING_ARC_WEIGHT_PREFIX)) {
-            const label = this._inverseLabelVariableMapIngoing.get(variable);
-            if (label === undefined) {
-                throw new Error(`ILP variable '${variable}' could not be resolved to an ingoing transition label!`);
-            }
-            return {
-                label,
-                type: VariableType.INGOING_WEIGHT
-            }
-        } else {
-            const label = this._inverseLabelVariableMapOutgoing.get(variable);
-            if (label === undefined) {
-                throw new Error(`ILP variable '${variable}' could not be resolved to an outgoing transition label!`);
-            }
-            return {
-                label,
-                type: VariableType.OUTGOING_WEIGHT
-            }
-        }
     }
 }
