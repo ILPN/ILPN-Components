@@ -13,6 +13,7 @@ import {Variable} from '../../../../models/glpk/variable';
 import {Goal} from '../../../../models/glpk/glpk-constants';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
 import {VariableName} from '../../../../utility/glpk/model/variable-name';
+import {DirectlyFollowsExtractor} from '../../../../utility/directly-follows-extractor';
 
 
 export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
@@ -23,7 +24,7 @@ export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
 
     public findSolutions(log: Array<Trace>): Observable<Array<ProblemSolution>> {
         const baseIlpConstraints: Array<SubjectTo> = [];
-        const directlyFollows = new MapSet<string, string>();
+        const directlyFollowsExtractor = new DirectlyFollowsExtractor();
 
         const traverser = new TraceMultisetEquivalentStateTraverser();
         traverser.traverseMultisetEquivalentStates(log,
@@ -34,19 +35,11 @@ export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
                 if (prefix.length === 0) {
                     return;
                 }
-                directlyFollows.add(step, prefix[prefix.length - 1]);
+                directlyFollowsExtractor.add(step, prefix[prefix.length - 1]);
             }
         );
 
-        const oneWayDirectlyFollowsPairs = [];
-        for (const entry of directlyFollows.entries()) {
-            const second = entry[0];
-            for (const first of entry[1]) {
-                if (!directlyFollows.has(first, second)) {
-                    oneWayDirectlyFollowsPairs.push([first, second]);
-                }
-            }
-        }
+        const oneWayDirectlyFollowsPairs = directlyFollowsExtractor.oneWayDirectlyFollows();
 
         const baseIlp = this.setUpBaseIlp();
 

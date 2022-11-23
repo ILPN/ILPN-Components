@@ -11,3 +11,4 @@ export * from './arraify';
 export * from './relabeler';
 export * from './map-set';
 export * from './string-sequence';
+export * from './directly-follows-extractor';
