@@ -8,7 +8,6 @@ import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
 import {VariableType} from '../../../../utility/glpk/model/variable-type';
-import {AlgorithmResult} from '../../../../utility/algorithm-result';
 import {DuplicatePlaceRemoverService} from '../../transformation/duplicate-place-remover.service';
 
 
@@ -60,9 +59,22 @@ export class IlpplMinerService extends IlpSolverService {
                 });
             }
 
+            for (const t of net.getTransitions()) {
+                if (t.ingoingArcs.length === 0) {
+                    const p = new Place(1);
+                    net.addPlace(p);
+                    net.addArc(p, t);
+                }
+                if (t.outgoingArcs.length === 0) {
+                    const p = new Place();
+                    net.addPlace(p);
+                    net.addArc(t, p);
+                }
+            }
+
             return {
                 net: this._duplicatePlaceRemover.removeDuplicatePlaces(net),
-                report: new AlgorithmResult('ILPPL miner')
+                report: [`number of equalities and inequalities in the problem: ${solutions[0].ilp.subjectTo.length - 2}`, `number of variables: ${solutions[0].ilp.binaries!.length + solutions[0].ilp.generals!.length}`]
             }
         }));
     }

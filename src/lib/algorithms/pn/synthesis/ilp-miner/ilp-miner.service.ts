@@ -6,7 +6,6 @@ import {IlpSolverService} from '../../../../utility/glpk/ilp-solver.service';
 import {cleanLog} from '../../../log/clean-log';
 import {IlpMinerIlpSolver} from './ilp-miner-ilp-solver';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
-import {AlgorithmResult} from '../../../../utility/algorithm-result';
 import {Place} from '../../../../models/pn/model/place';
 import {Transition} from '../../../../models/pn/model/transition';
 import {VariableType} from '../../../../utility/glpk/model/variable-type';
@@ -55,9 +54,11 @@ export class IlpMinerService extends IlpSolverService {
                 });
             }
 
+            solutions[0].ilp.subjectTo.length - 2;
+
             return {
                 net: this._duplicatePlaceRemover.removeDuplicatePlaces(net),
-                report: new AlgorithmResult('ILP miner')
+                report: []
             }
         }));
     }

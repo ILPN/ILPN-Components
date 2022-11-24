@@ -4,5 +4,5 @@ import {AlgorithmResult} from '../../../../utility/algorithm-result';
 
 export interface NetAndReport {
     net: PetriNet;
-    report: AlgorithmResult;
+    report: Array<string>;
 }
