@@ -74,7 +74,7 @@ export class IlpplMinerService extends IlpSolverService {
 
             return {
                 net: this._duplicatePlaceRemover.removeDuplicatePlaces(net),
-                report: [`number of equalities and inequalities in the problem: ${solutions[0].ilp.subjectTo.length - 2}`, `number of variables: ${solutions[0].ilp.binaries!.length + solutions[0].ilp.generals!.length}`]
+                report: [`number of inequalities: ${solutions[0].ilp.subjectTo.length - 2}`, `number of variables: ${solutions[0].ilp.binaries!.length + solutions[0].ilp.generals!.length}`]
             }
         }));
     }
