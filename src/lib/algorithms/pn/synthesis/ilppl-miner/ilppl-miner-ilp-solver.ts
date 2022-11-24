@@ -13,6 +13,7 @@ import {Goal} from '../../../../models/glpk/glpk-constants';
 export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
 
     private static readonly PO_ARC_SEPARATOR = '#';
+    private static readonly FINAL_MARKING = 'mf';
 
     private readonly _directlyFollowsExtractor: DirectlyFollowsExtractor;
     private readonly _poVariableNames: Set<string>;
@@ -69,15 +70,18 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
         for (const post of event.nextEvents) {
             variables.push(this.variable(this.getPoArcId(event.id, post.id, i), -1));
         }
+        if (event.nextEvents.size === 0) {
+            variables.push(this.variable(this.getPoArcId(event.id, IlpplMinerIlpSolver.FINAL_MARKING, i), -1));
+        }
         variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.INGOING_ARC_WEIGHT_PREFIX), -1));
         variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.OUTGOING_ARC_WEIGHT_PREFIX)));
-        return this.greaterEqualThan(variables, 0).constraints;
+        return this.equal(variables, 0).constraints;
     }
 
     private initialMarking(events: Array<Event>, i: number): Array<SubjectTo> {
         const variables = events.map(e => this.variable(this.getPoEventId(e.id, i), -1));
         variables.push(this.variable(VariableName.INITIAL_MARKING));
-        return this.greaterEqualThan(variables, 0).constraints;
+        return this.equal(variables, 0).constraints;
     }
 
     private getPoEventId(id: string, i: number): string {
@@ -110,6 +114,9 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
                     }
                     return this.variable(v, coef);
                 })
+                // vars: Array.from(this._poVariableNames).map(v => {
+                //     return this.variable(v, 1);
+                // })
             },
             subjectTo: [],
             // TODO enable arc weights with a config setting?
