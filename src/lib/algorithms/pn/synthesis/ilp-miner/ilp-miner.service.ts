@@ -54,11 +54,22 @@ export class IlpMinerService extends IlpSolverService {
                 });
             }
 
-            solutions[0].ilp.subjectTo.length - 2;
+            for (const t of net.getTransitions()) {
+                if (t.ingoingArcs.length === 0) {
+                    const p = new Place(1);
+                    net.addPlace(p);
+                    net.addArc(p, t);
+                }
+                if (t.outgoingArcs.length === 0) {
+                    const p = new Place();
+                    net.addPlace(p);
+                    net.addArc(t, p);
+                }
+            }
 
             return {
                 net: this._duplicatePlaceRemover.removeDuplicatePlaces(net),
-                report: []
+                report: [`number of equalities and inequalities in the problem: ${solutions[0].ilp.subjectTo.length - 2}`, `number of variables: ${solutions[0].ilp.binaries!.length}`]
             }
         }));
     }
