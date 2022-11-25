@@ -103,20 +103,20 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
             objective: {
                 name: 'goal',
                 direction: Goal.MINIMUM,
-                vars: goalVariables.map(v => {
-                    let coef;
-                    if (v.startsWith(VariableName.INITIAL_MARKING)) {
-                        coef = 30;
-                    } else if (v.startsWith(VariableName.OUTGOING_ARC_WEIGHT_PREFIX)) {
-                        coef = 10;
-                    } else {
-                        coef = -1;
-                    }
-                    return this.variable(v, coef);
-                })
-                // vars: Array.from(this._poVariableNames).map(v => {
-                //     return this.variable(v, 1);
+                // vars: goalVariables.map(v => {
+                //     let coef;
+                //     if (v.startsWith(VariableName.INITIAL_MARKING)) {
+                //         coef = 30;
+                //     } else if (v.startsWith(VariableName.OUTGOING_ARC_WEIGHT_PREFIX)) {
+                //         coef = 10;
+                //     } else {
+                //         coef = -1;
+                //     }
+                //     return this.variable(v, coef);
                 // })
+                vars: Array.from(this._poVariableNames).map(v => {
+                    return this.variable(v, 1);
+                })
             },
             subjectTo: [],
             // TODO enable arc weights with a config setting?
