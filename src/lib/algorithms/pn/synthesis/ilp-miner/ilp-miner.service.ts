@@ -22,6 +22,10 @@ export class IlpMinerService extends IlpSolverService {
     }
 
     public mine(log: Array<Trace>): Observable<NetAndReport> {
+        if (this._solver$ === undefined) {
+            throw new Error('GLPK Solver subject is undefined!');
+        }
+
         const cleanedLog = cleanLog(log);
         const solver = new IlpMinerIlpSolver(this._solver$.asObservable());
         return solver.findSolutions(cleanedLog).pipe(map(solutions => {

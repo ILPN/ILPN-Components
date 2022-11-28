@@ -17,6 +17,10 @@ export class PetriNetRegionsService extends IlpSolverService {
     }
 
     public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration): Observable<Region> {
+        if (this._solver$ === undefined) {
+            throw new Error('GLPK Solver subject is undefined!');
+        }
+
         return new RegionIlpSolver(this._regionTransformer, this._solver$.asObservable()).computeRegions(nets, config);
     }
 }

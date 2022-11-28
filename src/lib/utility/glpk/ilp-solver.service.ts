@@ -1,27 +1,21 @@
 import {Injectable, OnDestroy} from '@angular/core';
 import {ReplaySubject} from 'rxjs';
 import {GLPK} from 'glpk.js';
+import {getSolverSubject} from './web-worker-glpk-wrapper';
 
 
 @Injectable()
 export abstract class IlpSolverService implements OnDestroy {
 
-    protected readonly _solver$: ReplaySubject<GLPK>;
+    protected _solver$: ReplaySubject<GLPK> | undefined;
 
     protected constructor() {
-        this._solver$ = new ReplaySubject<GLPK>(1);
-
-        // get the solver object
-        const promise = import('glpk.js');
-        promise.then(result => {
-            // @ts-ignore
-            result.default().then(glpk => {
-                this._solver$.next(glpk);
-            });
+        getSolverSubject(solver$ => {
+            this._solver$ = solver$;
         });
     }
 
     ngOnDestroy(): void {
-        this._solver$.complete();
+        this._solver$?.complete();
     }
 }

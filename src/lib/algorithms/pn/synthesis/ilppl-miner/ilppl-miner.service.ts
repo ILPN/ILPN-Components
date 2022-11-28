@@ -9,6 +9,7 @@ import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
 import {VariableType} from '../../../../utility/glpk/model/variable-type';
 import {DuplicatePlaceRemoverService} from '../../transformation/duplicate-place-remover.service';
+import {GLPK} from 'glpk.js';
 
 
 @Injectable({
@@ -21,7 +22,19 @@ export class IlpplMinerService extends IlpSolverService {
     }
 
     public mine(pos: Array<PartialOrder>): Observable<NetAndReport> {
-        const solver = new IlpplMinerIlpSolver(this._solver$.asObservable());
+        if (this._solver$ === undefined) {
+            throw new Error('GLPK Solver subject is undefined!');
+        }
+        return IlpplMinerService.mineWithSolver(pos, this._solver$.asObservable()).pipe(
+            map(r => {
+                r.net = this._duplicatePlaceRemover.removeDuplicatePlaces(r.net);
+                return r;
+            })
+        );
+    }
+
+    public static mineWithSolver(pos: Array<PartialOrder>, solver$: Observable<GLPK>): Observable<NetAndReport> {
+        const solver = new IlpplMinerIlpSolver(solver$);
         return solver.findSolutions(pos).pipe(map(solutions => {
             const net = new PetriNet();
             const transitionMap = new Map<string, Transition>();
@@ -48,11 +61,11 @@ export class IlpplMinerService extends IlpSolverService {
                             place.marking = value;
                             return;
                         case VariableType.INGOING_WEIGHT:
-                            t = this.getTransition(decoded.label, net, transitionMap);
+                            t = IlpplMinerService.getTransition(decoded.label, net, transitionMap);
                             net.addArc(place, t, value);
                             return;
                         case VariableType.OUTGOING_WEIGHT:
-                            t = this.getTransition(decoded.label, net, transitionMap);
+                            t = IlpplMinerService.getTransition(decoded.label, net, transitionMap);
                             net.addArc(t, place, value);
                             return;
                     }
@@ -73,13 +86,13 @@ export class IlpplMinerService extends IlpSolverService {
             }
 
             return {
-                net: this._duplicatePlaceRemover.removeDuplicatePlaces(net),
+                net,
                 report: [`number of inequalities: ${solutions[0].ilp.subjectTo.length - 2}`, `number of variables: ${solutions[0].ilp.binaries!.length + solutions[0].ilp.generals!.length}`]
             }
         }));
     }
 
-    private getTransition(label: string, net: PetriNet, map: Map<string, Transition>): Transition {
+    private static getTransition(label: string, net: PetriNet, map: Map<string, Transition>): Transition {
         let t = map.get(label);
         if (t !== undefined) {
             return t;

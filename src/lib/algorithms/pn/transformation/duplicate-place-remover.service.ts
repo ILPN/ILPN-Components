@@ -16,6 +16,14 @@ export class DuplicatePlaceRemoverService {
      * @returns a copy of the input Petri net without the duplicate places
      */
     public removeDuplicatePlaces(net: PetriNet): PetriNet {
+        return DuplicatePlaceRemoverService.removeDuplicatePlacesStatic(net);
+    }
+
+    /**
+     * @param net a labeled Petri Net containing duplicate places
+     * @returns a copy of the input Petri net without the duplicate places
+     */
+    public static removeDuplicatePlacesStatic(net: PetriNet): PetriNet {
         const clone = net.clone();
 
         const places = clone.getPlaces();
@@ -24,7 +32,7 @@ export class DuplicatePlaceRemoverService {
             const p1 = places[i];
             for (let j = i + 1; j < places.length; j++) {
                 const p2 = places[j];
-                if (this.arePlacesTheSame(p1, p2)) {
+                if (DuplicatePlaceRemoverService.arePlacesTheSame(p1, p2)) {
                     clone.removePlace(p1);
                     break;
                 }
@@ -34,11 +42,11 @@ export class DuplicatePlaceRemoverService {
         return clone;
     }
 
-    private arePlacesTheSame(p1: Place, p2: Place): boolean {
-        return this.compareArcs(p1.ingoingArcWeights, p2.ingoingArcWeights) && this.compareArcs(p1.outgoingArcWeights, p2.outgoingArcWeights);
+    private static arePlacesTheSame(p1: Place, p2: Place): boolean {
+        return DuplicatePlaceRemoverService.compareArcs(p1.ingoingArcWeights, p2.ingoingArcWeights) && DuplicatePlaceRemoverService.compareArcs(p1.outgoingArcWeights, p2.outgoingArcWeights);
     }
 
-    private compareArcs(a1: Map<string, number>, a2: Map<string, number>): boolean {
+    private static compareArcs(a1: Map<string, number>, a2: Map<string, number>): boolean {
         if (a1.size !== a2.size) {
             return false;
         }
