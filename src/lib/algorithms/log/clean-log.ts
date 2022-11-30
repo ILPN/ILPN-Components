@@ -10,6 +10,6 @@ export function cleanTrace(trace: Trace): Trace {
     const result = new Trace();
     result.name = trace.name;
     result.description = trace.description;
-    result.events = trace.events.filter(e => e.lifecycle === undefined || e.lifecycle === Lifecycle.COMPLETE);
+    result.events = trace.events.filter(e => e.lifecycle === undefined || e.lifecycle.toLowerCase() === Lifecycle.COMPLETE);
     return result;
 }
