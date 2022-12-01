@@ -8,6 +8,9 @@ import {Event} from '../../../../models/po/model/event';
 import {VariableName} from '../../../../utility/glpk/model/variable-name';
 import {DirectlyFollowsExtractor} from '../../../../utility/directly-follows-extractor';
 import {Goal} from '../../../../models/glpk/glpk-constants';
+import {PetriNet} from '../../../../models/pn/model/petri-net';
+import {Transition} from '../../../../models/pn/model/transition';
+import {Place} from '../../../../models/pn/model/place';
 
 
 export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
@@ -26,6 +29,8 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
 
     public findSolutions(pos: Array<PartialOrder>): Observable<Array<ProblemSolution>> {
         const baseIlpConstraints: Array<SubjectTo> = [];
+
+        const folded = this.foldPrefixes(pos);
 
         for (let i = 0; i < pos.length; i++) {
             const events = pos[i].events;
@@ -50,6 +55,80 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
             }),
             toArray()
         );
+    }
+
+    private foldPrefixes(pos: Array<PartialOrder>): PetriNet {
+        const folded = new PetriNet();
+
+        for (const po of pos) {
+            po.determineInitialAndFinalEvents();
+            const unprocessedEvents = Array.from(po.initialEvents);
+
+            eventWhile:
+            while (unprocessedEvents.length > 0) {
+                const candidate = unprocessedEvents.shift()!;
+                if (candidate.transition !== undefined) {
+                    continue;
+                }
+                for (const prev of candidate.previousEvents) {
+                    if (prev.transition === undefined) {
+                        unprocessedEvents.push(candidate);
+                        continue eventWhile;
+                    }
+                }
+
+                let representation = this.getExistingEventRepresentation(candidate);
+
+                if (representation === undefined) {
+                    representation = new Transition(candidate.label);
+                    folded.addTransition(representation);
+                    for (const prev of candidate.previousEvents) {
+                        let postPlace: Place | undefined;
+                        if (prev.transition!.outgoingArcs.length === 1) {
+                            postPlace = prev.transition!.outgoingArcs[0].destination as Place;
+                        } else {
+                            postPlace = new Place();
+                            folded.addPlace(postPlace);
+                            folded.addArc(prev.transition!, postPlace);
+                        }
+                        folded.addArc(postPlace, representation);
+                    }
+                }
+
+                candidate.transition = representation;
+                unprocessedEvents.push(...candidate.nextEvents);
+            }
+        }
+
+        return folded;
+    }
+
+    private getExistingEventRepresentation(event: Event): Transition  | undefined{
+        let representation: Transition | undefined = undefined;
+
+        outerFor:
+        for (const prev of event.previousEvents) {
+
+            const postPlace = prev.transition!.outgoingArcs[0].destination as Place;
+
+            for (const pOutArc of postPlace.outgoingArcs) {
+                const postTrans = pOutArc.destination as Transition;
+                if (postTrans.label === event.label) {
+                    if (representation === undefined) {
+                        representation = postTrans;
+                        continue outerFor;
+                    } else if (representation === postTrans) {
+                        continue outerFor;
+                    } else {
+                        return undefined;
+                    }
+                }
+            }
+
+            return undefined;
+        }
+
+        return representation;
     }
 
     private firingRule(event: Event, i: number): Array<SubjectTo> {
