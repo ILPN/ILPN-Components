@@ -144,7 +144,8 @@ c 2
 
         const result = parser.parse(`.type pn
 .transitions
-a A
+a1 A
+a2 A
 b B
 c C
 .places
@@ -152,13 +153,16 @@ c C
 1 0
 2 0
 3 0
+4 0
 .arcs
-0 a
-a 1
+0 a1
+a1 1
 1 c
 c 2
-1 b
-b 3
+0 a2
+a2 3
+3 b
+b 4
 `)!;
         expect(result).toBeTruthy();
 
@@ -351,6 +355,48 @@ i 4
 r 5
 `)!;
         expect(simpleRepeat).toBeTruthy();
+        const simpleRepeatTwice = parser.parse(`.type pn
+.transitions
+a Analyze
+s1 Simple
+s2 Simple
+s3 Simple
+i Inform
+r Archive
+x1 Restart
+x2 Restart
+.places
+0 0
+1 0
+2 0
+3 0
+4 0
+5 0
+6 0
+7 0
+8 0
+9 0
+.arcs
+0 a
+a 1
+a 2
+1 s1
+s1 3
+3 x1
+x1 6
+6 s2
+s2 8
+8 x2
+x2 9
+9 s3
+s3 7
+2 i
+i 4
+7 r
+4 r
+r 5
+`)!;
+        expect(simpleRepeatTwice).toBeTruthy();
 
         const folded = service.foldPartialOrders([simple, complex, simpleRepeat]);
         expect(folded).toBeTruthy();

@@ -2,7 +2,8 @@ import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {Place} from '../../../models/pn/model/place';
 import {Transition} from '../../../models/pn/model/transition';
-import {Arc} from '../../../models/pn/model/arc';
+import {PetriNetIsomorphismService} from '../../pn/isomorphism/petri-net-isomorphism.service';
+import {Mapping} from '../../pn/isomorphism/classes/mapping';
 
 
 interface ConflictingPlace {
@@ -15,7 +16,7 @@ interface ConflictingPlace {
 })
 export class BranchingProcessFoldingService {
 
-    constructor() {
+    constructor(private _isomorphism: PetriNetIsomorphismService) {
     }
 
     public foldPartialOrders(pos: Array<PetriNet>): PetriNet {
@@ -50,9 +51,32 @@ export class BranchingProcessFoldingService {
                 continue;
             }
 
-            let matchingContinuation: Transition | undefined;
+            let folding: Mapping | undefined;
             for (const a of problem.target.outgoingArcs) {
+                const foldedEvent = a.destination as Transition;
+                if (foldedEvent.label !== followingEvent.label) {
+                    continue;
+                }
 
+                folding = this.attemptEventFolding(followingEvent, foldedEvent);
+                if (folding !== undefined) {
+                    break;
+                }
+            }
+
+            if (folding !== undefined) {
+                // the conflict can be resolved and the target place can be folded => move the conflict to the following places
+
+                for (const [targetId, conflictId] of folding.placeMapping.entries()) {
+                    conflictingPlaces.push({
+                        target: result.getPlace(targetId)!,
+                        conflict: po.getPlace(conflictId)!
+                    });
+                }
+            } else {
+                // the conflict cannot be resolved => add conflict to the folded net
+
+                this.addConflict(problem.conflict, problem.target, result);
             }
 
         }
@@ -60,7 +84,51 @@ export class BranchingProcessFoldingService {
         return result;
     }
 
-    private isMatchingContinuation(arc: Arc, followingEvent: Transition): Map<string, string> | undefined {
+    private attemptEventFolding(following: Transition, folded: Transition): Mapping | undefined {
+        const followingSubnet = this.extractTPTSubnet(following);
+        const foldedSubnet = this.extractTPTSubnet(folded);
+        return this._isomorphism.getIsomorphicPetriNetMapping(followingSubnet, foldedSubnet);
+    }
 
+    private extractTPTSubnet(start: Transition): PetriNet {
+        const result = new PetriNet();
+        const t = new Transition(start.label);
+        result.addTransition(t);
+
+        for (const out of start.outgoingArcs) {
+            const outP = out.destination as Place;
+            const p = new Place();
+            p.id = outP.id;
+            result.addPlace(p);
+            result.addArc(t, p);
+            for (const post of outP.outgoingArcs) {
+                const postT = post.destination as Transition;
+                const tt = new Transition(postT.label);
+                result.addTransition(tt);
+                result.addArc(p, tt);
+            }
+        }
+
+        return result;
+    }
+
+    private addConflict(conflict: Place, target: Place, folded: PetriNet) {
+        if (target.outgoingArcs.length === 0) {
+            return;
+        }
+
+        const original = target.outgoingArcs[0].destination as Transition;
+        const following = new Transition(original.label);
+        folded.addTransition(following);
+        folded.addArc(conflict, following);
+
+        for (const out of original.outgoingArcs) {
+            const p = new Place();
+            folded.addPlace(p);
+            folded.addArc(following, p);
+
+            // TODO support merging flows
+            this.addConflict(p, out.destination as Place, folded);
+        }
     }
 }

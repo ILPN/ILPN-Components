@@ -423,4 +423,8 @@ p11 t4
         expect(isomorphismService.arePartialOrderPetriNetsIsomorphic(po1!, po2!)).toBeTrue();
         expect(isomorphismService.arePetriNetsIsomorphic(po1!, po2!)).toBeTrue();
     });
+
+    it('getIsomorphismMapping', () => {
+        expect('Tests for getIsomorphismMapping method').toBe('written');
+    });
 });

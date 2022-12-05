@@ -7,6 +7,8 @@ import {
     PetriNetToPartialOrderTransformerService
 } from '../transformation/petri-net-to-partial-order-transformer.service';
 import {PartialOrderIsomorphismService} from '../../po/isomorphism/partial-order-isomorphism.service';
+import {Mapping} from './classes/mapping';
+
 
 @Injectable({
     providedIn: 'root'
@@ -29,18 +31,22 @@ export class PetriNetIsomorphismService {
     }
 
     public arePetriNetsIsomorphic(netA: PetriNet, netB: PetriNet): boolean {
+        return !!this.getIsomorphicPetriNetMapping(netA, netB);
+    }
+
+    public getIsomorphicPetriNetMapping(netA: PetriNet, netB: PetriNet): Mapping | undefined {
         if (!this.compareBasicNetProperties(netA, netB)) {
-            return false;
+            return undefined;
         }
 
         const transitionMapping = this.determinePossibleTransitionMappings(netA, netB);
         if (transitionMapping === undefined) {
-            return false;
+            return undefined;
         }
 
         const placeMapping = this.determinePossiblePlaceMappings(netA, netB);
         if (placeMapping === undefined) {
-            return false;
+            return undefined;
         }
 
         const transitionMappingManager = new MappingManager(transitionMapping);
@@ -55,7 +61,10 @@ export class PetriNetIsomorphismService {
                 const uniquePlacesMapped = new Set<string>(placeMapping.values());
                 if (placeMapping.size === uniquePlacesMapped.size // bijective place mapping
                     && this.isMappingAPetriNetIsomorphism(netA, netB, transitionMapping, placeMapping)) {
-                    return true;
+                    return {
+                        placeMapping,
+                        transitionMapping
+                    };
                 }
             }
 
@@ -65,7 +74,7 @@ export class PetriNetIsomorphismService {
             }
         } while (!done);
 
-        return false;
+        return undefined;
     }
 
     private compareBasicNetProperties(netA: PetriNet, netB: PetriNet): boolean {
