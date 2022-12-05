@@ -109,7 +109,10 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
         outerFor:
         for (const prev of event.previousEvents) {
 
-            const postPlace = prev.transition!.outgoingArcs[0].destination as Place;
+            const postPlace = prev.transition!.outgoingArcs[0]?.destination as Place;
+            if (postPlace === undefined) {
+                return undefined;
+            }
 
             for (const pOutArc of postPlace.outgoingArcs) {
                 const postTrans = pOutArc.destination as Transition;
