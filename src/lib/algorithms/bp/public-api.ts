@@ -1,1 +1,1 @@
-export * from './folding/branching-process-folding.service';
+export * from './folding/public-api';

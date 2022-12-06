@@ -171,6 +171,126 @@ b 4
 
     it('prefix with synchronisation, should be paired correctly', () => {
         expect(service).toBeTruthy();
+        const netX = parser.parse(`.type pn
+.transitions
+a A
+b B
+c C
+d D
+e E
+x X
+.places
+0 0
+1 0
+2 0
+3 0
+4 0
+5 0
+6 0
+7 0
+.arcs
+0 a
+a 1
+a 2
+1 b
+b 3
+2 c
+c 4
+3 d
+4 d
+d 5
+5 e
+e 6
+6 x
+x 7
+`)!;
+        expect(netX).toBeTruthy();
+        const netY = parser.parse(`.type pn
+.transitions
+a A
+b B
+c C
+d D
+e E
+y Y
+.places
+0 0
+1 0
+2 0
+3 0
+4 0
+5 0
+6 0
+7 0
+.arcs
+0 a
+a 1
+a 2
+1 b
+b 3
+2 c
+c 4
+3 d
+4 d
+d 5
+5 e
+e 6
+6 y
+y 7
+`)!;
+        expect(netY).toBeTruthy();
+
+        const folded = service.foldPartialOrders([netX, netY]);
+        expect(folded).toBeTruthy();
+
+        const result = parser.parse(`.type pn
+.transitions
+a A
+b B
+c C
+d D
+e1 E
+e2 E
+x X
+y Y
+.places
+0 0
+1 0
+2 0
+3 0
+4 0
+5 0
+6 0
+7 0
+8 0
+9 0
+.arcs
+0 a
+a 1
+a 2
+1 b
+b 3
+2 c
+c 4
+3 d
+4 d
+d 5
+5 e1
+e1 6
+6 x
+x 7
+5 e2
+e2 8
+8 y
+y 9
+`)!;
+        expect(result).toBeTruthy();
+
+        expect(isomorphism.arePetriNetsIsomorphic(folded, result)).toBeTrue();
+    });
+
+    it('prefix with synchronisation, should conflict correctly', () => {
+        expect(service).toBeTruthy();
         const netE = parser.parse(`.type pn
 .transitions
 a A
@@ -185,18 +305,20 @@ e E
 3 0
 4 0
 5 0
+6 0
 .arcs
 0 a
 a 1
+a 2
 1 b
-b 2
-1 c
-c 3
-2 d
+b 3
+2 c
+c 4
 3 d
-d 4
-4 e
-e 5
+4 d
+d 5
+5 e
+e 6
 `)!;
         expect(netE).toBeTruthy();
         const netF = parser.parse(`.type pn
@@ -213,18 +335,20 @@ f F
 3 0
 4 0
 5 0
+6 0
 .arcs
 0 a
 a 1
+a 2
 1 b
-b 2
-1 c
-c 3
-2 d
+b 3
+2 c
+c 4
 3 d
-d 4
-4 f
-f 5
+4 d
+d 5
+5 f
+f 6
 `)!;
         expect(netF).toBeTruthy();
 
@@ -236,7 +360,8 @@ f 5
 a A
 b B
 c C
-d D
+d1 D
+d2 D
 e E
 f F
 .places
@@ -247,20 +372,26 @@ f F
 4 0
 5 0
 6 0
+7 0
+8 0
 .arcs
 0 a
 a 1
+a 2
 1 b
-b 2
-1 c
-c 3
-2 d
-3 d
-d 4
-4 f
-f 5
-4 e
+b 3
+2 c
+c 4
+3 d1
+4 d1
+3 d2
+4 d2
+d1 5
+5 e
 e 6
+d2 7
+7 f
+f 8
 `)!;
         expect(result).toBeTruthy();
 

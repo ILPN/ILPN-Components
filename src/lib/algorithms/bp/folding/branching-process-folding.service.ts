@@ -3,12 +3,9 @@ import {PetriNet} from '../../../models/pn/model/petri-net';
 import {Place} from '../../../models/pn/model/place';
 import {Transition} from '../../../models/pn/model/transition';
 import {PetriNetIsomorphismService} from '../../pn/isomorphism/petri-net-isomorphism.service';
+import {ConflictingPlace} from './model/conflicting-place';
+import {FoldingStatus} from './model/folding-status';
 
-
-interface ConflictingPlace {
-    target: Place;
-    conflict: Place;
-}
 
 @Injectable({
     providedIn: 'root'
@@ -40,17 +37,44 @@ export class BranchingProcessFoldingService {
             throw new Error('Folding of initially concurrent processes is currently unsupported!');
         }
 
-        const conflictingPlaces: Array<ConflictingPlace> = [{
+        const undecidedConflictingPlaces: Array<ConflictingPlace> = [{
             target: result.getInputPlaces()[0],
             conflict: po.getInputPlaces()[0]
-        }]
+        }];
 
-        while (conflictingPlaces.length > 0) {
-            const problem = conflictingPlaces.shift()!;
+        const conflicts: Array<ConflictingPlace> = [];
+
+        conflictResolution:
+        while (undecidedConflictingPlaces.length > 0) {
+            const problem = undecidedConflictingPlaces.shift()!;
+
+            if (problem.conflict.foldingStatus === FoldingStatus.FOLDED) {
+                continue;
+            }
+
             const followingEvent = problem.conflict.outgoingArcs[0]?.destination as Transition;
             if (followingEvent === undefined) {
                 // the conflicting place has no following event => there is no conflict to resolve
                 continue;
+            }
+
+            if (followingEvent.ingoingArcs.length > 1) {
+                for (const a of followingEvent.ingoingArcs) {
+                    const p = a.source as Place;
+                    if (p === problem.conflict) {
+                        continue;
+                    }
+                    if (p.foldingStatus === FoldingStatus.CONFLICT) {
+                        conflicts.push(problem);
+                        problem.conflict.foldingStatus = FoldingStatus.CONFLICT;
+                        continue conflictResolution;
+                    }
+                    if (p.foldingStatus === undefined) {
+                        problem.conflict.foldingStatus = FoldingStatus.PENDING;
+                        undecidedConflictingPlaces.push(problem);
+                        continue conflictResolution;
+                    }
+                }
             }
 
             let folding: Map<string, string> | undefined;
@@ -68,19 +92,37 @@ export class BranchingProcessFoldingService {
 
             if (folding !== undefined) {
                 // the conflict can be resolved and the target place can be folded => move the conflict to the following places
+                problem.conflict.foldingStatus = FoldingStatus.FOLDED;
+                problem.conflict.foldedPair = problem.target;
+
+                if (followingEvent.ingoingArcs.length > 1) {
+                    for (const a of followingEvent.ingoingArcs) {
+                        const p = a.source as Place;
+                        if (p === problem.conflict) {
+                            continue;
+                        }
+                        if (p.foldingStatus !== FoldingStatus.FOLDED) {
+                            continue conflictResolution;
+                        }
+                    }
+                }
 
                 for (const [targetId, conflictId] of folding.entries()) {
-                    conflictingPlaces.push({
+                    undecidedConflictingPlaces.push({
                         target: result.getPlace(targetId)!,
                         conflict: po.getPlace(conflictId)!
                     });
                 }
             } else {
                 // the conflict cannot be resolved => add conflict to the folded net
-
-                this.addConflict(problem.conflict, problem.target, result);
+                conflicts.push(problem);
+                problem.conflict.foldingStatus = FoldingStatus.CONFLICT;
             }
 
+        }
+
+        while (conflicts.length > 0) {
+            conflicts.push(...this.addConflict(conflicts.shift()!, result));
         }
 
         return result;
@@ -142,23 +184,33 @@ export class BranchingProcessFoldingService {
         return mapping;
     }
 
-    private addConflict(conflict: Place, target: Place, folded: PetriNet) {
-        if (conflict.outgoingArcs.length === 0) {
-            return;
+    private addConflict(problem: ConflictingPlace, folded: PetriNet): Array<ConflictingPlace> {
+        if (problem.conflict.outgoingArcs.length === 0) {
+            return [];
         }
 
-        const original = conflict.outgoingArcs[0].destination as Transition;
-        const following = new Transition(original.label);
-        folded.addTransition(following);
-        folded.addArc(target, following);
+        const original = problem.conflict.outgoingArcs[0].destination as Transition;
 
-        for (const out of original.outgoingArcs) {
-            const p = new Place();
-            folded.addPlace(p);
-            folded.addArc(following, p);
-
-            // TODO support merging flows
-            this.addConflict(out.destination as Place, p, folded);
+        let following = original.foldedPair;
+        if (following === undefined) {
+            following = new Transition(original.label);
+            folded.addTransition(following);
         }
+
+        folded.addArc(problem.target, following);
+
+        if (original.foldedPair === undefined) {
+            const newConflicts: Array<ConflictingPlace> = [];
+            for (const out of original.outgoingArcs) {
+                const p = new Place();
+                folded.addPlace(p);
+                folded.addArc(following, p);
+                newConflicts.push({conflict: out.destination as Place, target: p});
+            }
+
+            original.foldedPair = following;
+            return newConflicts;
+        }
+        return [];
     }
 }
