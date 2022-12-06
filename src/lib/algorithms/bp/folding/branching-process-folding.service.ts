@@ -3,7 +3,6 @@ import {PetriNet} from '../../../models/pn/model/petri-net';
 import {Place} from '../../../models/pn/model/place';
 import {Transition} from '../../../models/pn/model/transition';
 import {PetriNetIsomorphismService} from '../../pn/isomorphism/petri-net-isomorphism.service';
-import {Mapping} from '../../pn/isomorphism/classes/mapping';
 
 
 interface ConflictingPlace {
@@ -41,7 +40,10 @@ export class BranchingProcessFoldingService {
             throw new Error('Folding of initially concurrent processes is currently unsupported!');
         }
 
-        const conflictingPlaces: Array<ConflictingPlace> = [{target: result.getInputPlaces()[0], conflict: po.getInputPlaces()[0]}]
+        const conflictingPlaces: Array<ConflictingPlace> = [{
+            target: result.getInputPlaces()[0],
+            conflict: po.getInputPlaces()[0]
+        }]
 
         while (conflictingPlaces.length > 0) {
             const problem = conflictingPlaces.shift()!;
@@ -51,7 +53,7 @@ export class BranchingProcessFoldingService {
                 continue;
             }
 
-            let folding: Mapping | undefined;
+            let folding: Map<string, string> | undefined;
             for (const a of problem.target.outgoingArcs) {
                 const foldedEvent = a.destination as Transition;
                 if (foldedEvent.label !== followingEvent.label) {
@@ -67,7 +69,7 @@ export class BranchingProcessFoldingService {
             if (folding !== undefined) {
                 // the conflict can be resolved and the target place can be folded => move the conflict to the following places
 
-                for (const [targetId, conflictId] of folding.placeMapping.entries()) {
+                for (const [targetId, conflictId] of folding.entries()) {
                     conflictingPlaces.push({
                         target: result.getPlace(targetId)!,
                         conflict: po.getPlace(conflictId)!
@@ -84,43 +86,71 @@ export class BranchingProcessFoldingService {
         return result;
     }
 
-    private attemptEventFolding(following: Transition, folded: Transition): Mapping | undefined {
-        const followingSubnet = this.extractTPTSubnet(following);
-        const foldedSubnet = this.extractTPTSubnet(folded);
-        return this._isomorphism.getIsomorphicPetriNetMapping(followingSubnet, foldedSubnet);
-    }
+    private attemptEventFolding(following: Transition, folded: Transition): Map<string, string> | undefined {
+        if (folded.outgoingArcs.length !== following.outgoingArcs.length) {
+            return undefined;
+        }
 
-    private extractTPTSubnet(start: Transition): PetriNet {
-        const result = new PetriNet();
-        const t = new Transition(start.label);
-        result.addTransition(t);
+        const mapping = new Map<string, string>();
+        const mapped = new Set<string>();
 
-        for (const out of start.outgoingArcs) {
-            const outP = out.destination as Place;
-            const p = new Place();
-            p.id = outP.id;
-            result.addPlace(p);
-            result.addArc(t, p);
-            for (const post of outP.outgoingArcs) {
-                const postT = post.destination as Transition;
-                const tt = new Transition(postT.label);
-                result.addTransition(tt);
-                result.addArc(p, tt);
+        const unmapped = following.outgoingArcs.map(a => a.destination as Place);
+
+        while (unmapped.length > 0) {
+            const p = unmapped.shift()!;
+
+            if (p.outgoingArcs.length === 0) {
+                if (unmapped.length !== 0) {
+                    unmapped.push(p);
+                    continue;
+                } else {
+                    for (const af of folded.outgoingArcs) {
+                        const pf = af.destination as Place;
+                        if (mapped.has(pf.id!)) {
+                            continue;
+                        }
+                        mapping.set(p.id!, pf.id!);
+                        break;
+                    }
+                    break;
+                }
+            }
+
+            const followLabel = (p.outgoingArcs[0].destination as Transition).label;
+
+            mappingFor:
+                for (const af of folded.outgoingArcs) {
+                    const pf = af.destination as Place;
+                    if (mapped.has(pf.id!)) {
+                        continue;
+                    }
+
+                    for (const ap of pf.outgoingArcs) {
+                        if ((ap.destination as Transition).label === followLabel) {
+                            mapping.set(p.id!, pf.id!);
+                            mapped.add(pf.id!);
+                            break mappingFor;
+                        }
+                    }
+                }
+
+            if (!mapping.has(p.id!)) {
+                return undefined;
             }
         }
 
-        return result;
+        return mapping;
     }
 
     private addConflict(conflict: Place, target: Place, folded: PetriNet) {
-        if (target.outgoingArcs.length === 0) {
+        if (conflict.outgoingArcs.length === 0) {
             return;
         }
 
-        const original = target.outgoingArcs[0].destination as Transition;
+        const original = conflict.outgoingArcs[0].destination as Transition;
         const following = new Transition(original.label);
         folded.addTransition(following);
-        folded.addArc(conflict, following);
+        folded.addArc(target, following);
 
         for (const out of original.outgoingArcs) {
             const p = new Place();
@@ -128,7 +158,7 @@ export class BranchingProcessFoldingService {
             folded.addArc(following, p);
 
             // TODO support merging flows
-            this.addConflict(p, out.destination as Place, folded);
+            this.addConflict(out.destination as Place, p, folded);
         }
     }
 }
