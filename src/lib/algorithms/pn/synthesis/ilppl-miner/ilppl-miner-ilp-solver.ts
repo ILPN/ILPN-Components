@@ -120,7 +120,7 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
             }
             return this.variable(this.getPlaceVariable(p));
         });
-        variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.INGOING_ARC_WEIGHT_PREFIX)));
+        variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.INGOING_ARC_WEIGHT_PREFIX), -1));
         return this.greaterEqualThan(variables, 0).constraints;
     }
 
