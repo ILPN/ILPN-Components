@@ -3,6 +3,7 @@ import {BranchingProcessFoldingService} from './branching-process-folding.servic
 import {PetriNetParserService} from '../../../models/pn/parser/petri-net-parser.service';
 import {PetriNetIsomorphismService} from '../../pn/isomorphism/petri-net-isomorphism.service';
 
+
 describe('BranchingProcessFoldingService', () => {
     let service: BranchingProcessFoldingService;
     let parser: PetriNetParserService;
@@ -529,7 +530,7 @@ r 5
 `)!;
         expect(simpleRepeatTwice).toBeTruthy();
 
-        const folded = service.foldPartialOrders([simple, complex, simpleRepeat]);
+        const folded = service.foldPartialOrders([simple, complex, simpleRepeat, simpleRepeatTwice]);
         expect(folded).toBeTruthy();
 
         const result = parser.parse(`.type pn
@@ -539,13 +540,17 @@ a2 Analyze
 s1 Simple
 s2 Simple
 s3 Simple
+s4 Simple
+s5 Simple
 c Complex
 i1 Inform
 i2 Inform
 r1 Archive
 r2 Archive
 r3 Archive
-x Restart
+r4 Archive
+x1 Restart
+x2 Restart
 .places
 0 0
 1 0
@@ -562,6 +567,10 @@ x Restart
 12 0
 13 0
 14 0
+15 0
+16 0
+17 0
+18 0
 .arcs
 0 a1
 0 a2
@@ -579,19 +588,28 @@ s2 6
 i1 7
 c 8
 i2 9
-5 x
+5 x1
 6 r1
 7 r1
 7 r3
+7 r4
 8 r2
 9 r2
-x 10
+x1 10
 r1 11
 r2 12
 10 s3
+10 s4
 s3 13
+s4 14
 13 r3
-r3 14
+14 x2
+x2 15
+r3 16
+15 s5
+s5 17
+17 r4
+r4 18
 `)!;
         expect(result).toBeTruthy();
 

@@ -2,7 +2,6 @@ import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {Place} from '../../../models/pn/model/place';
 import {Transition} from '../../../models/pn/model/transition';
-import {PetriNetIsomorphismService} from '../../pn/isomorphism/petri-net-isomorphism.service';
 import {ConflictingPlace} from './model/conflicting-place';
 import {FoldingStatus} from './model/folding-status';
 
@@ -12,7 +11,7 @@ import {FoldingStatus} from './model/folding-status';
 })
 export class BranchingProcessFoldingService {
 
-    constructor(private _isomorphism: PetriNetIsomorphismService) {
+    constructor() {
     }
 
     public foldPartialOrders(pos: Array<PetriNet>): PetriNet {
@@ -37,18 +36,21 @@ export class BranchingProcessFoldingService {
             throw new Error('Folding of initially concurrent processes is currently unsupported!');
         }
 
-        const undecidedConflictingPlaces: Array<ConflictingPlace> = [{
+        const conflictQueue: Array<ConflictingPlace> = [{
             target: result.getInputPlaces()[0],
             conflict: po.getInputPlaces()[0]
         }];
 
-        const conflicts: Array<ConflictingPlace> = [];
-
         conflictResolution:
-        while (undecidedConflictingPlaces.length > 0) {
-            const problem = undecidedConflictingPlaces.shift()!;
+        while (conflictQueue.length > 0) {
+            const problem = conflictQueue.shift()!;
 
             if (problem.conflict.foldingStatus === FoldingStatus.FOLDED) {
+                continue;
+            }
+
+            if (problem.conflict.foldingStatus === FoldingStatus.CONFLICT) {
+                conflictQueue.push(...this.addConflict(problem, result))
                 continue;
             }
 
@@ -65,67 +67,68 @@ export class BranchingProcessFoldingService {
                         continue;
                     }
                     if (p.foldingStatus === FoldingStatus.CONFLICT) {
-                        conflicts.push(problem);
+                        conflictQueue.push(problem);
                         problem.conflict.foldingStatus = FoldingStatus.CONFLICT;
                         continue conflictResolution;
                     }
                     if (p.foldingStatus === undefined) {
                         problem.conflict.foldingStatus = FoldingStatus.PENDING;
-                        undecidedConflictingPlaces.push(problem);
+                        conflictQueue.push(problem);
                         continue conflictResolution;
                     }
                 }
             }
 
-            let folding: Map<string, string> | undefined;
-            for (const a of problem.target.outgoingArcs) {
-                const foldedEvent = a.destination as Transition;
-                if (foldedEvent.label !== followingEvent.label) {
-                    continue;
-                }
-
-                folding = this.attemptEventFolding(followingEvent, foldedEvent);
-                if (folding !== undefined) {
-                    break;
-                }
-            }
-
-            if (folding !== undefined) {
-                // the conflict can be resolved and the target place can be folded => move the conflict to the following places
-                problem.conflict.foldingStatus = FoldingStatus.FOLDED;
-                problem.conflict.foldedPair = problem.target;
-
-                if (followingEvent.ingoingArcs.length > 1) {
-                    for (const a of followingEvent.ingoingArcs) {
-                        const p = a.source as Place;
-                        if (p === problem.conflict) {
-                            continue;
-                        }
-                        if (p.foldingStatus !== FoldingStatus.FOLDED) {
-                            continue conflictResolution;
-                        }
-                    }
-                }
-
-                for (const [targetId, conflictId] of folding.entries()) {
-                    undecidedConflictingPlaces.push({
-                        target: result.getPlace(targetId)!,
-                        conflict: po.getPlace(conflictId)!
-                    });
-                }
-            } else {
-                // the conflict cannot be resolved => add conflict to the folded net
-                conflicts.push(problem);
-                problem.conflict.foldingStatus = FoldingStatus.CONFLICT;
-            }
-
-        }
-
-        while (conflicts.length > 0) {
-            conflicts.push(...this.addConflict(conflicts.shift()!, result));
+            conflictQueue.push(...this.fold(problem.conflict, problem.target, followingEvent, po, result));
         }
 
         return result;
+    }
+
+    private fold(conflict: Place, target: Place, followingEvent: Transition, po: PetriNet, result: PetriNet): Array<ConflictingPlace> {
+        let folding: Map<string, string> | undefined;
+        for (const a of target.outgoingArcs) {
+            const foldedEvent = a.destination as Transition;
+            if (foldedEvent.label !== followingEvent.label) {
+                continue;
+            }
+
+            folding = this.attemptEventFolding(followingEvent, foldedEvent);
+            if (folding !== undefined) {
+                break;
+            }
+        }
+
+        if (folding !== undefined) {
+            // the conflict can be resolved and the target place can be folded => move the conflict to the following places
+            conflict.foldingStatus = FoldingStatus.FOLDED;
+            conflict.foldedPair = target;
+
+            if (followingEvent.ingoingArcs.length > 1) {
+                for (const a of followingEvent.ingoingArcs) {
+                    const p = a.source as Place;
+                    if (p === conflict) {
+                        continue;
+                    }
+                    if (p.foldingStatus !== FoldingStatus.FOLDED) {
+                        return [];
+                    }
+                }
+            }
+
+            const r = [];
+            for (const [conflictId, targetId] of folding.entries()) {
+                r.push({
+                    target: result.getPlace(targetId)!,
+                    conflict: po.getPlace(conflictId)!
+                });
+            }
+            return r;
+        } else {
+            // the conflict cannot be resolved => add conflict to the folded net
+            conflict.foldingStatus = FoldingStatus.CONFLICT;
+            return [{conflict, target}];
+        }
     }
 
     private attemptEventFolding(following: Transition, folded: Transition): Map<string, string> | undefined {
