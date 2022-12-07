@@ -27,18 +27,28 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
         this._poVariableNames = new Set<string>();
     }
 
-    public findSolutions(pos: Array<PartialOrder>): Observable<Array<ProblemSolution>> {
+    public findSolutions(pos: Array<PartialOrder> | PetriNet): Observable<Array<ProblemSolution>> {
         const baseIlpConstraints: Array<SubjectTo> = [];
 
-        const folded = this.foldPrefixes(pos);
+        if (Array.isArray(pos)) {
+            // creates tokenflow system with unique variables for each partial order
 
-        for (let i = 0; i < pos.length; i++) {
-            const events = pos[i].events;
-            for (const e of events) {
-                baseIlpConstraints.push(...this.firingRule(e, i));
-                baseIlpConstraints.push(...this.tokenFlow(e, i));
+            for (let i = 0; i < pos.length; i++) {
+                const events = pos[i].events;
+                for (const e of events) {
+                    baseIlpConstraints.push(...this.firingRule(e, i));
+                    baseIlpConstraints.push(...this.tokenFlow(e, i));
+                }
+                baseIlpConstraints.push(...this.initialMarking(events, i));
             }
-            baseIlpConstraints.push(...this.initialMarking(events, i));
+        } else {
+            // uses the combined branching process to reduce the number of unique variables
+
+            const events = pos.getTransitions();
+            for (const e of events) {
+                baseIlpConstraints.push(...this.branchingProcessFiringRule(e));
+                baseIlpConstraints.push(...this.branchingProcessTokenFlow(e));
+            }
         }
 
         const baseIlp = this.setUpBaseIlp();
@@ -55,83 +65,6 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
             }),
             toArray()
         );
-    }
-
-    private foldPrefixes(pos: Array<PartialOrder>): PetriNet {
-        const folded = new PetriNet();
-
-        for (const po of pos) {
-            po.determineInitialAndFinalEvents();
-            const unprocessedEvents = Array.from(po.initialEvents);
-
-            eventWhile:
-            while (unprocessedEvents.length > 0) {
-                const candidate = unprocessedEvents.shift()!;
-                if (candidate.transition !== undefined) {
-                    continue;
-                }
-                for (const prev of candidate.previousEvents) {
-                    if (prev.transition === undefined) {
-                        unprocessedEvents.push(candidate);
-                        continue eventWhile;
-                    }
-                }
-
-                let representation = this.getExistingEventRepresentation(candidate);
-
-                if (representation === undefined) {
-                    representation = new Transition(candidate.label);
-                    folded.addTransition(representation);
-                    for (const prev of candidate.previousEvents) {
-                        let postPlace: Place | undefined;
-                        if (prev.transition!.outgoingArcs.length === 1) {
-                            postPlace = prev.transition!.outgoingArcs[0].destination as Place;
-                        } else {
-                            postPlace = new Place();
-                            folded.addPlace(postPlace);
-                            folded.addArc(prev.transition!, postPlace);
-                        }
-                        folded.addArc(postPlace, representation);
-                    }
-                }
-
-                candidate.transition = representation;
-                unprocessedEvents.push(...candidate.nextEvents);
-            }
-        }
-
-        return folded;
-    }
-
-    private getExistingEventRepresentation(event: Event): Transition  | undefined{
-        let representation: Transition | undefined = undefined;
-
-        outerFor:
-        for (const prev of event.previousEvents) {
-
-            const postPlace = prev.transition!.outgoingArcs[0]?.destination as Place;
-            if (postPlace === undefined) {
-                return undefined;
-            }
-
-            for (const pOutArc of postPlace.outgoingArcs) {
-                const postTrans = pOutArc.destination as Transition;
-                if (postTrans.label === event.label) {
-                    if (representation === undefined) {
-                        representation = postTrans;
-                        continue outerFor;
-                    } else if (representation === postTrans) {
-                        continue outerFor;
-                    } else {
-                        return undefined;
-                    }
-                }
-            }
-
-            return undefined;
-        }
-
-        return representation;
     }
 
     private firingRule(event: Event, i: number): Array<SubjectTo> {
@@ -176,6 +109,35 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
         const id = `${i}${IlpplMinerIlpSolver.PO_ARC_SEPARATOR}${sourceId}${IlpplMinerIlpSolver.PO_ARC_SEPARATOR}${destinationId}`;
         this._poVariableNames.add(id);
         return id;
+    }
+
+    private branchingProcessFiringRule(event: Transition): Array<SubjectTo> {
+        const variables = event.ingoingArcs.map(a => {
+            const p = a.source as Place;
+            for (const aa of p.ingoingArcs) {
+                let source = aa.source as Transition;
+                this._directlyFollowsExtractor.add(event.label!, source.label!);
+            }
+            return this.variable(this.getPlaceVariable(p));
+        });
+        variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.INGOING_ARC_WEIGHT_PREFIX)));
+        return this.greaterEqualThan(variables, 0).constraints;
+    }
+
+    private branchingProcessTokenFlow(event: Transition): Array<SubjectTo> {
+        const variables = event.ingoingArcs.map(a => this.variable(this.getPlaceVariable(a.source as Place)));
+        variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.INGOING_ARC_WEIGHT_PREFIX), -1));
+        variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.OUTGOING_ARC_WEIGHT_PREFIX)));
+        variables.push(...event.outgoingArcs.map(a => this.variable(this.getPlaceVariable(a.destination as Place), -1)));
+        return this.equal(variables, 0).constraints;
+    }
+
+    private getPlaceVariable(place: Place): string {
+        if (place.ingoingArcs.length === 0) {
+            return VariableName.INITIAL_MARKING;
+        }
+        this._poVariableNames.add(place.id!);
+        return place.id!;
     }
 
     private setUpBaseIlp(): LP {

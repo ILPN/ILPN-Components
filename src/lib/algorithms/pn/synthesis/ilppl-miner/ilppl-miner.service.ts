@@ -20,7 +20,7 @@ export class IlpplMinerService extends IlpSolverService {
         super();
     }
 
-    public mine(pos: Array<PartialOrder>): Observable<NetAndReport> {
+    public mine(pos: Array<PartialOrder> | PetriNet): Observable<NetAndReport> {
         const solver = new IlpplMinerIlpSolver(this._solver$.asObservable());
         return solver.findSolutions(pos).pipe(map(solutions => {
             const net = new PetriNet();
