@@ -4,6 +4,7 @@ import {Place} from '../../../models/pn/model/place';
 import {Transition} from '../../../models/pn/model/transition';
 import {ConflictingPlace} from './model/conflicting-place';
 import {FoldingStatus} from './model/folding-status';
+import {LogSymbol} from '../../log/log-symbol';
 
 
 @Injectable({
@@ -19,10 +20,7 @@ export class BranchingProcessFoldingService {
             return new PetriNet();
         }
         const result = pos[0].clone();
-
-        if (result.inputPlaces.size > 1) {
-            throw new Error('Folding of initially concurrent processes is currently unsupported!');
-        }
+        this.addStartEvent(result);
 
         for (let i = 1; i < pos.length; i++) {
             this.addPoToBranchingProcess(pos[i], result);
@@ -31,10 +29,20 @@ export class BranchingProcessFoldingService {
         return result;
     }
 
-    private addPoToBranchingProcess(po: PetriNet, result: PetriNet) {
-        if (po.inputPlaces.size > 1) {
-            throw new Error('Folding of initially concurrent processes is currently unsupported!');
+    private addStartEvent(po: PetriNet) {
+        const start = new Transition(LogSymbol.START);
+        po.addTransition(start);
+        for (const p of po.getInputPlaces()) {
+            po.addArc(start, p);
         }
+        const initial = new Place();
+        po.addPlace(initial);
+        po.addArc(initial, start);
+    }
+
+    private addPoToBranchingProcess(po: PetriNet, result: PetriNet) {
+        po = po.clone();
+        this.addStartEvent(po);
 
         const conflictQueue: Array<ConflictingPlace> = [{
             target: result.getInputPlaces()[0],
