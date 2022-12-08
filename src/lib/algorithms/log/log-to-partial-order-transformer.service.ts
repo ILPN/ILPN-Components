@@ -64,32 +64,28 @@ export class LogToPartialOrderTransformerService {
 
     private convertLogToPetriNetSequences(log: Array<Trace>, discardPrefixes: boolean): Array<PetriNetSequence> {
         const netSequences = new Set<PetriNetSequence>();
-        const tree = new PrefixTree<PetriNetSequence>(new PetriNetSequence());
+        const tree = new PrefixTree<PetriNetSequence>();
 
         for (const trace of log) {
+            const sequence = new PetriNetSequence();
             tree.insert(trace,
-                () => {
-                    throw new Error('should never be called');
+                treeNode => {
+                    if (discardPrefixes && treeNode.hasChildren()) {
+                        return undefined;
+                    }
+                    sequence.net.frequency = 1;
+                    netSequences.add(sequence);
+                    return sequence;
                 },
                 (node, treeNode) => {
-                    if (discardPrefixes && treeNode.hasChildren()) {
-                        node.net.frequency = 0;
-                        netSequences.delete(node);
-                    } else {
+                    if (!discardPrefixes || !treeNode.hasChildren()) {
                         node.net.frequency = node.net.frequency === undefined ? 1 : node.net.frequency + 1;
-                        netSequences.add(node);
                     }
-                },
-                discardPrefixes ? (s, node, treeNode) => {
-                    if (treeNode.hasChildren()) {
-                        node!.net.frequency = 0;
-                        netSequences.delete(node!);
+                }, (label, previousNode) => {
+                    sequence.appendEvent(label);
+                    if (discardPrefixes && previousNode !== undefined) {
+                        netSequences.delete(previousNode);
                     }
-                } : undefined,
-                (step, prefix, previousNode) => {
-                    const newNode = previousNode!.clone();
-                    newNode.appendEvent(step);
-                    return newNode;
                 }
             );
         }
