@@ -4,25 +4,21 @@ import {Trace} from '../../../../models/log/model/trace';
 import {AlphaOracleConfiguration} from './alpha-oracle-configuration';
 import {OccurenceMatrixType, OccurrenceMatrix} from '../occurrence-matrix';
 import {ConcurrencyRelation} from '../../../../models/concurrency/model/concurrency-relation';
-import {LogCleaner} from '../../log-cleaner';
 import {Relabeler} from '../../../../utility/relabeler';
+import {cleanLog} from '../../clean-log';
 
 
 @Injectable({
     providedIn: 'root'
 })
-export class AlphaOracleService extends LogCleaner implements ConcurrencyOracle {
-
-    constructor() {
-        super();
-    }
+export class AlphaOracleService implements ConcurrencyOracle {
 
     determineConcurrency(log: Array<Trace>, config: AlphaOracleConfiguration = {}): ConcurrencyRelation {
         if (log.length === 0) {
             return ConcurrencyRelation.noConcurrency();
         }
 
-        const cleanedLog = this.cleanLog(log);
+        const cleanedLog = cleanLog(log);
 
         const relabeler = new Relabeler();
         if (!!config.distinguishSameLabels) {
@@ -40,11 +36,11 @@ export class AlphaOracleService extends LogCleaner implements ConcurrencyOracle 
         return ConcurrencyRelation.fromOccurrenceMatrix(matrix, relabeler);
     }
 
-    public computeOccurrenceMatrix(log: Array<Trace>, lookAheadDistance: number = 1, matrixType: OccurenceMatrixType = OccurenceMatrixType.UNIQUE, cleanLog: boolean = false): OccurrenceMatrix {
+    public computeOccurrenceMatrix(log: Array<Trace>, lookAheadDistance: number = 1, matrixType: OccurenceMatrixType = OccurenceMatrixType.UNIQUE, shouldCleanLog: boolean = false): OccurrenceMatrix {
         const matrix = new OccurrenceMatrix(matrixType);
 
-        if (cleanLog) {
-            log = this.cleanLog(log);
+        if (shouldCleanLog) {
+            log = cleanLog(log);
         }
 
         for (const trace of log) {

@@ -1,16 +1,14 @@
 import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
-import {LogCleaner} from '../../log/log-cleaner';
 import {Marking} from '../../../models/pn/model/marking';
 import {PetriNetCoverabilityService} from '../reachability/petri-net-coverability.service';
 
 @Injectable({
     providedIn: 'root'
 })
-export class ImplicitPlaceRemoverService extends LogCleaner {
+export class ImplicitPlaceRemoverService {
 
     constructor(protected _coverabilityTreeService: PetriNetCoverabilityService) {
-        super();
     }
 
     /**

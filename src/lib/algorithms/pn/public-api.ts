@@ -7,9 +7,7 @@ export * from './validation/lpo-flow-validator';
 export * from './validation/lpo-fire-validator';
 export * from './validation/classes/validation-result';
 
-export * from './synthesis/prime-miner.service';
-export * from './synthesis/prime-miner-result';
-export * from './synthesis/prime-miner-configuration';
+export * from './synthesis/public-api';
 
 export * from './isomorphism/petri-net-isomorphism.service';
 
