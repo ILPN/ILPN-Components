@@ -9,6 +9,7 @@ import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
 import {VariableType} from '../../../../utility/glpk/model/variable-type';
 import {DuplicatePlaceRemoverService} from '../../transformation/duplicate-place-remover.service';
+import {LogSymbol} from '../../../log/log-symbol';
 
 
 @Injectable({
@@ -20,10 +21,10 @@ export class IlpplMinerService extends IlpSolverService {
         super();
     }
 
-    public mine(pos: Array<PartialOrder>): Observable<NetAndReport> {
+    public mine(pos: Array<PartialOrder> | PetriNet): Observable<NetAndReport> {
         const solver = new IlpplMinerIlpSolver(this._solver$.asObservable());
         return solver.findSolutions(pos).pipe(map(solutions => {
-            const net = new PetriNet();
+            let net = new PetriNet();
             const transitionMap = new Map<string, Transition>();
 
             for (const placeSolution of solutions) {
@@ -72,9 +73,12 @@ export class IlpplMinerService extends IlpSolverService {
                 }
             }
 
+            net = this._duplicatePlaceRemover.removeDuplicatePlaces(net);
+            this.removeArtificialStartTransition(net);
+
             return {
-                net: this._duplicatePlaceRemover.removeDuplicatePlaces(net),
-                report: [`number of equalities and inequalities in the problem: ${solutions[0].ilp.subjectTo.length - 2}`, `number of variables: ${solutions[0].ilp.binaries!.length + solutions[0].ilp.generals!.length}`]
+                net,
+                report: [`number of inequalities: ${solutions[0].ilp.subjectTo.length - 2}`, `number of variables: ${solutions[0].ilp.binaries!.length + solutions[0].ilp.generals!.length}`]
             }
         }));
     }
@@ -88,5 +92,21 @@ export class IlpplMinerService extends IlpSolverService {
         net.addTransition(t);
         map.set(label, t);
         return t;
+    }
+
+    private removeArtificialStartTransition(net: PetriNet) {
+        const start = net.getTransitions().find(t => t.label === LogSymbol.START);
+        if (start === undefined) {
+            return;
+        }
+        for (const outA of start.outgoingArcs) {
+            const p = outA.destination as Place;
+            p.marking += p.marking + outA.weight;
+        }
+        for (const inA of start.ingoingArcs) {
+            const p = inA.source as Place;
+            net.removePlace(p);
+        }
+        net.removeTransition(start);
     }
 }

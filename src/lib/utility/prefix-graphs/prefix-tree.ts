@@ -11,7 +11,7 @@ export class PrefixTree<T> {
     }
 
     public insert(path: StringSequence,
-                  newNodeContent: () => T | undefined,
+                  newNodeContent: (treeWrapper: PrefixGraphNode<T>) => T | undefined,
                   updateNodeContent: (node: T, treeWrapper: PrefixGraphNode<T>) => void,
                   stepReaction: (step: string, previousNode: T | undefined, previousTreeWrapper: PrefixGraphNode<T>) => void = () => {},
                   newStepNode: (step: string, prefix: Array<string>, previousNode: T | undefined) => T | undefined = () => undefined) {
@@ -31,7 +31,7 @@ export class PrefixTree<T> {
         if (currentNode.content !== undefined) {
             updateNodeContent(currentNode.content, currentNode);
         } else {
-            currentNode.content = newNodeContent();
+            currentNode.content = newNodeContent(currentNode);
         }
     }
 
