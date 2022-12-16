@@ -7,3 +7,5 @@ This project is not meant to be used as a standalone project, as it contains onl
 The library is NOT published to NPM and is built and linked locally.
 
 If you encounter a problem with the library, or have some ideas for improvements. Feel free to create a new issue and/or open a pull request.
+
+An overview of notable changes across library versions can be found in [the changelog](./CHANGELOG.md).

@@ -303,6 +303,14 @@ export class PetriNet {
         return this._outputPlaces;
     }
 
+    public getInputPlaces(): Array<Place> {
+        return this.getPlacesById(this._inputPlaces);
+    }
+
+    public getOutputPlaces(): Array<Place> {
+        return this.getPlacesById(this._outputPlaces);
+    }
+
     public getInitialMarking(): Marking {
         const m = new Marking({});
 
@@ -337,5 +345,17 @@ export class PetriNet {
 
     public redrawRequest$(): Observable<void> {
         return this._redraw$.asObservable();
+    }
+
+    private getPlacesById(ids: Set<string>): Array<Place> {
+        const r = [];
+        for (const id of ids) {
+            const p = this.getPlace(id);
+            if (p === undefined) {
+                throw new Error(`Place with id '${id}' is not present in the net!`);
+            }
+            r.push(p);
+        }
+        return r;
     }
 }
