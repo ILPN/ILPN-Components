@@ -1,13 +1,13 @@
 import {TestBed} from '@angular/core/testing';
-import {IlpplMinerService} from './ilppl-miner.service';
+import {Ilp2MinerService} from './ilp2-miner.service';
 
 
-describe('IlpplMinerService', () => {
-    let service: IlpplMinerService;
+describe('Ilp2MinerService', () => {
+    let service: Ilp2MinerService;
 
     beforeEach(() => {
         TestBed.configureTestingModule({});
-        service = TestBed.inject(IlpplMinerService);
+        service = TestBed.inject(Ilp2MinerService);
     });
 
     it('should be created', () => {

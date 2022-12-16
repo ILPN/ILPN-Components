@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {IlpSolverService} from '../../../../utility/glpk/ilp-solver.service';
 import {map, Observable} from 'rxjs';
 import {NetAndReport} from '../model/net-and-report';
-import {IlpplMinerIlpSolver} from './ilppl-miner-ilp-solver';
+import {Ilp2MinerIlpSolver} from './ilp2-miner-ilp-solver';
 import {PartialOrder} from '../../../../models/po/model/partial-order';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {Transition} from '../../../../models/pn/model/transition';
@@ -15,14 +15,14 @@ import {LogSymbol} from '../../../log/log-symbol';
 @Injectable({
     providedIn: 'root'
 })
-export class IlpplMinerService extends IlpSolverService {
+export class Ilp2MinerService extends IlpSolverService {
 
     constructor(private _duplicatePlaceRemover: DuplicatePlaceRemoverService) {
         super();
     }
 
     public mine(pos: Array<PartialOrder> | PetriNet): Observable<NetAndReport> {
-        const solver = new IlpplMinerIlpSolver(this._solver$.asObservable());
+        const solver = new Ilp2MinerIlpSolver(this._solver$.asObservable());
         return solver.findSolutions(pos).pipe(map(solutions => {
             let net = new PetriNet();
             const transitionMap = new Map<string, Transition>();

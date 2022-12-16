@@ -13,7 +13,7 @@ import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
 
 
-export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
+export class Ilp2MinerIlpSolver extends ArcWeightIlpSolver {
 
     private static readonly PO_ARC_SEPARATOR = '#';
     private static readonly FINAL_MARKING = 'mf';
@@ -86,7 +86,7 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
             variables.push(this.variable(this.getPoArcId(event.id, post.id, i), -1));
         }
         if (event.nextEvents.size === 0) {
-            variables.push(this.variable(this.getPoArcId(event.id, IlpplMinerIlpSolver.FINAL_MARKING, i), -1));
+            variables.push(this.variable(this.getPoArcId(event.id, Ilp2MinerIlpSolver.FINAL_MARKING, i), -1));
         }
         variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.INGOING_ARC_WEIGHT_PREFIX), -1));
         variables.push(this.variable(this.transitionVariableName(event.label!, VariableName.OUTGOING_ARC_WEIGHT_PREFIX)));
@@ -100,13 +100,13 @@ export class IlpplMinerIlpSolver extends ArcWeightIlpSolver {
     }
 
     private getPoEventId(id: string, i: number): string {
-        const d = `${i}${IlpplMinerIlpSolver.PO_ARC_SEPARATOR}${id}`;
+        const d = `${i}${Ilp2MinerIlpSolver.PO_ARC_SEPARATOR}${id}`;
         this._poVariableNames.add(d);
         return d;
     }
 
     private getPoArcId(sourceId: string, destinationId: string, i: number): string {
-        const id = `${i}${IlpplMinerIlpSolver.PO_ARC_SEPARATOR}${sourceId}${IlpplMinerIlpSolver.PO_ARC_SEPARATOR}${destinationId}`;
+        const id = `${i}${Ilp2MinerIlpSolver.PO_ARC_SEPARATOR}${sourceId}${Ilp2MinerIlpSolver.PO_ARC_SEPARATOR}${destinationId}`;
         this._poVariableNames.add(id);
         return id;
     }
