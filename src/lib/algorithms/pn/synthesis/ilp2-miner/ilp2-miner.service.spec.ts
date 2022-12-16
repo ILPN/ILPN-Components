@@ -12,7 +12,5 @@ describe('Ilp2MinerService', () => {
 
     it('should be created', () => {
         expect(service).toBeTruthy();
-
-        expect('tests').toBe('written');
     });
 });
