@@ -1,6 +1,7 @@
 <div fxLayout="column" fxLayoutAlign="start center" class="bottom-margin">
     <span [class.hidden]="!showText && !isHovered">{{descriptionText}}</span>
-    <ilpn-file-display [hover]="isHovered"
+    <ilpn-file-display class="cursor"
+                       [hover]="isHovered"
                        [fileDisplay]="fileDisplay"
                        [squareContent]="squareContent"
                        [bold]="bold"
