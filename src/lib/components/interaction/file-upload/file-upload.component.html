@@ -10,6 +10,12 @@
                        (dragenter)="hoverStart($event)"
                        (dragleave)="hoverEnd($event)"
                        (dragend)="hoverEnd($event)"
-                       (drop)="fileDrop($event)">
+                       (drop)="fileDrop($event)"
+                       (mouseenter)="hoverStart($event)"
+                       (mouseover)="hoverStart($event)"
+                       (mouseout)="hoverEnd($event)"
+                       (mouseleave)="hoverEnd($event)"
+                       (click)="fileInput.click()">
     </ilpn-file-display>
+    <input #fileInput type="file" class="hidden-input" multiple (change)="fileSelected($event)">
 </div>

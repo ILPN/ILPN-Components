@@ -8,6 +8,7 @@ import {DescriptiveLinkComponent} from './interaction/descriptive-link/descripti
 import { InfoCardComponent } from './interaction/info-card/info-card.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import { FileDisplayComponent } from './interaction/file-display/file-display.component';
+import {ReactiveFormsModule} from '@angular/forms';
 
 
 @NgModule({
@@ -22,7 +23,8 @@ import { FileDisplayComponent } from './interaction/file-display/file-display.co
     ],
 	imports: [
 		FlexLayoutModule,
-		BrowserAnimationsModule
+		BrowserAnimationsModule,
+		ReactiveFormsModule
 	],
     exports: [
         FooterComponent,

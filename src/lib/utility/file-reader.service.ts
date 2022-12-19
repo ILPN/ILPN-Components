@@ -7,8 +7,8 @@ import {DropFile} from './drop-file';
 })
 export class FileReaderService {
 
-    processFileUpload(files: FileList | undefined): Observable<Array<DropFile>> {
-        if (files === undefined) {
+    processFileUpload(files: FileList | undefined | null): Observable<Array<DropFile>> {
+        if (files === undefined || files === null) {
             return of([]);
         }
         const files$: Array<Observable<DropFile>> = [];
