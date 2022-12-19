@@ -1,18 +1,18 @@
 import {Injectable} from '@angular/core';
 import {BehaviorSubject, concatMap, EMPTY, filter, from, map, Observable, of} from 'rxjs';
-import {PetriNet} from '../../../models/pn/model/petri-net';
-import {PetriNetRegionSynthesisService} from '../regions/petri-net-region-synthesis.service';
+import {PetriNet} from '../../../../models/pn/model/petri-net';
+import {PetriNetRegionSynthesisService} from '../../regions/petri-net-region-synthesis.service';
 import {PrimeMinerResult} from './prime-miner-result';
-import {PetriNetIsomorphismService} from '../isomorphism/petri-net-isomorphism.service';
-import {ImplicitPlaceRemoverService} from '../transformation/implicit-place-remover.service';
-import {PartialOrderNetWithContainedTraces} from '../../../models/pn/model/partial-order-net-with-contained-traces';
+import {PetriNetIsomorphismService} from '../../isomorphism/petri-net-isomorphism.service';
+import {ImplicitPlaceRemoverService} from '../../transformation/implicit-place-remover.service';
+import {PartialOrderNetWithContainedTraces} from '../../../../models/pn/model/partial-order-net-with-contained-traces';
 import {PrimeMinerInput} from './prime-miner-input';
-import {LpoFireValidator} from '../validation/lpo-fire-validator';
+import {LpoFireValidator} from '../../validation/lpo-fire-validator';
 import {
     PetriNetToPartialOrderTransformerService
-} from '../transformation/petri-net-to-partial-order-transformer.service';
-import {SynthesisResult} from '../regions/classes/synthesis-result';
-import {Trace} from '../../../models/log/model/trace';
+} from '../../transformation/petri-net-to-partial-order-transformer.service';
+import {SynthesisResult} from '../../regions/classes/synthesis-result';
+import {Trace} from '../../../../models/log/model/trace';
 import {PrimeMinerConfiguration} from './prime-miner-configuration';
 
 

@@ -37,4 +37,16 @@ export class Trace implements EditableStringSequence {
         clone.events = [...this.events];
         return clone;
     }
+
+    equals(other: Trace): boolean {
+        if (this.length() !== other.length()) {
+            return false;
+        }
+        for (let i = 0; i < this.length(); i++) {
+            if (this.get(i) !== other.get(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
