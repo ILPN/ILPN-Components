@@ -15,6 +15,7 @@ import {cleanLog} from './clean-log';
 import {LogSymbol} from './log-symbol';
 
 
+
 export interface LogToPartialOrderTransformerConfiguration {
     cleanLog?: boolean;
     addStartStopEvent?: boolean;
