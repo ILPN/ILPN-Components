@@ -21,7 +21,7 @@ export class LpoFlowValidator extends LpoValidator {
 
         for (let i = 0; i < places.length; i++) {
             const place = places[i];
-            flow[i] = new ValidationResult(this.checkFlowForPlace(place, events), ValidationPhase.FLOW);
+            flow[i] = new ValidationResult(this.checkFlowForPlace(place, events), place.id!, ValidationPhase.FLOW);
         }
 
         return flow;

@@ -80,15 +80,15 @@ export class LpoFireValidator extends LpoFlowValidator {
         // TODO stats?
         return this._places.map((p, i) => {
             if (validPlaces[i]) {
-                return new ValidationResult(true, ValidationPhase.FORWARDS);
+                return new ValidationResult(true, p.id!, ValidationPhase.FORWARDS);
             } else if (backwardsValidPlaces[i]) {
-                return new ValidationResult(true, ValidationPhase.BACKWARDS);
+                return new ValidationResult(true, p.id!, ValidationPhase.BACKWARDS);
             } else if (flow[i]) {
-                return new ValidationResult(true, ValidationPhase.FLOW);
+                return new ValidationResult(true, p.id!, ValidationPhase.FLOW);
             } else if (notValidPlaces[i]) {
-                return new ValidationResult(false, ValidationPhase.FORWARDS);
+                return new ValidationResult(false, p.id!, ValidationPhase.FORWARDS);
             } else {
-                return new ValidationResult(false, ValidationPhase.FLOW);
+                return new ValidationResult(false, p.id!, ValidationPhase.FLOW);
             }
         });
     }
