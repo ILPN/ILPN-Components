@@ -1,5 +1,5 @@
-import {TokenTrailValidationResult} from './classes/validation-result';
-import {PetriNet} from '../../../models/pn/model/petri-net';
+import {TokenTrailValidationResult} from '../classes/validation-result';
+import {PetriNet} from '../../../../models/pn/model/petri-net';
 
 
 export class TokenTrailValidator {
@@ -13,6 +13,12 @@ export class TokenTrailValidator {
     }
 
     public validate(): Array<TokenTrailValidationResult> {
+        // construct spec ILP
+
+        // add constraints for each place in net
+
+        // convert solutions to validation results
+
         return [];
     }
 }

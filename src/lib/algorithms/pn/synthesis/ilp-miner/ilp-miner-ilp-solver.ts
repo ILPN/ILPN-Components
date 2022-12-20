@@ -1,4 +1,4 @@
-import {ArcWeightIlpSolver} from '../../../../utility/glpk/ArcWeightIlpSolver';
+import {ArcWeightIlpSolver} from '../../../../utility/glpk/arc-weight-ilp-solver';
 import {concatMap, from, Observable, toArray} from 'rxjs';
 import {GLPK, LP} from 'glpk.js';
 import {Trace} from '../../../../models/log/model/trace';
