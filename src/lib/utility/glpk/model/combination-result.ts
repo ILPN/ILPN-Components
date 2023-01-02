@@ -1,4 +1,4 @@
-import {PetriNet} from '../../../../models/pn/model/petri-net';
+import {PetriNet} from '../../../models/pn/model/petri-net';
 
 export interface CombinationResult {
     net: PetriNet;

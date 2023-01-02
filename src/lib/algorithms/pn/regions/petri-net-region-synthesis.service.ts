@@ -3,7 +3,7 @@ import {PetriNet} from '../../../models/pn/model/petri-net';
 import {Observable, ReplaySubject} from 'rxjs';
 import {SynthesisResult} from './classes/synthesis-result';
 import {RegionSynthesiser} from './classes/region-synthesiser';
-import {RegionsConfiguration} from './classes/regions-configuration';
+import {RegionsConfiguration} from '../../../utility/glpk/model/regions-configuration';
 import {PetriNetRegionsService} from './petri-net-regions.service';
 import {PetriNetSerialisationService} from '../../../models/pn/parser/petri-net-serialisation.service';
 
