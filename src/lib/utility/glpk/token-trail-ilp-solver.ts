@@ -14,10 +14,14 @@ import {Transition} from '../../models/pn/model/transition';
 export abstract class TokenTrailIlpSolver extends IlpSolver {
 
     protected _placeVariables: Set<string>;
+    protected _labelRiseVariable: Map<string, string>;
+    protected _riseVariableLabel: Map<string, string>;
 
     protected constructor(solver$: Observable<GLPK>) {
         super(solver$);
         this._placeVariables = new Set<string>();
+        this._labelRiseVariable = new Map<string, string>();
+        this._riseVariableLabel = new Map<string, string>();
     }
 
     protected combineInputNets(nets: Array<PetriNet>): CombinationResult {
@@ -88,15 +92,15 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             result.push(...net.getPlaces().filter(p => p.outgoingArcs.length === 0).map(p => this.lessEqualThan(this.variable(p.getId()), 0)));
         }
 
-        // gradient constraints
+        // rise constraints
         const labels = this.collectTransitionByLabel(net);
         const riseSumVariables: Array<Variable> = [];
         const absoluteRiseSumVariables: Array<string> = [];
 
         for (const [key, transitions] of labels.entries()) {
-            const transitionsWithSameLabel = transitions.length;
-            const t1 = transitions.splice(0, 1)[0];
+            const t1 = transitions[0];
 
+            // TODO review this with new rise variables
             if (config.obtainPartialOrders) {
                 // t1 post-set
                 riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1));
@@ -117,19 +121,17 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
                 );
             }
 
-            if (transitionsWithSameLabel === 1) {
-                continue;
-            }
+            const rise = this.getTransitionRiseVariable(t1);
 
-            for (const t2 of transitions) {
-                // t1 post-set
-                let variables = this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1);
-                // t1 pre-set
-                variables.push(...this.createVariablesFromPlaceIds(t1.ingoingArcs.map((a: Arc) => a.sourceId), -1));
-                // t2 post-set
-                variables.push(...this.createVariablesFromPlaceIds(t2.outgoingArcs.map((a: Arc) => a.destinationId), -1));
-                // t2 pre-set
-                variables.push(...this.createVariablesFromPlaceIds(t2.ingoingArcs.map((a: Arc) => a.sourceId), 1));
+            for (const t of transitions) {
+                // sum of tokens in post-set - sum of tokens in pre-set = rise
+                // sum of tokens in post-set - sum of tokens in pre-set - rise = 0
+
+                // post-set
+                let variables = this.createVariablesFromPlaceIds(t.outgoingArcs.map((a: Arc) => a.destinationId), 1);
+                // pre-set
+                variables.push(...this.createVariablesFromPlaceIds(t.ingoingArcs.map((a: Arc) => a.sourceId), -1));
+                variables.push(this.variable(rise, -1));
 
                 variables = this.combineCoefficients(variables);
 
@@ -137,7 +139,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             }
         }
 
-        // TODO review this with new rise definition
+        // TODO review this with new rise variables
         if (config.obtainPartialOrders) {
             /*
                 Sum of rises should be 0 AND Sum of absolute rises should be 2 (internal places)
@@ -192,4 +194,23 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         return result;
     }
 
+    private getTransitionRiseVariable(transition: Transition): string {
+        const saved = this._labelRiseVariable.get(transition.label!);
+        if (saved !== undefined) {
+            return saved;
+        }
+
+        const r = this.helperVariableName('rise');
+        this._labelRiseVariable.set(transition.label!, r);
+        this._riseVariableLabel.set(r, transition.label!);
+        return r;
+    }
+
+    protected getRiseOfLabel(label: string): string | undefined {
+        return this._labelRiseVariable.get(label);
+    }
+
+    protected getLabelOfRise(rise: string): string | undefined {
+        return this._riseVariableLabel.get(rise);
+    }
 }
