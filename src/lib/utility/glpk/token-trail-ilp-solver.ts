@@ -39,7 +39,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         return {net: result, inputs, outputs};
     }
 
-    protected setUpInitialILP(combined: CombinationResult, config: RegionsConfiguration): LP {
+    protected setUpInitialILP(combined: CombinationResult, config: RegionsConfiguration = {}): LP {
         const net = combined.net;
 
         this._placeVariables = new Set(net.getPlaces().map(p => p.getId()));

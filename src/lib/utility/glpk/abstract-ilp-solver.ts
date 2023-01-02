@@ -386,6 +386,7 @@ export abstract class IlpSolver {
         const result$ = new ReplaySubject<ProblemSolution>();
 
         this._solver$.pipe(take(1)).subscribe(glpk => {
+            // TODO solve in web worker?
             const res = glpk.solve(ilp, {
                 msglev: MessageLevel.ERROR,
             }) as unknown as Promise<Result>;
