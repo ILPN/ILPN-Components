@@ -6,3 +6,4 @@ export * from './ilp-solver.service';
 export * from './clone-lp';
 
 export * from './model/regions-configuration';
+export * from './model/solver-configuration';

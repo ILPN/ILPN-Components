@@ -175,6 +175,9 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             result.push(this.equal(this.variable(internalOrFinal), 1));
         }
 
+        // add rise variables to generals
+        result.push(new ConstraintsWithNewVariables([], undefined, Array.from(this._riseVariableLabel.keys())));
+
         return ConstraintsWithNewVariables.combine(...result);
     }
 

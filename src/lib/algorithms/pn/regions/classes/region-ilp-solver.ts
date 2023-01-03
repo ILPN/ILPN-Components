@@ -16,14 +16,14 @@ export class RegionIlpSolver extends TokenTrailIlpSolver {
         super(_solver$);
     }
 
-    public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration): Observable<Region> {
+    public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<Region> {
 
         const regions$ = new ReplaySubject<Region>();
 
         const combined = this.combineInputNets(nets);
 
         const ilp$ = new BehaviorSubject(this.setUpInitialILP(combined, config));
-        ilp$.pipe(switchMap(ilp => this.solveILP(ilp))).subscribe((ps: ProblemSolution) => {
+        ilp$.pipe(switchMap(ilp => this.solveILP(ilp, config.messageLevel))).subscribe((ps: ProblemSolution) => {
             if (ps.solution.result.status === Solution.OPTIMAL) {
                 const region = this._regionTransformer.displayRegionInNet(ps.solution, combined.net);
 

@@ -11,6 +11,7 @@ import {Goal} from '../../../../models/glpk/glpk-constants';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
+import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 
 
 export class Ilp2MinerIlpSolver extends ArcWeightIlpSolver {
@@ -27,7 +28,7 @@ export class Ilp2MinerIlpSolver extends ArcWeightIlpSolver {
         this._poVariableNames = new Set<string>();
     }
 
-    public findSolutions(pos: Array<PartialOrder> | PetriNet): Observable<Array<ProblemSolution>> {
+    public findSolutions(pos: Array<PartialOrder> | PetriNet, config: SolverConfiguration = {}): Observable<Array<ProblemSolution>> {
         const baseIlpConstraints: Array<SubjectTo> = [];
 
         if (Array.isArray(pos)) {
@@ -61,7 +62,7 @@ export class Ilp2MinerIlpSolver extends ArcWeightIlpSolver {
 
         return from(problems).pipe(
             concatMap(problem => {
-                return this.solveILP(this.populateIlp(problem.baseIlp, problem.baseIlpConstraints, problem.pair));
+                return this.solveILP(this.populateIlp(problem.baseIlp, problem.baseIlpConstraints, problem.pair), config.messageLevel);
             }),
             toArray()
         );

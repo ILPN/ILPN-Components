@@ -382,13 +382,13 @@ export abstract class IlpSolver {
         return 'c' + this._constraintCounter.next();
     }
 
-    protected solveILP(ilp: LP): Observable<ProblemSolution> {
+    protected solveILP(ilp: LP, messageLevel: MessageLevel = MessageLevel.ERROR): Observable<ProblemSolution> {
         const result$ = new ReplaySubject<ProblemSolution>();
 
         this._solver$.pipe(take(1)).subscribe(glpk => {
             // TODO solve in web worker?
             const res = glpk.solve(ilp, {
-                msglev: MessageLevel.ERROR,
+                msglev: messageLevel,
             }) as unknown as Promise<Result>;
             res.then((solution: Result) => {
                 result$.next({ilp, solution});

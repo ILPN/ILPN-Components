@@ -1,13 +1,14 @@
 import {TokenTrailValidationResult} from '../classes/validation-result';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {TokenTrailIlpSolver} from '../../../../utility/glpk/token-trail-ilp-solver';
-import {from, map, Observable, switchMap, toArray} from 'rxjs';
+import {from, map, mergeMap, Observable, toArray} from 'rxjs';
 import {GLPK, LP} from 'glpk.js';
 import {Place} from '../../../../models/pn/model/place';
 import {SubjectTo} from '../../../../models/glpk/subject-to';
 import {cloneLP} from '../../../../utility/glpk/clone-lp';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
 import {Solution} from '../../../../models/glpk/glpk-constants';
+import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 
 
 export class TokenTrailValidator extends TokenTrailIlpSolver {
@@ -21,7 +22,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
         this._spec = spec;
     }
 
-    public validate(): Observable<Array<TokenTrailValidationResult>> {
+    public validate(config: SolverConfiguration = {}): Observable<Array<TokenTrailValidationResult>> {
         // construct spec ILP
         const specLP = this.setUpInitialILP(this.combineInputNets([this._spec]));
 
@@ -34,8 +35,8 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
                 placeLP.name = place.getId();
                 return placeLP;
             }),
-            switchMap((lp: LP) => {
-                return this.solveILP(lp);
+            mergeMap((lp: LP) => {
+                return this.solveILP(lp, config.messageLevel);
             }),
             // convert solutions to validation results
             map((ps: ProblemSolution) => {
