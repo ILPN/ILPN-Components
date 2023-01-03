@@ -59,7 +59,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             }
 
             // arcs coming out of a place consume tokens => negative rise
-            result.push(...this.equal(this.variable(rise), -weight).constraints);
+            result.push(...this.equal(this.getRiseVariables(transition.label!), -weight).constraints);
         }
 
         for (const [tid, weight] of place.ingoingArcWeights.entries()) {
@@ -71,7 +71,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             }
 
             // arcs coming in to a place produce tokens => positive rise
-            result.push(...this.equal(this.variable(rise), weight).constraints);
+            result.push(...this.equal(this.getRiseVariables(transition.label!), weight).constraints);
         }
 
         // transitions that are not connected with the place have no arc => zero rise
@@ -80,7 +80,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             if (rise === undefined) {
                 continue;
             }
-            result.push(...this.equal(this.variable(rise), 0).constraints);
+            result.push(...this.equal(this.getRiseVariables(label!), 0).constraints);
         }
 
         // initial marking of the place is the sum of the product of the token trail and the spec marking

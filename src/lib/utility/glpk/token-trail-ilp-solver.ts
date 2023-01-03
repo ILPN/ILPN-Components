@@ -121,8 +121,6 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
                 );
             }
 
-            const rise = this.getTransitionRiseVariable(t1);
-
             for (const t of transitions) {
                 // sum of tokens in post-set - sum of tokens in pre-set = rise
                 // sum of tokens in post-set - sum of tokens in pre-set - rise = 0
@@ -131,7 +129,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
                 let variables = this.createVariablesFromPlaceIds(t.outgoingArcs.map((a: Arc) => a.destinationId), 1);
                 // pre-set
                 variables.push(...this.createVariablesFromPlaceIds(t.ingoingArcs.map((a: Arc) => a.sourceId), -1));
-                variables.push(this.variable(rise, -1));
+                variables.push(...this.getRiseVariables(t.label!, -1));
 
                 variables = this.combineCoefficients(variables);
 
@@ -197,18 +195,29 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         return result;
     }
 
-    private getTransitionRiseVariable(transition: Transition): string {
-        const saved = this._labelRiseVariable.get(transition.label!);
+    private getTransitionRiseVariable(label: string): string {
+        const saved = this._labelRiseVariable.get(label);
         if (saved !== undefined) {
             return saved;
         }
 
         const r = this.helperVariableName('rise');
-        this._labelRiseVariable.set(transition.label!, r);
-        this._riseVariableLabel.set(r, transition.label!);
+        this._labelRiseVariable.set(label, r);
+        this._riseVariableLabel.set(r, label);
         return r;
     }
 
+    protected getRiseVariables(label: string, coef: number = 1): Array<Variable> {
+        const prefix = this.getTransitionRiseVariable(label);
+        if (prefix === undefined) {
+            console.debug(`No rise variable for label '${label}', exists`);
+            return [];
+        }
+        return [
+            this.variable(`${prefix}+`, coef),
+            this.variable(`${prefix}-`, -coef)
+        ];
+    }
     protected getRiseOfLabel(label: string): string | undefined {
         return this._labelRiseVariable.get(label);
     }
