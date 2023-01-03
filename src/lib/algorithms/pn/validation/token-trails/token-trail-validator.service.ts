@@ -4,6 +4,7 @@ import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {Observable} from 'rxjs';
 import {TokenTrailValidationResult} from '../classes/validation-result';
 import {TokenTrailValidator} from './token-trail-validator';
+import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 
 
 @Injectable({
@@ -15,8 +16,8 @@ export class TokenTrailValidatorService extends IlpSolverService {
         super();
     }
 
-    public validate(model: PetriNet, spec: PetriNet): Observable<Array<TokenTrailValidationResult>> {
+    public validate(model: PetriNet, spec: PetriNet, config: SolverConfiguration = {}): Observable<Array<TokenTrailValidationResult>> {
         const validator = new TokenTrailValidator(model, spec, this._solver$);
-        return validator.validate();
+        return validator.validate(config);
     }
 }
