@@ -8,16 +8,17 @@ import {getById} from '../../../utility/get-by-id';
 import {Marking} from './marking';
 
 export class PetriNet {
-    private _places: Map<string, Place>;
-    private _transitions: Map<string, Transition>;
-    private _arcs: Map<string, Arc>;
+    private readonly _places: Map<string, Place>;
+    private readonly _transitions: Map<string, Transition>;
+    private readonly _arcs: Map<string, Arc>;
     private _frequency: number | undefined;
-    private _inputPlaces: Set<string>;
-    private _outputPlaces: Set<string>;
+    private readonly _inputPlaces: Set<string>;
+    private readonly _outputPlaces: Set<string>;
+    private readonly _labelCount: Map<string | undefined, number>;
 
     private _kill$: Subject<void>;
 
-    private _redraw$: Subject<void>;
+    private readonly _redraw$: Subject<void>;
 
     private _placeCounter = new IncrementingCounter();
     private _transitionCounter = new IncrementingCounter();
@@ -31,6 +32,7 @@ export class PetriNet {
         this._redraw$ = new Subject<void>();
         this._inputPlaces = new Set<string>();
         this._outputPlaces = new Set<string>();
+        this._labelCount = new Map<string | undefined, number>();
     }
 
     public static createFromArcSubset(net: PetriNet, arcs: Array<Arc>): PetriNet {
@@ -184,6 +186,8 @@ export class PetriNet {
             transition.id = createUniqueString('t', this._transitions, this._transitionCounter);
         }
         this._transitions.set(transition.id, transition);
+        const count = this._labelCount.get(transition.label) ?? 0;
+        this._labelCount.set(transition.label, count + 1);
     }
 
     public removeTransition(transition: Transition | string) {
@@ -200,6 +204,16 @@ export class PetriNet {
         transition.ingoingArcs.forEach(a => {
             this.removeArc(a);
         });
+
+        const count = this._labelCount.get(transition.label) ?? 0;
+        if (count === 0) {
+            throw new Error('Illegal state, transition count mismatch!');
+        }
+        if (count === 1) {
+            this._labelCount.delete(transition.label);
+        } else {
+            this._labelCount.set(transition.label, count - 1);
+        }
     }
 
     public getPlace(id: string): Place | undefined {
@@ -319,6 +333,10 @@ export class PetriNet {
         });
 
         return m;
+    }
+
+    public getLabelCount(): Map<string | undefined, number> {
+        return new Map<string | undefined, number>(this._labelCount);
     }
 
     public isEmpty(): boolean {
