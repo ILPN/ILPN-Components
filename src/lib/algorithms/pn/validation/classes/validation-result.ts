@@ -1,3 +1,5 @@
+import {Marking} from '../../../../models/pn/model/marking';
+
 export abstract class Valid {
 
     protected constructor(public valid: boolean, public placeId: string) {
@@ -19,7 +21,7 @@ export enum ValidationPhase {
 
 export class TokenTrailValidationResult extends Valid {
 
-    constructor(valid: boolean, placeId: string) {
+    constructor(valid: boolean, placeId: string, public tokenTrail: Marking) {
         super(valid, placeId);
     }
 }

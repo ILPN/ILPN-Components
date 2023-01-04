@@ -9,6 +9,7 @@ import {cloneLP} from '../../../../utility/glpk/clone-lp';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
 import {Solution} from '../../../../models/glpk/glpk-constants';
 import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
+import {Marking} from '../../../../models/pn/model/marking';
 
 
 export class TokenTrailValidator extends TokenTrailIlpSolver {
@@ -40,7 +41,11 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             }),
             // convert solutions to validation results
             map((ps: ProblemSolution) => {
-                return new TokenTrailValidationResult(ps.solution.result.status !== Solution.NO_SOLUTION , ps.ilp.name);
+                return new TokenTrailValidationResult(
+                    ps.solution.result.status !== Solution.NO_SOLUTION,
+                    ps.ilp.name,
+                    new Marking(ps.solution.result.vars)
+                );
             }),
             toArray()
         )
