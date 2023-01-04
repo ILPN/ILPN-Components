@@ -52,9 +52,8 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
 
         for (const [tid, weight] of place.outgoingArcWeights.entries()) {
             const transition = this._model.getTransition(tid)!;
-            const rise = this.getRiseOfLabel(transition.label!);
             unusedTransitionLabels.delete(transition.label!);
-            if (rise === undefined) {
+            if (!this.definesRiseOfLabel(transition.label!)) {
                 continue;
             }
 
@@ -64,9 +63,8 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
 
         for (const [tid, weight] of place.ingoingArcWeights.entries()) {
             const transition = this._model.getTransition(tid)!;
-            const rise = this.getRiseOfLabel(transition.label!);
             unusedTransitionLabels.delete(transition.label!);
-            if (rise === undefined) {
+            if (!this.definesRiseOfLabel(transition.label!)) {
                 continue;
             }
 
@@ -76,8 +74,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
 
         // transitions that are not connected with the place have no arc => zero rise
         for (const label of unusedTransitionLabels) {
-            const rise = this.getRiseOfLabel(label!);
-            if (rise === undefined) {
+            if (!this.definesRiseOfLabel(label!)) {
                 continue;
             }
             result.push(...this.equal(this.getRiseVariables(label!), 0).constraints);

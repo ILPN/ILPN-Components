@@ -195,7 +195,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         return result;
     }
 
-    private getTransitionRiseVariable(label: string): string {
+    private getTransitionRiseVariablePrefix(label: string): string {
         const saved = this._labelRiseVariable.get(label);
         if (saved !== undefined) {
             return saved;
@@ -208,21 +208,14 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
     }
 
     protected getRiseVariables(label: string, coef: number = 1): Array<Variable> {
-        const prefix = this.getTransitionRiseVariable(label);
-        if (prefix === undefined) {
-            console.debug(`No rise variable for label '${label}', exists`);
-            return [];
-        }
+        const prefix = this.getTransitionRiseVariablePrefix(label);
         return [
             this.variable(`${prefix}+`, coef),
             this.variable(`${prefix}-`, -coef)
         ];
     }
-    protected getRiseOfLabel(label: string): string | undefined {
-        return this._labelRiseVariable.get(label);
-    }
 
-    protected getLabelOfRise(rise: string): string | undefined {
-        return this._riseVariableLabel.get(rise);
+    protected definesRiseOfLabel(label: string): boolean {
+        return this._labelRiseVariable.get(label) !== undefined;
     }
 }
