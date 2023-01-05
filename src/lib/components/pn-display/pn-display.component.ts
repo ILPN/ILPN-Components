@@ -26,6 +26,8 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
 
     @ViewChild('drawingArea') drawingArea: ElementRef<SVGElement> | undefined;
     @Input() petriNet$: Observable<PetriNet> | undefined;
+    @Input() placeFill$: Observable<Map<string, string>> | undefined;
+
     originAndZoom: OriginAndZoom;
 
     _width: number | string = '100%';
@@ -64,37 +66,53 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
             height: canvasDimensions.height
         });
 
-        this._subs.push(this.petriNet$.subscribe(net => {
-            if (this._svgNet !== undefined) {
-                this._svgNet.destroy();
-            }
-            this._net = net;
-            this.clearDrawingArea();
-
-            if (this._net.isEmpty()) {
-                this._svgNet = undefined;
-                return;
-            }
-
-            this._svgNet = new SvgPetriNet(this._net, this._mouseMoved$, this._mouseUp$);
-
-            const dimensions = this._layoutingService.layout(this._svgNet);
-            const canvasDimensions = this.drawingArea?.nativeElement.getBoundingClientRect() as DOMRect;
-            this.originAndZoom = this.originAndZoom.update({
-                x: -((canvasDimensions.width - dimensions.x) / 2),
-                y: -((canvasDimensions.height - dimensions.y) / 2),
-                zoom: 0
-            });
-
-            this._svgNet.showArcWeights();
-
-            const elements: Array<SVGElement> = this._svgNet.getSvgElements();
-            if (this.drawingArea !== undefined) {
-                for (const element of elements) {
-                    this.drawingArea.nativeElement.appendChild(element);
+        this._subs.push(
+            this.petriNet$.subscribe(net => {
+                if (this._svgNet !== undefined) {
+                    this._svgNet.destroy();
                 }
-            }
-        }))
+                this._net = net;
+                this.clearDrawingArea();
+
+                if (this._net.isEmpty()) {
+                    this._svgNet = undefined;
+                    return;
+                }
+
+                this._svgNet = new SvgPetriNet(this._net, this._mouseMoved$, this._mouseUp$);
+
+                const dimensions = this._layoutingService.layout(this._svgNet);
+                const canvasDimensions = this.drawingArea?.nativeElement.getBoundingClientRect() as DOMRect;
+                this.originAndZoom = this.originAndZoom.update({
+                    x: -((canvasDimensions.width - dimensions.x) / 2),
+                    y: -((canvasDimensions.height - dimensions.y) / 2),
+                    zoom: 0
+                });
+
+                this._svgNet.showArcWeights();
+
+                const elements: Array<SVGElement> = this._svgNet.getSvgElements();
+                if (this.drawingArea !== undefined) {
+                    for (const element of elements) {
+                        this.drawingArea.nativeElement.appendChild(element);
+                    }
+                }
+            })
+        )
+
+        if (this.placeFill$ !== undefined) {
+            this._subs.push(
+                this.placeFill$.subscribe(fills => {
+                    if (this._svgNet === undefined || this._net === undefined) {
+                        return;
+                    }
+                    for (const p of this._net.getPlaces()) {
+                        const svg = this._svgNet.getMappedPlace(p);
+                        svg!.fill(fills.get(p.getId()));
+                    }
+                })
+            )
+        }
     }
 
     ngOnDestroy(): void {

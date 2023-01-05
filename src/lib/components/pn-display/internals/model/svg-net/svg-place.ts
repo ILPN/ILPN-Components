@@ -50,4 +50,13 @@ export class SvgPlace extends SvgWrapper {
     protected override svgY(): string {
         return 'cy';
     }
+
+    public fill(color: string | undefined) {
+        if (color !== undefined) {
+            this._mainElement?.setAttribute('fill-opacity', '1');
+            this._mainElement?.setAttribute('fill', color);
+        } else {
+            this._mainElement?.setAttribute('fill-opacity', '0');
+        }
+    }
 }

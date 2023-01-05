@@ -13,7 +13,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
 
     private _dragging = false;
     private _lastPoint: Point | undefined;
-    private _mainElement: SVGElement | undefined;
+    protected _mainElement: SVGElement | undefined;
     protected _elements: Array<SVGElement> = [];
     private _preDragPosition: Point;
 
