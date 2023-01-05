@@ -7,7 +7,8 @@ import {Transition} from '../../../../../models/pn/model/transition';
 import {Arc} from '../../../../../models/pn/model/arc';
 import {Node} from '../../../../../models/pn/model/node';
 import {SvgWrapper} from './svg-wrapper';
-import {Subject} from 'rxjs';
+import {merge, Observable, Subject} from 'rxjs';
+import {Marking} from '../../../../../models/pn/model/marking';
 
 
 export class SvgPetriNet {
@@ -114,5 +115,19 @@ export class SvgPetriNet {
 
     public getInverseMappedNode(wrapper: SvgPlace | SvgTransition | SvgWrapper): Place | Transition | undefined {
         return this.getInverseMappedPlace(wrapper) ?? this.getInverseMappedTransition(wrapper);
+    }
+
+    public getPlaceClicked$(): Observable<string> {
+        const places$ = [];
+        for (const p of this._places.values()) {
+            places$.push(p.clicked$);
+        }
+        return merge(...places$);
+    }
+
+    public showMarking(marking: Marking) {
+        for (const p of this._places.values()) {
+            p.updateMarking(marking.get(p.getId()) ?? 0);
+        }
     }
 }

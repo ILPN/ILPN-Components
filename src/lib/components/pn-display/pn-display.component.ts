@@ -1,9 +1,9 @@
 import {
     AfterViewInit,
     Component,
-    ElementRef,
+    ElementRef, EventEmitter,
     Input,
-    OnDestroy,
+    OnDestroy, Output,
     ViewChild,
     ViewEncapsulation
 } from '@angular/core';
@@ -14,6 +14,7 @@ import {PnLayoutingService} from './internals/services/pn-layouting.service';
 import {OriginAndZoom} from './internals/model/origin-and-zoom';
 import {zoomFactor} from './internals/zoom-factor';
 import {SvgPetriNet} from './internals/model/svg-net/svg-petri-net';
+import {Marking} from '../../models/pn/model/marking';
 
 
 @Component({
@@ -27,6 +28,8 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     @ViewChild('drawingArea') drawingArea: ElementRef<SVGElement> | undefined;
     @Input() petriNet$: Observable<PetriNet> | undefined;
     @Input() placeFill$: Observable<Map<string, string>> | undefined;
+    @Input() marking$: Observable<Marking> | undefined;
+    @Output() placeClicked: EventEmitter<string>;
 
     originAndZoom: OriginAndZoom;
 
@@ -40,17 +43,17 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     private readonly _mouseUp$: Subject<MouseEvent>;
     private _net: PetriNet | undefined;
     private _svgNet: SvgPetriNet | undefined;
+    private _placeClickSub: Subscription | undefined;
 
     constructor(private _layoutingService: PnLayoutingService) {
         this._mouseMoved$ = new Subject<MouseEvent>();
         this._mouseUp$ = new Subject<MouseEvent>();
         this._subs = [];
         this.originAndZoom = new OriginAndZoom(0, 0, 0);
+        this.placeClicked = new EventEmitter<string>();
 
         this._subs.push(
-            this._mouseUp$.subscribe(e => this.processMouseUp(e))
-        );
-        this._subs.push(
+            this._mouseUp$.subscribe(e => this.processMouseUp(e)),
             this._mouseMoved$.subscribe(e => this.processMouseMove(e))
         );
     }
@@ -70,6 +73,10 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
             this.petriNet$.subscribe(net => {
                 if (this._svgNet !== undefined) {
                     this._svgNet.destroy();
+                    if (this._placeClickSub !== undefined) {
+                        this._placeClickSub.unsubscribe();
+                        this._placeClickSub = undefined;
+                    }
                 }
                 this._net = net;
                 this.clearDrawingArea();
@@ -80,6 +87,9 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                 }
 
                 this._svgNet = new SvgPetriNet(this._net, this._mouseMoved$, this._mouseUp$);
+                this._placeClickSub = this._svgNet.getPlaceClicked$().subscribe(pid => {
+                    this.placeClicked.next(pid);
+                });
 
                 const dimensions = this._layoutingService.layout(this._svgNet);
                 const canvasDimensions = this.drawingArea?.nativeElement.getBoundingClientRect() as DOMRect;
@@ -111,7 +121,18 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                         svg!.fill(fills.get(p.getId()));
                     }
                 })
-            )
+            );
+        }
+
+        if (this.marking$ !== undefined) {
+            this._subs.push(
+                this.marking$.subscribe(marking => {
+                    if (this._svgNet === undefined) {
+                        return;
+                    }
+                    this._svgNet.showMarking(marking);
+                })
+            );
         }
     }
 
