@@ -69,6 +69,10 @@ export class SvgArc extends SvgWrapper {
         this._mouseUp$ = mouseUp$;
     }
 
+    override getElements(): Array<SVGElement> {
+        return [...super.getElements(), ...this._breakpoints.flatMap(b => b.getElements())];
+    }
+
     public addBreakpoint(point: DragPoint) {
         // new line segment
         const source = this._breakpoints.length > 0 ? this._breakpoints[this._breakpoints.length - 1] : this.source;
@@ -153,6 +157,9 @@ export class SvgArc extends SvgWrapper {
     }
 
     private computeLinePoint(d: Point, dest: SvgWrapper, s: Point): Point {
+        if (d.x === s.x && d.y === s.y) {
+            return d;
+        }
         if (dest instanceof SvgPlace) {
             return this.computePlacePoint(d, s);
         } else if (dest instanceof SvgTransition) {

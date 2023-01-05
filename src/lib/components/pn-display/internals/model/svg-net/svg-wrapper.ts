@@ -16,7 +16,6 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
     private _mainElement: SVGElement | undefined;
     protected _elements: Array<SVGElement> = [];
     private _preDragPosition: Point;
-    private _svgOffset: Point | undefined;
 
     private _layerNodes: Array<SvgWrapper> | undefined;
     private _layerIndex: number | undefined;
@@ -28,7 +27,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         this._center$ = new BehaviorSubject<Point>({x: 0, y: 0});
         this._preDragPosition = {x: 0, y: 0};
         this._subs = [
-            this._center$.subscribe(_ => this.updateSVG())
+            this._center$.subscribe(_ => this.updateMainElementPos())
         ];
     }
 
@@ -82,7 +81,6 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         event.stopPropagation();
         this._dragging = true;
         this._preDragPosition = this.center;
-        this._svgOffset = this.svgOffset();
         this._lastPoint = {x: event.x, y: event.y};
     }
 
@@ -130,6 +128,8 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         this._mainElement.onmousedown = (event) => {
             this.processMouseDown(event);
         };
+        this._elements.push(element);
+        this.updateMainElementPos();
     }
 
     public registerLayer(layer: Array<SvgWrapper>, index: number) {
@@ -137,22 +137,17 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         this._layerIndex = index;
     }
 
-    private updateSVG() {
-        if (this._mainElement === undefined || this._svgOffset === undefined) {
+    private updateMainElementPos() {
+        if (this._mainElement === undefined) {
             return;
         }
-        this._mainElement.setAttribute(this.svgX(), `${this.x + this._svgOffset.x}`)
-        this._mainElement.setAttribute(this.svgY(), `${this.y + this._svgOffset.y}`)
+        const offset = this.svgOffset();
+        this._mainElement.setAttribute(this.svgX(), `${this.x + offset.x}`)
+        this._mainElement.setAttribute(this.svgY(), `${this.y + offset.y}`)
     }
 
-    private svgOffset(): Point {
-        if (this._mainElement === undefined) {
-            throw new Error('Element not set. SVG offset cannot be computed!');
-        }
-        return {
-            x: parseInt(this._mainElement.getAttribute(this.svgX()) ?? '0') - this.x,
-            y: parseInt(this._mainElement.getAttribute(this.svgY()) ?? '0') - this.y
-        };
+    protected svgOffset(): Point {
+        return {x: 0, y: 0};
     }
 
     private swap(newIndex: number) {

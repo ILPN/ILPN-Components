@@ -2,6 +2,7 @@ import {SvgWrapper} from './svg-wrapper';
 import {Transition} from '../../../../../models/pn/model/transition';
 import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE, TransitionStyle} from '../../constants/transition-style';
 import {Subscription} from 'rxjs';
+import {Point} from '../../../../../utility/svg/point';
 
 
 export class SvgTransition extends SvgWrapper {
@@ -16,11 +17,8 @@ export class SvgTransition extends SvgWrapper {
 
         const transEl = this.createSvgElement('rect');
         const style = this.resolveTransitionStyle();
-        transEl.setAttribute('x', `${this.x - parseInt(style.width) / 2}`);
-        transEl.setAttribute('y', `${this.y - parseInt(style.height) / 2}`);
         this.applyStyle(transEl, style);
         this.registerMainElement(transEl);
-        this._elements.push(transEl);
 
         if (transition.isSilent) {
             this._textSub = Subscription.EMPTY;
@@ -38,6 +36,14 @@ export class SvgTransition extends SvgWrapper {
     override destroy() {
         super.destroy();
         this._textSub.unsubscribe();
+    }
+
+    protected override svgOffset(): Point {
+        const style = this.resolveTransitionStyle();
+        return {
+            x: -parseInt(style.width) / 2,
+            y: -parseInt(style.height) / 2,
+        };
     }
 
     public resolveTransitionStyle(): TransitionStyle {

@@ -42,7 +42,7 @@ export class SvgPetriNet {
                 this._arcs.set(a.getId(), svgArc);
             } else {
                 s = this._transition.get(a.sourceId!)!;
-                d = this._places.get(a.sourceId)!;
+                d = this._places.get(a.destinationId)!;
                 svgArc = new SvgArc(s, d, a);
                 this._arcs.set(a.getId(), svgArc);
             }

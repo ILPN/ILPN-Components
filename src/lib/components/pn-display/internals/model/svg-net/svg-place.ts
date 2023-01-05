@@ -11,11 +11,8 @@ export class SvgPlace extends SvgWrapper {
         super(place.id);
 
         const placeEl = this.createSvgElement('circle');
-        placeEl.setAttribute('cx', `${this.x}`);
-        placeEl.setAttribute('cy', `${this.y}`);
         this.applyStyle(placeEl, PLACE_STYLE);
         this.registerMainElement(placeEl);
-        this._elements.push(placeEl);
 
         const textEl = this.createTextElement(place.id!);
         this._placeSubs = [
