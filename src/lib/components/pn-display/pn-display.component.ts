@@ -9,11 +9,11 @@ import {
 } from '@angular/core';
 import {PetriNet} from '../../models/pn/model/petri-net';
 import {Observable, Subject, Subscription} from 'rxjs';
-import {PnRendererService} from './internals/services/pn-renderer.service';
-import {Point} from '../../models/pn/model/point';
+import {Point} from '../../utility/svg/point';
 import {PnLayoutingService} from './internals/services/pn-layouting.service';
 import {OriginAndZoom} from './internals/model/origin-and-zoom';
 import {zoomFactor} from './internals/zoom-factor';
+import {SvgPetriNet} from './internals/model/svg-net/svg-petri-net';
 
 
 @Component({
@@ -37,10 +37,9 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     private readonly _mouseMoved$: Subject<MouseEvent>;
     private readonly _mouseUp$: Subject<MouseEvent>;
     private _net: PetriNet | undefined;
-    private _redrawSub: Subscription | undefined;
+    private _svgNet: SvgPetriNet | undefined;
 
-    constructor(private _layoutingService: PnLayoutingService,
-                private _renderingService: PnRendererService) {
+    constructor(private _layoutingService: PnLayoutingService) {
         this._mouseMoved$ = new Subject<MouseEvent>();
         this._mouseUp$ = new Subject<MouseEvent>();
         this._subs = [];
@@ -66,27 +65,35 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         });
 
         this._subs.push(this.petriNet$.subscribe(net => {
-            if (this._net !== undefined) {
-                this._net.destroy();
-            }
-            if (this._redrawSub !== undefined) {
-                this._redrawSub.unsubscribe();
+            if (this._svgNet !== undefined) {
+                this._svgNet.destroy();
             }
             this._net = net;
+            this.clearDrawingArea();
+
             if (this._net.isEmpty()) {
-                this.clearDrawingArea();
+                this._svgNet = undefined;
                 return;
             }
-            this._redrawSub = this._net.redrawRequest$().subscribe(() => this.draw());
-            const dimensions = this._layoutingService.layout(this._net);
-            this._net.bindEvents(this._mouseMoved$, this._mouseUp$);
+
+            this._svgNet = new SvgPetriNet(this._net, this._mouseMoved$, this._mouseUp$);
+
+            const dimensions = this._layoutingService.layout(this._svgNet);
             const canvasDimensions = this.drawingArea?.nativeElement.getBoundingClientRect() as DOMRect;
             this.originAndZoom = this.originAndZoom.update({
                 x: -((canvasDimensions.width - dimensions.x) / 2),
                 y: -((canvasDimensions.height - dimensions.y) / 2),
                 zoom: 0
             });
-            this.draw();
+
+            this._svgNet.showArcWeights();
+
+            const elements: Array<SVGElement> = this._svgNet.getSvgElements();
+            if (this.drawingArea !== undefined) {
+                for (const element of elements) {
+                    this.drawingArea.nativeElement.appendChild(element);
+                }
+            }
         }))
     }
 
@@ -94,8 +101,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         this._subs.forEach(s => s.unsubscribe());
         this._mouseMoved$.complete();
         this._mouseUp$.complete();
-        this._net?.destroy();
-        this._redrawSub?.unsubscribe();
+        this._svgNet?.destroy();
     }
 
     @Input()
@@ -158,19 +164,6 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
             });
             this._lastPoint!.x = event.x;
             this._lastPoint!.y = event.y;
-        }
-    }
-
-    private draw() {
-        if (this.drawingArea === undefined) {
-            console.debug('drawing area not ready yet')
-            return;
-        }
-
-        this.clearDrawingArea();
-        const elements = this._renderingService.createNetElements(this._net!);
-        for (const element of elements) {
-            this.drawingArea.nativeElement.appendChild(element);
         }
     }
 

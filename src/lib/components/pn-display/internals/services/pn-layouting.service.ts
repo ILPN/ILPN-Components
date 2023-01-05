@@ -3,12 +3,14 @@ import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE} from '../constants/transition
 import {PLACE_STYLE} from '../constants/place-style';
 import {Node} from '../../../../models/pn/model/node';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
-import {Point} from '../../../../models/pn/model/point';
-import {Transition} from '../../../../models/pn/model/transition';
-import {Place} from '../../../../models/pn/model/place';
+import {Point} from '../../../../utility/svg/point';
 import {Arc} from '../../../../models/pn/model/arc';
-import {DragPoint} from '../../../../models/pn/model/drag-point';
-import {IdPoint} from '../../../../models/pn/model/id-point';
+import {DragPoint} from '../model/svg-net/drag-point';
+import {SvgPetriNet} from '../model/svg-net/svg-petri-net';
+import {SvgWrapper} from '../model/svg-net/svg-wrapper';
+import {SvgPlace} from '../model/svg-net/svg-place';
+import {SvgTransition} from '../model/svg-net/svg-transition';
+
 
 @Injectable({
     providedIn: 'root'
@@ -18,7 +20,26 @@ export class PnLayoutingService {
     private readonly LAYER_OFFSET = 50;
     private readonly NODE_OFFSET = 40;
 
-    public layout(net: PetriNet): Point {
+    public layout(net: SvgPetriNet): Point {
+        // Sugiyama algorithm implemented loosely based on: https://blog.disy.net/sugiyama-method/
+        const acyclicArcs = this.removeCycles(net.getNet());
+        const acyclicNet = PetriNet.createFromArcSubset(net.getNet(), acyclicArcs);
+        const layeredNodes = this.assignLayers(acyclicNet);
+
+        const layerAssignment = new Map<string, number>(); // id -> layer
+
+        const layeredWrappers = layeredNodes.map((layer, index) => layer.map(node => {
+            const n = net.getMappedWrapper(node)!;
+            layerAssignment.set(n.getId(), index);
+            return n;
+        })) as Array<Array<SvgWrapper>>;
+
+        this.addBreakpoints(net, layeredWrappers, layerAssignment);
+        let maxPerLayer = 0;
+        for (const layer of layeredWrappers) {
+            maxPerLayer = Math.max(maxPerLayer, layer.length);
+        }
+
         const transitionWidth = parseInt(TRANSITION_STYLE.width);
         const transitionHeight = parseInt(TRANSITION_STYLE.height);
         const silentTransitionWidth = parseInt(SILENT_TRANSITION_STYLE.width);
@@ -32,57 +53,39 @@ export class PnLayoutingService {
         const LAYER_SPACING = this.LAYER_OFFSET + CELL_WIDTH;
         const NODE_SPACING = this.NODE_OFFSET + CELL_HEIGHT;
 
-        // Sugiyama algorithm implemented loosely based on: https://blog.disy.net/sugiyama-method/
-        const acyclicArcs = this.removeCycles(net);
-        const acyclicNet = PetriNet.createFromArcSubset(net, acyclicArcs);
-        const layeredNodes = this.assignLayers(acyclicNet);
-
-        const nodeLayer = new Map<string, number>(); // id -> layer
-
-        const originalLayeredNodes = layeredNodes.map((layer, index) => layer.map(node => {
-            const n = net.getTransition(node.id!) ?? net.getPlace(node.id!)! as Node;
-            nodeLayer.set(n.id!, index);
-            return n;
-        })) as Array<Array<IdPoint>>;
-
-        this.addBreakpoints(originalLayeredNodes, nodeLayer);
-        let maxNodesPerLayer = 0;
-        for (const layer of originalLayeredNodes) {
-            maxNodesPerLayer = Math.max(maxNodesPerLayer, layer.length);
-        }
-
         let maxX = 0;
         let maxY = 0;
-        for (let layerIndex = 0; layerIndex < originalLayeredNodes.length; layerIndex++) {
-            const layer = originalLayeredNodes[layerIndex];
-            const EXTRA_NODE_SPACING = layer.length < maxNodesPerLayer ? (NODE_SPACING * (maxNodesPerLayer - layer.length)) / (layer.length + 1) : 0;
-            for (let nodeIndex = 0; nodeIndex < layer.length; nodeIndex++) {
-                const node = layer[nodeIndex];
+        for (let layerIndex = 0; layerIndex < layeredWrappers.length; layerIndex++) {
+            const layer = layeredWrappers[layerIndex];
+            const EXTRA_NODE_SPACING = layer.length < maxPerLayer ? (NODE_SPACING * (maxPerLayer - layer.length)) / (layer.length + 1) : 0;
+            for (let svgIndex = 0; svgIndex < layer.length; svgIndex++) {
+                const svg = layer[svgIndex];
 
-                node.registerLayer(layer, nodeIndex);
+                svg.registerLayer(layer, svgIndex);
 
-                let nodeWidth;
-                node.x = layerIndex * LAYER_SPACING + CELL_WIDTH/2;
-                if (node instanceof Transition && node.isSilent) {
+                let svgWidth;
+                const x = layerIndex * LAYER_SPACING + CELL_WIDTH/2;
+                if (svg instanceof SvgTransition && svg.isSilent()) {
                     // silent transition
-                    nodeWidth = silentTransitionWidth;
-                } else if (!(node instanceof Transition) && !(node instanceof Place)) {
+                    svgWidth = silentTransitionWidth;
+                } else if (!(svg instanceof SvgTransition || svg instanceof SvgPlace)) {
                     // breakpoint
-                    nodeWidth = 0;
+                    svgWidth = 0;
                 } else {
                     // transition or place
-                    nodeWidth = CELL_WIDTH;
+                    svgWidth = CELL_WIDTH;
                 }
 
-                let nodeHeight = CELL_HEIGHT;
-                node.y = nodeIndex * NODE_SPACING + (nodeIndex + 1) * EXTRA_NODE_SPACING + CELL_HEIGHT/2;
-                if (!(node instanceof Transition) && !(node instanceof Place)) {
+                let svgHeight = CELL_HEIGHT;
+                const y = svgIndex * NODE_SPACING + (svgIndex + 1) * EXTRA_NODE_SPACING + CELL_HEIGHT/2;
+                if (!(svg instanceof SvgTransition || svg instanceof SvgPlace)) {
                     // breakpoint
-                    nodeHeight = 0;
+                    svgHeight = 0;
                 }
+                svg.center = {x, y};
 
-                maxX = Math.max(maxX, node.x + nodeWidth/2);
-                maxY = Math.max(maxY, node.y + nodeHeight/2);
+                maxX = Math.max(maxX, x + svgWidth/2);
+                maxY = Math.max(maxY, y + svgHeight/2);
             }
         }
 
@@ -144,37 +147,30 @@ export class PnLayoutingService {
         return nodes.filter(n => !nodesWithIncomingArcs.has(n));
     }
 
-    private addBreakpoints(nodes: Array<Array<IdPoint>>, nodeLayer: Map<string, number>) {
-        for (let layerI = 0; layerI < nodes.length; layerI++) {
-            for (const node of nodes[layerI]) {
-                if (!(node instanceof Node)) {
+    private addBreakpoints(net: SvgPetriNet, wrappers: Array<Array<SvgWrapper>>, nodeLayer: Map<string, number>) {
+        for (let layerI = 0; layerI < wrappers.length; layerI++) {
+            for (const svg of wrappers[layerI]) {
+                if (!(svg instanceof SvgPlace || svg instanceof SvgTransition)) {
                     break;
                 }
-                for(const arc of (node as Node).outgoingArcs) {
+
+                const node = net.getInverseMappedNode(svg)!;
+                for(const arc of node.outgoingArcs) {
                     const destinationLayer = nodeLayer.get(arc.destination.id!) as number;
                     const diff = destinationLayer - layerI;
                     if (Math.abs(diff) == 1) {
                         continue;
                     }
+
                     const change = Math.sign(diff);
                     for (let i = layerI + change; i != destinationLayer; i += change) {
-                        // this ID calculation does not guarantee a unique ID, which could be a problem in the future
-                        const breakpoint = new DragPoint(0, 0, `${arc.id} #${i}`);
-                        nodes[i].push(breakpoint);
-                        arc.addBreakpoint(breakpoint);
+                        const breakpoint = new DragPoint();
+                        wrappers[i].push(breakpoint);
+                        net.getMappedArc(arc).addBreakpoint(breakpoint);
                     }
                 }
             }
         }
     }
 
-    private forEachNodeByLayers(layeredNodes: Array<Array<Node>>, method: (node: Node, layerI: number, nodeI: number) => void, ascending = true) {
-        for (let layerI = (ascending ? 0 : layeredNodes.length - 1); (ascending ? layerI < layeredNodes.length : layerI >= 0); ascending ? layerI++ : layerI--) {
-            const layer = layeredNodes[layerI];
-            for (let nodeI = 0; nodeI < layer.length; nodeI++) {
-                const node = layer[nodeI];
-                method(node, layerI, nodeI);
-            }
-        }
-    }
 }

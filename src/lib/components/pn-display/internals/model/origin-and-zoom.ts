@@ -1,4 +1,4 @@
-import {Point} from '../../../../models/pn/model/point';
+import {Point} from '../../../../utility/svg/point';
 
 export class OriginAndZoom implements Point {
     constructor(public x: number,

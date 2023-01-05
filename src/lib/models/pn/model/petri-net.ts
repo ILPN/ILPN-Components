@@ -16,9 +16,6 @@ export class PetriNet {
     private readonly _outputPlaces: Set<string>;
     private readonly _labelCount: Map<string | undefined, number>;
 
-    private _kill$: Subject<void>;
-
-    private readonly _redraw$: Subject<void>;
 
     private _placeCounter = new IncrementingCounter();
     private _transitionCounter = new IncrementingCounter();
@@ -28,8 +25,6 @@ export class PetriNet {
         this._places = new Map<string, Place>();
         this._transitions = new Map<string, Transition>();
         this._arcs = new Map<string, Arc>();
-        this._kill$ = new Subject<void>();
-        this._redraw$ = new Subject<void>();
         this._inputPlaces = new Set<string>();
         this._outputPlaces = new Set<string>();
         this._labelCount = new Map<string | undefined, number>();
@@ -38,10 +33,10 @@ export class PetriNet {
     public static createFromArcSubset(net: PetriNet, arcs: Array<Arc>): PetriNet {
         const result = new PetriNet();
         net.getPlaces().forEach(p => {
-            result.addPlace(new Place(p.marking, p.x, p.y, p.id));
+            result.addPlace(new Place(p.marking, p.id));
         });
         net.getTransitions().forEach(t => {
-            result.addTransition(new Transition(t.label, t.x, t.y, t.id));
+            result.addTransition(new Transition(t.label, t.id));
         });
         arcs.forEach(a => {
             let source;
@@ -71,7 +66,7 @@ export class PetriNet {
                 mappedId = p.getId() + counter.next();
             }
             placeMap.set(p.getId(), mappedId);
-            result.addPlace(new Place(p.marking, p.x, p.y, mappedId));
+            result.addPlace(new Place(p.marking, mappedId));
         });
 
         b.getTransitions().forEach(t => {
@@ -80,7 +75,7 @@ export class PetriNet {
                 mappedId = t.getId() + counter.next();
             }
             transitionMap.set(t.getId(), mappedId);
-            result.addTransition(new Transition(t.label, t.x, t.y, mappedId));
+            result.addTransition(new Transition(t.label, mappedId));
         });
 
         b.getArcs().forEach(arc => {
@@ -335,6 +330,17 @@ export class PetriNet {
         return m;
     }
 
+    public applyMarking(marking: Marking): Marking {
+        const oldMarking = new Marking({});
+
+        this.getPlaces().forEach(p => {
+            oldMarking.set(p.id!, p.marking);
+            p.marking = marking.get(p.id!) ?? 0;
+        });
+
+        return oldMarking;
+    }
+
     public getLabelCount(): Map<string | undefined, number> {
         return new Map<string | undefined, number>(this._labelCount);
     }
@@ -345,24 +351,6 @@ export class PetriNet {
 
     public clone(): PetriNet {
         return PetriNet.createFromArcSubset(this, this.getArcs());
-    }
-
-    public destroy() {
-        if (!this._kill$.closed) {
-            this._kill$.next();
-            this._kill$.complete();
-        }
-        this._redraw$.complete();
-    }
-
-    public bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>) {
-        this._places.forEach((v, k) => v.bindEvents(mouseMoved$, mouseUp$, this._kill$.asObservable(), this._redraw$));
-        this._transitions.forEach((v, k) => v.bindEvents(mouseMoved$, mouseUp$, this._kill$.asObservable(), this._redraw$));
-        this._arcs.forEach((v, k) => v.bindEvents(mouseMoved$, mouseUp$, this._kill$.asObservable(), this._redraw$));
-    }
-
-    public redrawRequest$(): Observable<void> {
-        return this._redraw$.asObservable();
     }
 
     private getPlacesById(ids: Set<string>): Array<Place> {

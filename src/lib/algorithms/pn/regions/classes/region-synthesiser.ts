@@ -7,7 +7,6 @@ import {Region} from './region';
 export class RegionSynthesiser {
 
     private _regions: Array<Region> = [];
-    private _counter = new IncrementingCounter();
 
     constructor() {
     }
@@ -66,7 +65,7 @@ export class RegionSynthesiser {
     }
 
     private transition(label: string): Transition {
-        return new Transition(label, 0, 0, label);
+        return new Transition(label, label);
     }
 
     private computeGradient(transition: Transition): number {

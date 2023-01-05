@@ -52,7 +52,7 @@ export class PetriNetParserService extends AbstractBlockParser<PetriNet> {
             if (net.getPlace(parts[0]) !== undefined || net.getTransition(parts[0]) !== undefined) {
                 throw new Error(`line '${line}' place ids must be unique!`);
             }
-            const place = new Place(initialMarking, 0, 0, parts[0]);
+            const place = new Place(initialMarking, parts[0]);
             net.addPlace(place);
         });
     }
@@ -65,7 +65,7 @@ export class PetriNetParserService extends AbstractBlockParser<PetriNet> {
             if (net.getTransition(parts[0]) !== undefined || net.getPlace(parts[0]) !== undefined) {
                 throw new Error(`line '${line}' transition ids must be unique!`);
             }
-            net.addTransition(new Transition(parts[1], 0, 0, parts[0]))
+            net.addTransition(new Transition(parts[1], parts[0]))
         });
     }
 

@@ -1,8 +1,7 @@
 import {Arc} from './arc';
-import {IdPoint} from './id-point';
-import {getById} from '../../../utility/get-by-id';
+import {getById, Identifiable} from '../../../utility/get-by-id';
 
-export class Node extends IdPoint {
+export class Node extends Identifiable {
 
     private readonly _ingoingArcs: Map<string, Arc>;
     private readonly _outgoingArcs: Map<string, Arc>;
@@ -10,8 +9,8 @@ export class Node extends IdPoint {
     private readonly _ingoingArcWeights: Map<string, number>;
     private readonly _outgoingArcWeights: Map<string, number>;
 
-    constructor(x: number, y: number, id?: string) {
-        super(x, y, id);
+    constructor(id?: string) {
+        super(id);
         this._ingoingArcs = new Map<string, Arc>();
         this._outgoingArcs = new Map<string, Arc>();
         this._ingoingArcWeights = new Map<string, number>();

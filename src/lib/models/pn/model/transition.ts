@@ -7,8 +7,8 @@ export class Transition extends Node implements EditableString {
     private _label: string | undefined;
     private _foldedPair?: Transition;
 
-    constructor(label?: string, x: number = 0, y: number = 0, id?: string) {
-        super(x, y, id);
+    constructor(label?: string, id?: string) {
+        super(id);
         this._label = label;
     }
 
