@@ -54,11 +54,17 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
     protected modelPlaceConstraints(place: Place): Array<SubjectTo> {
         const result: Array<SubjectTo> = [];
         const unusedTransitionLabels = new Set<string | undefined>(this._model.getLabelCount().keys());
+        const outArcs = place.outgoingArcWeights;
+        const inArcs = place.ingoingArcWeights;
 
-        for (const [tid, weight] of place.outgoingArcWeights.entries()) {
+        for (const tid of outArcs.keys()) {
             const transition = this._model.getTransition(tid)!;
             unusedTransitionLabels.delete(transition.label!);
             if (!this.definesRiseOfLabel(transition.label!)) {
+                continue;
+            }
+            const weight = this.selfLoopWeight(tid, outArcs, inArcs);
+            if (weight <= 0) {
                 continue;
             }
 
@@ -66,10 +72,14 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             result.push(...this.equal(this.getRiseVariables(transition.label!), -weight).constraints);
         }
 
-        for (const [tid, weight] of place.ingoingArcWeights.entries()) {
+        for (const tid of inArcs.keys()) {
             const transition = this._model.getTransition(tid)!;
             unusedTransitionLabels.delete(transition.label!);
             if (!this.definesRiseOfLabel(transition.label!)) {
+                continue;
+            }
+            const weight = this.selfLoopWeight(tid, inArcs, outArcs);
+            if (weight < 0) {
                 continue;
             }
 
@@ -93,5 +103,13 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
         result.push(...this.equal(markedSpecPlaces.map(p => this.variable(p.id!, p.marking)), place.marking).constraints);
 
         return result;
+    }
+
+    private selfLoopWeight(tid: string, myDirection: Map<string, number>, oppositeDirection: Map<string, number>): number {
+        const weight = myDirection.get(tid)!;
+        if (!oppositeDirection.has(tid)) {
+            return weight;
+        }
+        return weight - oppositeDirection.get(tid)!;
     }
 }
