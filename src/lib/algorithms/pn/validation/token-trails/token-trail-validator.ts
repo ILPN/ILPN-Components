@@ -10,6 +10,7 @@ import {ProblemSolution} from '../../../../models/glpk/problem-solution';
 import {Solution} from '../../../../models/glpk/glpk-constants';
 import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 import {Marking} from '../../../../models/pn/model/marking';
+import {CombinationResult} from '../../../../utility/glpk/model/combination-result';
 
 
 export class TokenTrailValidator extends TokenTrailIlpSolver {
@@ -25,12 +26,13 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
 
     public validate(config: SolverConfiguration = {}): Observable<Array<TokenTrailValidationResult>> {
         // construct spec ILP
-        const specLP = this.setUpInitialILP(this.combineInputNets([this._spec]));
+        const specNet = this.combineInputNets([this._spec]);
+        const specLP = this.setUpInitialILP(specNet);
 
         return from(this._model.getPlaces()).pipe(
             // add constraints for each place in net
             map((place: Place) => {
-                const constraints = this.modelPlaceConstraints(place)
+                const constraints = this.modelPlaceConstraints(place, specNet);
                 const placeLP = cloneLP(specLP);
                 placeLP.subjectTo.push(...constraints);
                 placeLP.name = place.getId();
@@ -51,20 +53,17 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
         )
     }
 
-    protected modelPlaceConstraints(place: Place): Array<SubjectTo> {
+    protected modelPlaceConstraints(place: Place, specNet: CombinationResult): Array<SubjectTo> {
         const result: Array<SubjectTo> = [];
         const unusedTransitionLabels = new Set<string | undefined>(this._model.getLabelCount().keys());
-        const outArcs = place.outgoingArcWeights;
-        const inArcs = place.ingoingArcWeights;
+        const inArcs = new Map<string, number>(place.ingoingArcWeights);
+        const outArcs = new Map<string, number>(place.outgoingArcWeights);
+        const selfLoops = this.findSelfLoops(inArcs, outArcs);
 
-        for (const tid of outArcs.keys()) {
+        for (const [tid, weight] of outArcs.entries()) {
             const transition = this._model.getTransition(tid)!;
             unusedTransitionLabels.delete(transition.label!);
             if (!this.definesRiseOfLabel(transition.label!)) {
-                continue;
-            }
-            const weight = this.selfLoopWeight(tid, outArcs, inArcs);
-            if (weight <= 0) {
                 continue;
             }
 
@@ -72,19 +71,38 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             result.push(...this.equal(this.getRiseVariables(transition.label!), -weight).constraints);
         }
 
-        for (const tid of inArcs.keys()) {
+        for (const [tid, weight] of inArcs.entries()) {
             const transition = this._model.getTransition(tid)!;
             unusedTransitionLabels.delete(transition.label!);
             if (!this.definesRiseOfLabel(transition.label!)) {
                 continue;
             }
-            const weight = this.selfLoopWeight(tid, inArcs, outArcs);
-            if (weight < 0) {
-                continue;
-            }
 
             // arcs coming in to a place produce tokens => positive rise
             result.push(...this.equal(this.getRiseVariables(transition.label!), weight).constraints);
+        }
+
+        for (const [tid, [inWeight, outWeight]] of selfLoops.entries()) {
+            const transition = this._model.getTransition(tid)!;
+            unusedTransitionLabels.delete(transition.label!);
+            if (!this.definesRiseOfLabel(transition.label!)) {
+                continue;
+            }
+
+            // rise is the diff of the tokens produced by ingoing arc and consumed by outgoing arc
+            result.push(...this.equal(this.getRiseVariables(transition.label!), inWeight - outWeight).constraints);
+
+            // the pre-set must contain enough token for the transition to consume => outWeight tokens in preset
+            // TODO getByLabel?
+            for (const t of specNet.net.getTransitions()) {
+                if (t.label !== transition.label) {
+                    continue;
+                }
+
+                result.push(
+                    ...this.equal(t.ingoingArcs.map(a => this.variable(a.sourceId)), outWeight).constraints,
+                );
+            }
         }
 
         // transitions that are not connected with the place have no arc => zero rise
@@ -105,11 +123,16 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
         return result;
     }
 
-    private selfLoopWeight(tid: string, myDirection: Map<string, number>, oppositeDirection: Map<string, number>): number {
-        const weight = myDirection.get(tid)!;
-        if (!oppositeDirection.has(tid)) {
-            return weight;
+    private findSelfLoops(inWeights: Map<string, number>, outWeights: Map<string, number>): Map<string, [number, number]> {
+        const result = new Map<string, [number, number]>();
+        for (const [tid, weight] of inWeights.entries()) {
+            if (!outWeights.has(tid)) {
+                continue;
+            }
+            result.set(tid, [weight, outWeights.get(tid)!]);
+            inWeights.delete(tid);
+            outWeights.delete(tid);
         }
-        return weight - oppositeDirection.get(tid)!;
+        return result;
     }
 }
