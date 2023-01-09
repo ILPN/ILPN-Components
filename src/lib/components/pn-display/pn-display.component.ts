@@ -27,7 +27,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
 
     @ViewChild('drawingArea') drawingArea: ElementRef<SVGElement> | undefined;
     @Input() petriNet$: Observable<PetriNet> | undefined;
-    @Input() placeFill$: Observable<Map<string, string>> | undefined;
+    @Input() placeFill$: Observable<Map<string, string> | undefined> | undefined;
     @Input() marking$: Observable<Marking> | undefined;
     @Output() placeClicked: EventEmitter<string>;
 
@@ -115,6 +115,9 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                 this.placeFill$.subscribe(fills => {
                     if (this._svgNet === undefined || this._net === undefined) {
                         return;
+                    }
+                    if (fills === undefined) {
+                        fills = new Map<string, string>();
                     }
                     for (const p of this._net.getPlaces()) {
                         const svg = this._svgNet.getMappedPlace(p);
