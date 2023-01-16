@@ -68,11 +68,6 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         const net = combined.net;
         const result: Array<ConstraintsWithNewVariables> = [];
 
-        // only non-negative solutions (only if non-binary solutions)
-        if (!config.oneBoundRegions) {
-            result.push(...net.getPlaces().map(p => this.greaterEqualThan(this.variable(p.getId()), 0)));
-        }
-
         // non-zero solutions
         result.push(this.greaterEqualThan(net.getPlaces().map(p => this.variable(p.getId())), 1));
 
@@ -122,13 +117,13 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             }
 
             for (const t of transitions) {
-                // sum of tokens in post-set - sum of tokens in pre-set = rise
-                // sum of tokens in post-set - sum of tokens in pre-set - rise = 0
+                // weighted sum of tokens in post-set - weighted sum of tokens in pre-set = rise
+                // weighted sum of tokens in post-set - weighted sum of tokens in pre-set - rise = 0
 
                 // post-set
-                let variables = this.createVariablesFromPlaceIds(t.outgoingArcs.map((a: Arc) => a.destinationId), 1);
+                let variables = t.outgoingArcs.map(a => this.variable(a.destinationId, a.weight));
                 // pre-set
-                variables.push(...this.createVariablesFromPlaceIds(t.ingoingArcs.map((a: Arc) => a.sourceId), -1));
+                variables.push(...t.ingoingArcs.map((a: Arc) => this.variable(a.sourceId, -a.weight)));
                 variables.push(...this.getRiseVariables(t.label!, -1));
 
                 variables = this.combineCoefficients(variables);
@@ -174,6 +169,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         }
 
         // add rise variables to generals
+        // TODO binaries, when oneBound?
         result.push(new ConstraintsWithNewVariables([], undefined, Array.from(this._riseVariableLabel.keys())));
 
         return ConstraintsWithNewVariables.combine(...result);

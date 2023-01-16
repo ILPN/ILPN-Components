@@ -31,7 +31,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     @Input() marking$: Observable<Marking> | undefined;
     @Output() placeClicked: EventEmitter<string>;
 
-    originAndZoom: OriginAndZoom;
+    originAndZoom: OriginAndZoom; // TODO fix drag when zoomed, fix zoom when website scrolled
 
     _width: number | string = '100%';
     _height: number | string = '100%';
