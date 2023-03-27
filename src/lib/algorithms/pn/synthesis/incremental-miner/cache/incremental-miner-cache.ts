@@ -2,6 +2,7 @@ import {PetriNet} from '../../../../../models/pn/model/petri-net';
 import {CacheEntry} from './cache-entry';
 
 
+// TODO investigate adapting a set-trie from Savnik https://osebje.famnit.upr.si/~savnik/papers/cdares13.pdf
 /**
  * A naive implementation of a cache with partially ordered keys
  */
