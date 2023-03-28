@@ -36,9 +36,9 @@ export class IncrementalMiner {
 
         // prepare initial input
         const input = this.createMinerInput(domainSubsetIndices);
-        if (input.hasNoMissingIndices()) {
+        if (input instanceof PetriNet) {
             // the requested net was cached
-            return of(input.model);
+            return of(input);
         }
 
         const minerInput$ = new BehaviorSubject<IncrementalMinerInput>(input);
@@ -91,11 +91,11 @@ export class IncrementalMiner {
         );
     }
 
-    private createMinerInput(requestedIndices: Set<number>): IncrementalMinerInput {
+    private createMinerInput(requestedIndices: Set<number>): IncrementalMinerInput | PetriNet {
         const cached = this._cache.get(requestedIndices);
         if (cached.key.size === requestedIndices.size) {
             // exact match
-            return new IncrementalMinerInput(cached.value, new PetriNet());
+            return cached.value;
         }
         const missing = Array.from(setDifference(requestedIndices, cached.key));
         return this.addMissingTrace(cached.value, missing);

@@ -119,18 +119,18 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         const riseSumVariables: Array<Variable> = [];
         const absoluteRiseSumVariables: Array<string> = [];
 
-        for (const transitions of labels.values()) {
-            const t1 = transitions[0];
+        for (const indexedTransitions of labels.values()) {
 
             // TODO review this with new rise variables
+            const t1 = indexedTransitions[0];
             if (config.obtainPartialOrders) {
                 // t1 post-set
-                riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1));
+                riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.t.outgoingArcs.map((a: Arc) => this.getPlaceVariableId(t1.ni, a.destinationId)), 1));
                 // t1 pre-set
-                riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.ingoingArcs.map((a: Arc) => a.sourceId), -1));
+                riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.t.ingoingArcs.map((a: Arc) => this.getPlaceVariableId(t1.ni, a.sourceId)), -1));
 
-                const singleRiseVariables = this.createVariablesFromPlaceIds(t1.outgoingArcs.map((a: Arc) => a.destinationId), 1);
-                singleRiseVariables.push(...this.createVariablesFromPlaceIds(t1.ingoingArcs.map((a: Arc) => a.sourceId), -1));
+                const singleRiseVariables = this.createVariablesFromPlaceIds(t1.t.outgoingArcs.map((a: Arc) => this.getPlaceVariableId(t1.ni, a.destinationId)), 1);
+                singleRiseVariables.push(...this.createVariablesFromPlaceIds(t1.t.ingoingArcs.map((a: Arc) => this.getPlaceVariableId(t1.ni, a.sourceId)), -1));
 
                 const singleRise = this.combineCoefficients(singleRiseVariables);
                 const abs = this.helperVariableName('abs');
@@ -143,15 +143,15 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
                 );
             }
 
-            for (const t of transitions) {
+            for (const it of indexedTransitions) {
                 // weighted sum of tokens in post-set - weighted sum of tokens in pre-set = rise
                 // weighted sum of tokens in post-set - weighted sum of tokens in pre-set - rise = 0
 
                 // post-set
-                let variables = t.outgoingArcs.map(a => this.variable(a.destinationId, a.weight));
+                let variables = it.t.outgoingArcs.map(a => this.variable(this.getPlaceVariableId(it.ni, a.destinationId), a.weight));
                 // pre-set
-                variables.push(...t.ingoingArcs.map((a: Arc) => this.variable(a.sourceId, -a.weight)));
-                variables.push(...this.getRiseVariables(t.label!, -1));
+                variables.push(...it.t.ingoingArcs.map((a: Arc) => this.variable(this.getPlaceVariableId(it.ni, a.sourceId), -a.weight)));
+                variables.push(...this.getRiseVariables(it.t.label!, -1));
 
                 variables = this.combineCoefficients(variables);
 
@@ -202,18 +202,19 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         return ConstraintsWithNewVariables.combine(...result);
     }
 
-    private collectTransitionByLabel(nets: Array<PetriNet>): Map<string, Array<Transition>> {
-        const result = new Map<string, Array<Transition>>();
-        for (const net of nets) {
+    private collectTransitionByLabel(nets: Array<PetriNet>): Map<string, Array<{ t: Transition, ni: number }>> {
+        const result = new Map<string, Array<{ t: Transition, ni: number }>>();
+        for (let ni = 0; ni < nets.length; ni++) {
+            const net = nets[ni];
             for (const t of net.getTransitions()) {
                 if (t.label === undefined) {
                     throw new Error(`Transition with id '${t.id}' has no label! All transitions must be labeled in the input nets!`);
                 }
                 const array = result.get(t.label);
                 if (array === undefined) {
-                    result.set(t.label, [t]);
+                    result.set(t.label, [{t, ni}]);
                 } else {
-                    array.push(t);
+                    array.push({t, ni});
                 }
             }
         }
@@ -221,10 +222,10 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
     }
 
     private getNetPlaceIdPrefix(netIndex: number): string {
-        return `${netIndex}#`
+        return `n${netIndex}_`
     }
-    protected getPlaceVariableId(netIndex: number, place: Place): string {
-        return this.getNetPlaceIdPrefix(netIndex) + place.id;
+    protected getPlaceVariableId(netIndex: number, place: Place | string): string {
+        return this.getNetPlaceIdPrefix(netIndex) + (typeof place === 'string' ? place : place.id);
     }
 
     private getTransitionRiseVariables(label: string): Array<RiseVariable> {
