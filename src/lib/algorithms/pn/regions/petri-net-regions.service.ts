@@ -2,9 +2,8 @@ import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {RegionsConfiguration} from '../../../utility/glpk/model/regions-configuration';
 import {Observable} from 'rxjs';
-import {Region} from './classes/region';
-import {RegionIlpSolver} from './classes/region-ilp-solver';
-import {PetriNetRegionTransformerService} from './petri-net-region-transformer.service';
+import {PetriNetRegion} from './classes/petri-net-region';
+import {PetriNetRegionIlpSolver} from './classes/petri-net-region-ilp-solver';
 import {IlpSolverService} from '../../../utility/glpk/ilp-solver.service';
 
 @Injectable({
@@ -12,11 +11,11 @@ import {IlpSolverService} from '../../../utility/glpk/ilp-solver.service';
 })
 export class PetriNetRegionsService extends IlpSolverService {
 
-    constructor(private _regionTransformer: PetriNetRegionTransformerService) {
+    constructor() {
         super();
     }
 
-    public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<Region> {
-        return new RegionIlpSolver(this._regionTransformer, this._solver$.asObservable()).computeRegions(nets, config);
+    public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<PetriNetRegion> {
+        return new PetriNetRegionIlpSolver(this._solver$.asObservable()).computeRegions(nets, config);
     }
 }

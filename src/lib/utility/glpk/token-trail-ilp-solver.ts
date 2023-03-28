@@ -1,6 +1,5 @@
 import {IlpSolver} from './abstract-ilp-solver';
 import {PetriNet} from '../../models/pn/model/petri-net';
-import {CombinationResult} from './model/combination-result';
 import {Observable} from 'rxjs';
 import {GLPK, LP} from 'glpk.js';
 import {RegionsConfiguration} from './model/regions-configuration';
@@ -9,44 +8,54 @@ import {ConstraintsWithNewVariables} from '../../models/glpk/constraints-with-ne
 import {Variable} from '../../models/glpk/variable';
 import {Arc} from '../../models/pn/model/arc';
 import {Transition} from '../../models/pn/model/transition';
+import {arraify} from '../arraify';
+import {Place} from '../../models/pn/model/place';
 
+
+interface InitialState {
+    pvid: string,
+    weight: number
+}
+
+interface RiseVariable {
+    name: string,
+    sign: number
+}
 
 export abstract class TokenTrailIlpSolver extends IlpSolver {
 
+    protected _labelRiseVariables: Map<string, Array<RiseVariable>>;
     protected _placeVariables: Set<string>;
-    protected _labelRiseVariable: Map<string, string>;
-    protected _riseVariableLabel: Map<string, string>;
+    private _riseVariables: Set<string>;
+    private _initialStates: Array<InitialState>;
+    protected _indexWithInitialStates?: number;
 
     protected constructor(solver$: Observable<GLPK>) {
         super(solver$);
+        this._initialStates = [];
+        this._labelRiseVariables = new Map<string, Array<RiseVariable>>();
+        this._riseVariables = new Set<string>();
         this._placeVariables = new Set<string>();
-        this._labelRiseVariable = new Map<string, string>();
-        this._riseVariableLabel = new Map<string, string>();
     }
 
-    protected combineInputNets(nets: Array<PetriNet>): CombinationResult {
-        if (nets.length === 0) {
-            throw new Error('Synthesis must be performed on at least one input net!');
+    protected setUpInitialILP(nets: Array<PetriNet> | PetriNet, config: RegionsConfiguration = {}): LP {
+        this._initialStates = [];
+        this._labelRiseVariables.clear();
+        this._riseVariables.clear();
+        this._placeVariables.clear();
+        this._indexWithInitialStates = undefined;
+
+        nets = arraify(nets);
+        const placeVars: Array<Variable> = [];
+        for (let i = 0; i < nets.length; i++) {
+            const net = nets[i];
+            for (const p of net.getPlaces()) {
+                const pvid = this.getPlaceVariableId(i, p);
+                placeVars.push(this.variable(pvid));
+                this._placeVariables.add(pvid);
+            }
         }
 
-        let result = nets[0];
-        const inputs: Array<Set<string>> = [result.inputPlaces];
-        const outputs: Array<Set<string>> = [result.outputPlaces];
-
-        for (let i = 1; i < nets.length; i++) {
-            const union = PetriNet.netUnion(result, nets[i]);
-            result = union.net;
-            inputs.push(union.inputPlacesB);
-            outputs.push(union.outputPlacesB);
-        }
-
-        return {net: result, inputs, outputs};
-    }
-
-    protected setUpInitialILP(combined: CombinationResult, config: RegionsConfiguration = {}): LP {
-        const net = combined.net;
-
-        this._placeVariables = new Set(net.getPlaces().map(p => p.getId()));
         this._allVariables = new Set<string>(this._placeVariables);
 
         const initial: LP = {
@@ -54,45 +63,63 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             objective: {
                 name: 'region',
                 direction: Goal.MINIMUM,
-                vars: net.getPlaces().map(p => this.variable(p.getId())),
+                vars: placeVars,
             },
             subjectTo: [],
         };
-        initial[config.oneBoundRegions ? 'binaries' : 'generals'] = Array.from(this._placeVariables);
-        this.applyConstraints(initial, this.createInitialConstraints(combined, config));
+        const placeVarIds = Array.from(this._placeVariables);
+        // TODO restrict rise to {0,1} instead of marking?
+        initial[config.oneBoundRegions ? 'binaries' : 'generals'] = placeVarIds;
+        this.applyConstraints(initial, this.createInitialConstraints(nets, placeVarIds, config));
 
         return initial;
     }
 
-    protected createInitialConstraints(combined: CombinationResult, config: RegionsConfiguration): ConstraintsWithNewVariables {
-        const net = combined.net;
+    protected createInitialConstraints(nets: Array<PetriNet>, placeVarIds: Array<string>, config: RegionsConfiguration): ConstraintsWithNewVariables {
         const result: Array<ConstraintsWithNewVariables> = [];
 
         // non-zero solutions
-        result.push(this.greaterEqualThan(net.getPlaces().map(p => this.variable(p.getId())), 1));
+        result.push(this.greaterEqualThan(placeVarIds.map(vid => this.variable(vid)), 1));
 
-        // initial markings must be the same (if multiple specification nets)
-        // TODO check if this formulation has not changed
-        if (combined.inputs.length > 1) {
-            const nonemptyInputs = combined.inputs.filter(inputs => inputs.size !== 0);
-            const inputsA = Array.from(nonemptyInputs[0]);
-            for (let i = 1; i < nonemptyInputs.length; i++) {
-                const inputsB = Array.from(nonemptyInputs[i]);
-                result.push(this.sumEqualsZero(...inputsA.map(id => this.variable(id, 1)), ...inputsB.map(id => this.variable(id, -1))));
+        // find a set of places that determines the initial marking (if any)
+        let ni: number;
+        for (ni = 0; ni < nets.length; ni++) {
+            const net = nets[ni];
+            const initialPlaces = net.getPlaces().filter(p => p.marking > 0);
+            if (initialPlaces.length > 0) {
+                this._initialStates = initialPlaces.map(p => ({pvid: this.getPlaceVariableId(ni, p), weight: p.marking}));
+                this._indexWithInitialStates = ni;
+                break;
             }
+        }
+
+        // weighted sum of tokens in places marked as initial must be the same across all nets with at least one token present
+        for (ni++; ni < nets.length; ni++) {
+            const net = nets[ni];
+            const initialPlaces = net.getPlaces().filter(p => p.marking > 0);
+            if (initialPlaces.length === 0) {
+                continue;
+            }
+
+            result.push(this.sumEqualsZero(
+                ...this._initialStates.map(is => this.variable(is.pvid, 1)),
+                ...initialPlaces.map(p => this.variable(this.getPlaceVariableId(ni, p), -1))
+            ));
         }
 
         // places with no post-set should be empty
         if (config.noOutputPlaces) {
-            result.push(...net.getPlaces().filter(p => p.outgoingArcs.length === 0).map(p => this.lessEqualThan(this.variable(p.getId()), 0)));
+            for (let i = 0; i < nets.length; i++) {
+                result.push(...nets[i].getPlaces().filter(p => p.outgoingArcs.length === 0).map(p => this.lessEqualThan(this.variable(this.getPlaceVariableId(i, p)), 0)));
+            }
         }
 
         // rise constraints
-        const labels = this.collectTransitionByLabel(net);
+        const labels = this.collectTransitionByLabel(nets);
         const riseSumVariables: Array<Variable> = [];
         const absoluteRiseSumVariables: Array<string> = [];
 
-        for (const [key, transitions] of labels.entries()) {
+        for (const transitions of labels.values()) {
             const t1 = transitions[0];
 
             // TODO review this with new rise variables
@@ -170,48 +197,59 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
 
         // add rise variables to generals
         // TODO binaries, when oneBound?
-        result.push(new ConstraintsWithNewVariables([], undefined, Array.from(this._riseVariableLabel.keys())));
+        result.push(new ConstraintsWithNewVariables([], undefined, Array.from(this._riseVariables.values())));
 
         return ConstraintsWithNewVariables.combine(...result);
     }
 
-    private collectTransitionByLabel(net: PetriNet): Map<string, Array<Transition>> {
+    private collectTransitionByLabel(nets: Array<PetriNet>): Map<string, Array<Transition>> {
         const result = new Map<string, Array<Transition>>();
-        for (const t of net.getTransitions()) {
-            if (t.label === undefined) {
-                throw new Error(`Transition with id '${t.id}' has no label! All transitions must be labeled in the input net!`);
-            }
-            const array = result.get(t.label);
-            if (array === undefined) {
-                result.set(t.label, [t]);
-            } else {
-                array.push(t);
+        for (const net of nets) {
+            for (const t of net.getTransitions()) {
+                if (t.label === undefined) {
+                    throw new Error(`Transition with id '${t.id}' has no label! All transitions must be labeled in the input nets!`);
+                }
+                const array = result.get(t.label);
+                if (array === undefined) {
+                    result.set(t.label, [t]);
+                } else {
+                    array.push(t);
+                }
             }
         }
         return result;
     }
 
-    private getTransitionRiseVariablePrefix(label: string): string {
-        const saved = this._labelRiseVariable.get(label);
+    private getNetPlaceIdPrefix(netIndex: number): string {
+        return `${netIndex}#`
+    }
+    protected getPlaceVariableId(netIndex: number, place: Place): string {
+        return this.getNetPlaceIdPrefix(netIndex) + place.id;
+    }
+
+    private getTransitionRiseVariables(label: string): Array<RiseVariable> {
+        const saved = this._labelRiseVariables.get(label);
         if (saved !== undefined) {
             return saved;
         }
 
-        const r = this.helperVariableName('rise');
-        this._labelRiseVariable.set(label, r);
-        this._riseVariableLabel.set(r, label);
+        const prefix = this.helperVariableName('rise');
+        const r: Array<RiseVariable> = [
+            {name: `${prefix}+`, sign: 1},
+            {name: `${prefix}-`, sign: -1}
+        ];
+        for (const v of r) {
+            this._riseVariables.add(v.name);
+        }
+        this._labelRiseVariables.set(label, r);
         return r;
     }
 
     protected getRiseVariables(label: string, coef: number = 1): Array<Variable> {
-        const prefix = this.getTransitionRiseVariablePrefix(label);
-        return [
-            this.variable(`${prefix}+`, coef),
-            this.variable(`${prefix}-`, -coef)
-        ];
+        return this.getTransitionRiseVariables(label).map(rv => this.variable(rv.name, rv.sign * coef));
     }
 
     protected definesRiseOfLabel(label: string): boolean {
-        return this._labelRiseVariable.get(label) !== undefined;
+        return this._labelRiseVariables.get(label) !== undefined;
     }
 }

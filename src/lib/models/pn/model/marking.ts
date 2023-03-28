@@ -1,7 +1,7 @@
 export class Marking {
     private readonly _marking: { [placeId: string]: number };
 
-    constructor(marking: { [p: string]: number } | Marking) {
+    constructor(marking: { [p: string]: number } | Marking = {}) {
         this._marking = Object.assign({}, marking instanceof Marking ? marking._marking : marking);
     }
 

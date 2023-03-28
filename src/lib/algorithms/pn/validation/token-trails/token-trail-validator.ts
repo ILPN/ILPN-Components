@@ -26,13 +26,12 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
 
     public validate(config: SolverConfiguration = {}): Observable<Array<TokenTrailValidationResult>> {
         // construct spec ILP
-        const specNet = this.combineInputNets([this._spec]);
-        const specLP = this.setUpInitialILP(specNet);
+        const specLP = this.setUpInitialILP(this._spec);
 
         return from(this._model.getPlaces()).pipe(
             // add constraints for each place in net
             map((place: Place) => {
-                const constraints = this.modelPlaceConstraints(place, specNet);
+                const constraints = this.modelPlaceConstraints(place, this._spec);
                 const placeLP = cloneLP(specLP);
                 placeLP.subjectTo.push(...constraints);
                 placeLP.name = place.getId();
@@ -53,7 +52,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
         )
     }
 
-    protected modelPlaceConstraints(place: Place, specNet: CombinationResult): Array<SubjectTo> {
+    protected modelPlaceConstraints(place: Place, specNet: PetriNet): Array<SubjectTo> {
         const result: Array<SubjectTo> = [];
         const unusedTransitionLabels = new Set<string | undefined>(this._model.getLabelCount().keys());
         const inArcs = new Map<string, number>(place.ingoingArcWeights);
@@ -94,7 +93,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
 
             // the pre-set must contain enough token for the transition to consume => outWeight tokens in preset
             // TODO getByLabel?
-            for (const t of specNet.net.getTransitions()) {
+            for (const t of specNet.getTransitions()) {
                 if (t.label !== transition.label) {
                     continue;
                 }
@@ -114,7 +113,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
         }
 
         // initial marking of the place is the sum of the product of the token trail and the spec marking
-        const markedSpecPlaces = this._spec.getPlaces().filter(p => p.marking > 0);
+        const markedSpecPlaces = specNet.getPlaces().filter(p => p.marking > 0);
         if (markedSpecPlaces.length === 0 && place.marking > 0) {
             throw new Error(`Initial marking of place ${place.id} does not comply with an unmarked specification net!`);
         }

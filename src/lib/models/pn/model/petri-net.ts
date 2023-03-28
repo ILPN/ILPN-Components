@@ -1,9 +1,7 @@
 import {Place} from './place';
 import {Transition} from './transition';
 import {Arc} from './arc';
-import {Observable, Subject} from 'rxjs';
 import {createUniqueString, IncrementingCounter} from '../../../utility/incrementing-counter';
-import {NetUnionResult} from './net-union-result';
 import {getById} from '../../../utility/get-by-id';
 import {Marking} from './marking';
 
@@ -30,10 +28,10 @@ export class PetriNet {
         this._labelCount = new Map<string | undefined, number>();
     }
 
-    public static createFromArcSubset(net: PetriNet, arcs: Array<Arc>): PetriNet {
+    public static createFromArcSubset(net: PetriNet, arcs: Array<Arc>, placeIdPrefix: string = ''): PetriNet {
         const result = new PetriNet();
         net.getPlaces().forEach(p => {
-            result.addPlace(new Place(p.marking, p.id));
+            result.addPlace(new Place(p.marking, placeIdPrefix + p.id));
         });
         net.getTransitions().forEach(t => {
             result.addTransition(new Transition(t.label, t.id));
@@ -53,7 +51,7 @@ export class PetriNet {
         return result;
     }
 
-    public static netUnion(a: PetriNet, b: PetriNet): NetUnionResult {
+    public static netUnion(a: PetriNet, b: PetriNet, placeBIdPrefix: string = ''): PetriNet {
         const result = a.clone();
 
         const counter = new IncrementingCounter();
@@ -61,9 +59,9 @@ export class PetriNet {
         const transitionMap = new Map<string, string>();
 
         b.getPlaces().forEach(p => {
-            let mappedId = p.getId();
+            let mappedId = placeBIdPrefix + p.getId();
             while (result.getPlace(mappedId) !== undefined) {
-                mappedId = p.getId() + counter.next();
+                mappedId = placeBIdPrefix + p.getId() + counter.next();
             }
             placeMap.set(p.getId(), mappedId);
             result.addPlace(new Place(p.marking, mappedId));
@@ -90,17 +88,7 @@ export class PetriNet {
             }
         });
 
-        const inputPlacesB = new Set<string>(result._inputPlaces);
-        const outputPlacesB = new Set<string>(result._outputPlaces);
-
-        a.inputPlaces.forEach(p => {
-            inputPlacesB.delete(p);
-        })
-        a.outputPlaces.forEach(p => {
-            outputPlacesB.delete(p)
-        })
-
-        return {net: result, inputPlacesB, outputPlacesB};
+        return result;
     }
 
     public static fireTransitionInMarking(net: PetriNet, transitionId: string, marking: Marking): Marking {
@@ -349,8 +337,8 @@ export class PetriNet {
         return this._places.size === 0 && this._transitions.size === 0;
     }
 
-    public clone(): PetriNet {
-        return PetriNet.createFromArcSubset(this, this.getArcs());
+    public clone(placeIdPrefix?: string): PetriNet {
+        return PetriNet.createFromArcSubset(this, this.getArcs(), placeIdPrefix);
     }
 
     private getPlacesById(ids: Set<string>): Array<Place> {
