@@ -80,6 +80,7 @@ export class IncrementalMiner {
                 }
 
                 if (input.hasNoMissingIndices()) {
+                    this._cache.put(domainSubsetIndices, synthesisedNet);
                     minerInput$.complete();
                 } else {
                     minerInput$.next(this.addMissingTrace(synthesisedNet, input.missingIndices));

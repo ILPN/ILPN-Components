@@ -7,10 +7,11 @@ import {ImplicitPlaceRemoverService} from '../../transformation/implicit-place-r
 import {
     PetriNetToPartialOrderTransformerService
 } from '../../transformation/petri-net-to-partial-order-transformer.service';
+import {IlpnAlgorithmsModule} from '../../../ilpn-algorithms.module';
 
 
 @Injectable({
-    providedIn: 'root'
+    providedIn: IlpnAlgorithmsModule
 })
 export class IncrementalMinerFactoryService {
 

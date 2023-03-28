@@ -11,10 +11,11 @@ import {Relabeler} from '../../../../utility/relabeler';
 import {
     TraceMultisetEquivalentStateTraverser
 } from '../../../../utility/multiset/trace-multiset-equivalent-state-traverser';
+import {IlpnAlgorithmsModule} from '../../../ilpn-algorithms.module';
 
 
 @Injectable({
-    providedIn: 'root'
+    providedIn: IlpnAlgorithmsModule
 })
 export class AbelOracleService {
 

@@ -14,10 +14,11 @@ import {
 import {SynthesisResult} from '../../regions/classes/synthesis-result';
 import {Trace} from '../../../../models/log/model/trace';
 import {PrimeMinerConfiguration} from './prime-miner-configuration';
+import {IlpnAlgorithmsModule} from '../../../ilpn-algorithms.module';
 
 
 @Injectable({
-    providedIn: 'root'
+    providedIn: IlpnAlgorithmsModule
 })
 export class PrimeMinerService {
 
