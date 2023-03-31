@@ -72,7 +72,7 @@ export class PrimeMinerService {
                 console.debug(`Iteration ${nextInputIndex} completed`, result);
 
                 const synthesisedNet = result.result.result;
-                const r: Array<PrimeMinerResult> = [];
+                const r: Array<PrimeMinerResult> = []; // an empty array can be filtered out, without adding undefined to the content of the observable
 
                 let changed = !result.unchanged;
                 if (changed && (config.skipConnectivityCheck || this.isConnected(synthesisedNet))) {

@@ -1,4 +1,4 @@
-import {BehaviorSubject, concatMap, EMPTY, filter, from, map, Observable, of, Subscription} from 'rxjs';
+import {BehaviorSubject, concatMap, EMPTY, filter, from, map, Observable, of, ReplaySubject, Subscription} from 'rxjs';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {PetriNetRegionSynthesisService} from '../../regions/petri-net-region-synthesis.service';
 import {ImplicitPlaceRemoverService} from '../../transformation/implicit-place-remover.service';
@@ -41,8 +41,10 @@ export class IncrementalMiner {
             return of(input);
         }
 
+        const result$ = new ReplaySubject<PetriNet>(1);
         const minerInput$ = new BehaviorSubject<IncrementalMinerInput>(input);
-        return minerInput$.pipe(
+
+        minerInput$.pipe(
             concatMap(nextInput => {
                 // fire PO
                 const po = this._pnToPoTransformer.transform(nextInput.partialOrder);
@@ -68,28 +70,26 @@ export class IncrementalMiner {
                         input: nextInput
                     });
                 }
-            }),
-            map((result: {result: SynthesisResult, input: IncrementalMinerInput, changed?: boolean}) => {
-                console.debug(`Iteration completed`, result);
+            })
+        ).subscribe((result: {result: SynthesisResult, input: IncrementalMinerInput, changed?: boolean}) => {
+            console.debug(`Iteration completed`, result);
 
-                let synthesisedNet = result.result.result;
-                const r: Array<PetriNet> = []; // an empty array can be filtered out, without adding undefined to the content of the observable
-                if (result.changed) {
-                    synthesisedNet = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
-                    r.push(synthesisedNet);
-                }
+            let synthesisedNet = result.result.result;
+            if (result.changed) {
+                synthesisedNet = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
+            }
 
-                if (input.hasNoMissingIndices()) {
-                    this._cache.put(domainSubsetIndices, synthesisedNet);
-                    minerInput$.complete();
-                } else {
-                    minerInput$.next(this.addMissingTrace(synthesisedNet, input.missingIndices));
-                }
-                return r;
-            }),
-            filter(a => a.length > 0),
-            concatMap(a => from(a))
-        );
+            if (input.hasNoMissingIndices()) {
+                this._cache.put(domainSubsetIndices, synthesisedNet);
+                minerInput$.complete();
+                result$.next(synthesisedNet);
+                result$.complete();
+            } else {
+                minerInput$.next(this.addMissingTrace(synthesisedNet, input.missingIndices));
+            }
+        });
+
+        return result$.asObservable();
     }
 
     private createMinerInput(requestedIndices: Set<number>): IncrementalMinerInput | PetriNet {
