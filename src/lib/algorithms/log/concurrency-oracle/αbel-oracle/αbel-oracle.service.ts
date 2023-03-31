@@ -35,7 +35,7 @@ export class AbelOracleService {
     private computePartialOrderFromEquivalentTraces(traces: MultisetEquivalentTraces): Observable<PetriNet> {
         const conversionResult = this.convertTracesToPetriNets(traces.traces);
 
-        return this._regionSynthesisService.synthesise(conversionResult.nets, {obtainPartialOrders: true, oneBoundRegions: true}).pipe(
+        return this._regionSynthesisService.synthesise(conversionResult.nets, {obtainPartialOrders: true, noArcWeights: true}).pipe(
             map(r => {
                 const net = this.relabelNet(r.result, conversionResult.labelMapping);
                 net.frequency = traces.count;

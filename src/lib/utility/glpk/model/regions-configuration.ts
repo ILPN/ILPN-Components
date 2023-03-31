@@ -2,7 +2,7 @@ import {SolverConfiguration} from './solver-configuration';
 
 
 export interface RegionsConfiguration extends SolverConfiguration {
-    oneBoundRegions?: boolean;
+    noArcWeights?: boolean;
     noOutputPlaces?: boolean;
     obtainPartialOrders?: boolean;
 }

@@ -10,6 +10,7 @@ import {Arc} from '../../models/pn/model/arc';
 import {Transition} from '../../models/pn/model/transition';
 import {arraify} from '../arraify';
 import {Place} from '../../models/pn/model/place';
+import {MapArray} from '../map-array';
 
 
 interface InitialState {
@@ -17,31 +18,23 @@ interface InitialState {
     weight: number
 }
 
-interface RiseVariable {
-    name: string,
-    sign: number
-}
-
 export abstract class TokenTrailIlpSolver extends IlpSolver {
 
-    protected _labelRiseVariables: Map<string, Array<RiseVariable>>;
+    protected _labelRiseVariables: MapArray<string, Array<Variable>>;
     protected _placeVariables: Set<string>;
-    private _riseVariables: Set<string>;
     private _initialStates: Array<InitialState>;
     protected _indexWithInitialStates?: number;
 
     protected constructor(solver$: Observable<GLPK>) {
         super(solver$);
         this._initialStates = [];
-        this._labelRiseVariables = new Map<string, Array<RiseVariable>>();
-        this._riseVariables = new Set<string>();
+        this._labelRiseVariables = new MapArray<string, Array<Variable>>();
         this._placeVariables = new Set<string>();
     }
 
     protected setUpInitialILP(nets: Array<PetriNet> | PetriNet, config: RegionsConfiguration = {}): LP {
         this._initialStates = [];
         this._labelRiseVariables.clear();
-        this._riseVariables.clear();
         this._placeVariables.clear();
         this._indexWithInitialStates = undefined;
 
@@ -58,6 +51,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
 
         this._allVariables = new Set<string>(this._placeVariables);
 
+        const placeVarIds = Array.from(this._placeVariables);
         const initial: LP = {
             name: 'ilp',
             objective: {
@@ -65,11 +59,9 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
                 direction: Goal.MINIMUM,
                 vars: placeVars,
             },
+            generals: placeVarIds,
             subjectTo: [],
         };
-        const placeVarIds = Array.from(this._placeVariables);
-        // TODO restrict rise to {0,1} instead of marking?
-        initial[config.oneBoundRegions ? 'binaries' : 'generals'] = placeVarIds;
         this.applyConstraints(initial, this.createInitialConstraints(nets, placeVarIds, config));
 
         return initial;
@@ -87,7 +79,10 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             const net = nets[ni];
             const initialPlaces = net.getPlaces().filter(p => p.marking > 0);
             if (initialPlaces.length > 0) {
-                this._initialStates = initialPlaces.map(p => ({pvid: this.getPlaceVariableId(ni, p), weight: p.marking}));
+                this._initialStates = initialPlaces.map(p => ({
+                    pvid: this.getPlaceVariableId(ni, p),
+                    weight: p.marking
+                }));
                 this._indexWithInitialStates = ni;
                 break;
             }
@@ -143,21 +138,53 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
                 );
             }
 
+            // collect the rise specifications
             for (const it of indexedTransitions) {
                 // weighted sum of tokens in post-set - weighted sum of tokens in pre-set = rise
-                // weighted sum of tokens in post-set - weighted sum of tokens in pre-set - rise = 0
 
                 // post-set
-                let variables = it.t.outgoingArcs.map(a => this.variable(this.getPlaceVariableId(it.ni, a.destinationId), a.weight));
+                const variables = it.t.outgoingArcs.map(a => this.variable(this.getPlaceVariableId(it.ni, a.destinationId), a.weight));
                 // pre-set
                 variables.push(...it.t.ingoingArcs.map((a: Arc) => this.variable(this.getPlaceVariableId(it.ni, a.sourceId), -a.weight)));
-                variables.push(...this.getRiseVariables(it.t.label!, -1));
 
-                variables = this.combineCoefficients(variables);
-
-                result.push(this.sumEqualsZero(...variables));
+                // TODO handle transitions with empty pre-/post-set correctly
+                this._labelRiseVariables.push(it.t.label!, this.combineCoefficients(variables));
             }
         }
+
+        // express the rise constraints
+        for (const [label, sums] of this._labelRiseVariables.entries()) {
+            console.debug(`rise constraints for '${label}'`);
+
+            const sum1 = sums[0];
+
+            for (let i = 0; i < sums.length; i++) {
+                const sum = sums[i];
+
+                if (config.noArcWeights) {
+                    // rises and therefore arc weights are constrained to [-1; 1];
+                    result.push(
+                        this.lessEqualThan(sum, 1),
+                        this.greaterEqualThan(sum, -1)
+                    )
+                }
+
+                if (i === 0) {
+                    continue;
+                }
+
+                // all rises of the same label must be the same
+                // rise1 = rise2
+                // rise1 - rise2 = 0
+                result.push(
+                    this.sumEqualsZero(...this.combineCoefficients([
+                        ...sum1,
+                        ...this.constantMultiplication(sum, -1)
+                    ]))
+                );
+            }
+        }
+
 
         // TODO review this with new rise variables
         if (config.obtainPartialOrders) {
@@ -195,10 +222,6 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             result.push(this.equal(this.variable(internalOrFinal), 1));
         }
 
-        // add rise variables to generals
-        // TODO binaries, when oneBound?
-        result.push(new ConstraintsWithNewVariables([], undefined, Array.from(this._riseVariables.values())));
-
         return ConstraintsWithNewVariables.combine(...result);
     }
 
@@ -224,33 +247,12 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
     private getNetPlaceIdPrefix(netIndex: number): string {
         return `n${netIndex}_`
     }
+
     protected getPlaceVariableId(netIndex: number, place: Place | string): string {
         return this.getNetPlaceIdPrefix(netIndex) + (typeof place === 'string' ? place : place.id);
     }
 
-    private getTransitionRiseVariables(label: string): Array<RiseVariable> {
-        const saved = this._labelRiseVariables.get(label);
-        if (saved !== undefined) {
-            return saved;
-        }
-
-        const prefix = this.helperVariableName('rise');
-        const r: Array<RiseVariable> = [
-            {name: `${prefix}+`, sign: 1},
-            {name: `${prefix}-`, sign: -1}
-        ];
-        for (const v of r) {
-            this._riseVariables.add(v.name);
-        }
-        this._labelRiseVariables.set(label, r);
-        return r;
-    }
-
-    protected getRiseVariables(label: string, coef: number = 1): Array<Variable> {
-        return this.getTransitionRiseVariables(label).map(rv => this.variable(rv.name, rv.sign * coef));
-    }
-
     protected definesRiseOfLabel(label: string): boolean {
-        return this._labelRiseVariables.get(label) !== undefined;
+        return this._labelRiseVariables.get(label).length !== 0;
     }
 }

@@ -108,8 +108,8 @@ export abstract class IlpSolver {
     }
 
     protected xWhenAEqualsB(x: string,
-                          a: string | Array<string> | Array<Variable>,
-                          b: string | number): ConstraintsWithNewVariables {
+                            a: string | Array<string> | Array<Variable>,
+                            b: string | number): ConstraintsWithNewVariables {
         /*
              As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -156,14 +156,18 @@ export abstract class IlpSolver {
 
         return ConstraintsWithNewVariables.combineAndIntroduceVariables(
             [y], undefined,
+            // |a| <= k must be enforced
+            this.lessEqualThan([this.variable(a)], IlpSolver.k),
+            this.greaterEqualThan([this.variable(a)], -IlpSolver.k),
+            // y when a >= b
             this.greaterEqualThan([this.variable(a), this.variable(y, IlpSolver.K)], b),
             this.lessEqualThan([this.variable(a), this.variable(y, IlpSolver.K)], IlpSolver.K - 1 + b)
         );
     }
 
     protected xWhenAGreaterEqualB(x: string,
-                                a: string | Array<string> | Array<Variable>,
-                                b: string | number): ConstraintsWithNewVariables {
+                                  a: string | Array<string> | Array<Variable>,
+                                  b: string | number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -181,8 +185,8 @@ export abstract class IlpSolver {
     }
 
     protected xWhenALessEqualB(x: string,
-                             a: string | Array<string> | Array<Variable>,
-                             b: string | number): ConstraintsWithNewVariables {
+                               a: string | Array<string> | Array<Variable>,
+                               b: string | number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -200,8 +204,8 @@ export abstract class IlpSolver {
     }
 
     protected xWhenAGreaterB(x: string,
-                           a: string | Array<string> | Array<Variable> | number,
-                           b: string | Array<string> | Array<Variable> | number): ConstraintsWithNewVariables {
+                             a: string | Array<string> | Array<Variable> | number,
+                             b: string | Array<string> | Array<Variable> | number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
             a,b integer
@@ -275,8 +279,8 @@ export abstract class IlpSolver {
     }
 
     protected xWhenALessB(x: string,
-                        a: string | Array<string> | Array<Variable>,
-                        b: string | number): ConstraintsWithNewVariables {
+                          a: string | Array<string> | Array<Variable>,
+                          b: string | number): ConstraintsWithNewVariables {
         /*
             As per https://blog.adamfurmanek.pl/2015/09/12/ilp-part-4/
 
@@ -370,6 +374,10 @@ export abstract class IlpSolver {
         return this.greaterEqualThan(variables, lowerBound + 1);
     }
 
+    protected constantMultiplication(variables: Array<Variable>, constant: number): Array<Variable> {
+        return variables.map(v => this.variable(v.name, v.coef * constant));
+    }
+
     private constrain(vars: Array<Variable>, bnds: Bound): SubjectTo {
         return {
             name: this.constraintName(),
@@ -390,10 +398,17 @@ export abstract class IlpSolver {
             const res = glpk.solve(ilp, {
                 msglev: messageLevel,
             }) as unknown as Promise<Result>;
-            res.then((solution: Result) => {
-                result$.next({ilp, solution});
-                result$.complete();
-            })
+            res.then(
+                (solution: Result) => {
+                    result$.next({ilp, solution});
+                    result$.complete();
+                },
+                (err) => {
+                    console.error(err);
+                    result$.error(err);
+                    result$.complete();
+                }
+            );
         });
 
         return result$.asObservable();

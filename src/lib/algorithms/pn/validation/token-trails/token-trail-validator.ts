@@ -10,7 +10,6 @@ import {ProblemSolution} from '../../../../models/glpk/problem-solution';
 import {Solution} from '../../../../models/glpk/glpk-constants';
 import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 import {Marking} from '../../../../models/pn/model/marking';
-import {CombinationResult} from '../../../../utility/glpk/model/combination-result';
 
 
 export class TokenTrailValidator extends TokenTrailIlpSolver {
@@ -67,7 +66,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             }
 
             // arcs coming out of a place consume tokens => negative rise
-            result.push(...this.equal(this.getRiseVariables(transition.label!), -weight).constraints);
+            result.push(...this.createRiseConstraints(transition.label!, -weight));
         }
 
         for (const [tid, weight] of inArcs.entries()) {
@@ -78,7 +77,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             }
 
             // arcs coming in to a place produce tokens => positive rise
-            result.push(...this.equal(this.getRiseVariables(transition.label!), weight).constraints);
+            result.push(...this.createRiseConstraints(transition.label!, weight));
         }
 
         for (const [tid, [inWeight, outWeight]] of selfLoops.entries()) {
@@ -89,7 +88,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             }
 
             // rise is the diff of the tokens produced by ingoing arc and consumed by outgoing arc
-            result.push(...this.equal(this.getRiseVariables(transition.label!), inWeight - outWeight).constraints);
+            result.push(...this.createRiseConstraints(transition.label!, inWeight - outWeight));
 
             // the pre-set must contain enough token for the transition to consume => outWeight tokens in preset
             // TODO getByLabel?
@@ -109,7 +108,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             if (!this.definesRiseOfLabel(label!)) {
                 continue;
             }
-            result.push(...this.equal(this.getRiseVariables(label!), 0).constraints);
+            result.push(...this.createRiseConstraints(label!, 0));
         }
 
         // initial marking of the place is the sum of the product of the token trail and the spec marking
@@ -131,6 +130,16 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             result.set(tid, [weight, outWeights.get(tid)!]);
             inWeights.delete(tid);
             outWeights.delete(tid);
+        }
+        return result;
+    }
+
+    private createRiseConstraints(label: string, rise: number): Array<SubjectTo> {
+        // TODO handle transitions with empty pre-/post-set correctly
+        const result: Array<SubjectTo> = [];
+        const riseSums = this._labelRiseVariables.get(label);
+        for (const sum of riseSums) {
+            result.push(...this.equal(sum, rise).constraints);
         }
         return result;
     }

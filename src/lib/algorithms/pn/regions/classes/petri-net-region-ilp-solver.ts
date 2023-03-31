@@ -88,13 +88,13 @@ export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
         const rises = new Map<string, number>();
         for (const label of this._transitionLabels) {
             const variables = this._labelRiseVariables.get(label);
-            if (variables === undefined) {
+            if (variables.length === 0) {
                 console.warn(`label "${label}" has no rise variables defined!`);
                 continue;
             }
             let sum = 0;
-            for (const v of variables) {
-                sum += v.sign * solution.result.vars[v.name];
+            for (const v of variables[0]) {
+                sum += v.coef * solution.result.vars[v.name];
             }
             rises.set(label, sum);
         }
