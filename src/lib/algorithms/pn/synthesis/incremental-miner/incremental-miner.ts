@@ -1,4 +1,4 @@
-import {BehaviorSubject, concatMap, EMPTY, filter, from, map, Observable, of, ReplaySubject, Subscription} from 'rxjs';
+import {BehaviorSubject, concatMap, EMPTY, map, Observable, of, ReplaySubject, Subscription} from 'rxjs';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {PetriNetRegionSynthesisService} from '../../regions/petri-net-region-synthesis.service';
 import {ImplicitPlaceRemoverService} from '../../transformation/implicit-place-remover.service';
@@ -85,7 +85,8 @@ export class IncrementalMiner {
                 result$.next(synthesisedNet);
                 result$.complete();
             } else {
-                minerInput$.next(this.addMissingTrace(synthesisedNet, input.missingIndices));
+                this._cache.put(input.containedIndices, synthesisedNet);
+                minerInput$.next(this.addMissingTrace(synthesisedNet, input.containedIndices, input.missingIndices));
             }
         });
 
@@ -99,12 +100,14 @@ export class IncrementalMiner {
             return cached.value;
         }
         const missing = Array.from(setDifference(requestedIndices, cached.key));
-        return this.addMissingTrace(cached.value, missing);
+        return this.addMissingTrace(cached.value, cached.key, missing);
     }
 
-    private addMissingTrace(model: PetriNet, missing: Array<number>): IncrementalMinerInput {
+    private addMissingTrace(model: PetriNet, containedIndices: Set<number>, missing: Array<number>): IncrementalMinerInput {
         const index = missing.pop()!;
         const cached = this._cache.get(new Set<number>([index]))
-        return new IncrementalMinerInput(model, cached.value, missing);
+        const newIndices = new Set<number>(containedIndices);
+        newIndices.add(index);
+        return new IncrementalMinerInput(model, cached.value, newIndices, missing);
     }
 }
