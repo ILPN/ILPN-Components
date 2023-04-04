@@ -5,7 +5,7 @@ export class IncrementalMinerInput {
 
     public constructor(public model: PetriNet,
                        public partialOrder: PetriNet,
-                       public containedIndices: Set<number>,
+                       public containedIndices: Array<number>,
                        public missingIndices: Array<number> = []) {
     }
 

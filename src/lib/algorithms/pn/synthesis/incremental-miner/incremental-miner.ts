@@ -28,8 +28,16 @@ export class IncrementalMiner {
         });
     }
 
-    public mine(domainSubsetIndices: Set<number>, config: RegionsConfiguration = {}): Observable<PetriNet> {
-        if (domainSubsetIndices.size === 0) {
+    /**
+     * Mines a Petri net from the specified indices of the current domain.
+     * Cached results are reused to reduce the number of necessary iterations.
+     * The fire heuristic is used to reduce the number of necessary iterations.
+     *
+     * @param domainSubsetIndices a sorted array of the domain indices that must be included in the result
+     * @param config region configuration
+     */
+    public mine(domainSubsetIndices: Array<number>, config: RegionsConfiguration = {}): Observable<PetriNet> {
+        if (domainSubsetIndices.length === 0) {
             console.error('Miner input must be non empty');
             return EMPTY;
         }
@@ -71,7 +79,7 @@ export class IncrementalMiner {
                     });
                 }
             })
-        ).subscribe((result: {result: SynthesisResult, input: IncrementalMinerInput, changed?: boolean}) => {
+        ).subscribe((result: { result: SynthesisResult, input: IncrementalMinerInput, changed?: boolean }) => {
             console.debug(`Iteration completed`, result);
 
             let synthesisedNet = result.result.result;
@@ -93,21 +101,19 @@ export class IncrementalMiner {
         return result$.asObservable();
     }
 
-    private createMinerInput(requestedIndices: Set<number>): IncrementalMinerInput | PetriNet {
+    private createMinerInput(requestedIndices: Array<number>): IncrementalMinerInput | PetriNet {
         const cached = this._cache.get(requestedIndices);
-        if (cached.key.size === requestedIndices.size) {
+        if (cached.key.length === requestedIndices.length) {
             // exact match
             return cached.value;
         }
-        const missing = Array.from(setDifference(requestedIndices, cached.key));
+        const missing = Array.from(setDifference(new Set(requestedIndices), new Set(cached.key))).sort((a, b) => a - b);
         return this.addMissingTrace(cached.value, cached.key, missing);
     }
 
-    private addMissingTrace(model: PetriNet, containedIndices: Set<number>, missing: Array<number>): IncrementalMinerInput {
+    private addMissingTrace(model: PetriNet, containedIndices: Array<number>, missing: Array<number>): IncrementalMinerInput {
         const index = missing.pop()!;
-        const cached = this._cache.get(new Set<number>([index]))
-        const newIndices = new Set<number>(containedIndices);
-        newIndices.add(index);
-        return new IncrementalMinerInput(model, cached.value, newIndices, missing);
+        const cached = this._cache.get([index])
+        return new IncrementalMinerInput(model, cached.value, [...containedIndices, index], missing);
     }
 }
