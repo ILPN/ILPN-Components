@@ -93,31 +93,40 @@ export class PnLayoutingService {
     }
 
     private removeCycles(net: PetriNet): Array<Arc> {
-        const explored = new Set<Arc>();
+        const stack = new Set<Node>();
+        const marked = new Set<Node>();
+
         const arcs = net.getArcs();
-        for (let i = 0; i < arcs.length; i++) {
-            const arc = arcs[i];
-            if (!explored.has(arc)) {
-                this.dfsRemoveCycles(arc, explored, new Set([arc.source]), arcs);
+
+        const vertices: Array<Node> = net.getPlaces();
+        vertices.push(...net.getTransitions());
+        vertices.sort((a,b) => {
+            const ingoing = a.ingoingArcWeights.size - b.ingoingArcWeights.size;
+            if (ingoing !== 0) {
+                return ingoing;
             }
+            return b.outgoingArcWeights.size - a.outgoingArcWeights.size;
+        });
+        for (const v of vertices) {
+            this.dfsRemoveCycles(v, stack, marked, arcs);
         }
         return arcs;
     }
 
-    private dfsRemoveCycles(arc: Arc, explored: Set<Arc>, predecessors: Set<Node>, arcs: Array<Arc>) {
-        if (explored.has(arc)) {
+    private dfsRemoveCycles(vertex: Node, stack: Set<Node>, marked: Set<Node>, arcs: Array<Arc>) {
+        if (marked.has(vertex)) {
             return;
         }
-        explored.add(arc);
-        if (predecessors.has(arc.destination)) {
-            this.removeArc(arcs, arc);
-            return;
+        marked.add(vertex);
+        stack.add(vertex);
+        for (const arc of vertex.outgoingArcs) {
+            if (stack.has(arc.destination)) {
+                this.removeArc(arcs, arc);
+            } else if (!marked.has(arc.destination)) {
+                this.dfsRemoveCycles(arc.destination, stack, marked, arcs);
+            }
         }
-        predecessors.add(arc.destination);
-        for (const outgoingArc of arc.destination.outgoingArcs) {
-            this.dfsRemoveCycles(outgoingArc, explored, predecessors, arcs);
-        }
-        predecessors.delete(arc.destination);
+        stack.delete(vertex);
     }
 
     private removeArc(arcs: Array<Arc>, arc: Arc) {
