@@ -112,7 +112,7 @@ export class IncrementalMiner {
     }
 
     private addMissingTrace(model: PetriNet, containedIndices: Array<number>, missing: Array<number>): IncrementalMinerInput {
-        const index = missing.pop()!;
+        const index = missing.shift()!;
         const cached = this._cache.get([index])
         return new IncrementalMinerInput(model, cached.value, [...containedIndices, index], missing);
     }
