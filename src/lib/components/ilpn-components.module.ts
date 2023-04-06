@@ -11,6 +11,9 @@ import {FileDisplayComponent} from './interaction/file-display/file-display.comp
 import {PnDisplayComponent} from './pn-display/pn-display.component';
 import {ViewBoxPipe} from './pn-display/internals/view-box.pipe';
 import {ReactiveFormsModule} from '@angular/forms';
+import {RouterLinkConfigPipe} from './layout/page-layout/pipes/router-link-config.pipe';
+import {HrefConfigPipe} from './layout/page-layout/pipes/href-config.pipe';
+import {RouterModule} from '@angular/router';
 
 
 @NgModule({
@@ -23,12 +26,15 @@ import {ReactiveFormsModule} from '@angular/forms';
         InfoCardComponent,
         FileDisplayComponent,
         PnDisplayComponent,
-        ViewBoxPipe
+        ViewBoxPipe,
+        HrefConfigPipe,
+        RouterLinkConfigPipe
     ],
     imports: [
         FlexLayoutModule,
         BrowserAnimationsModule,
-        ReactiveFormsModule
+        ReactiveFormsModule,
+        RouterModule
     ],
     exports: [
         FooterComponent,

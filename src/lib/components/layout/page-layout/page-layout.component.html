@@ -1,8 +1,10 @@
 <div fxLayout="column" fxLayoutAlign="start stretch">
-    <a href="https://www.fernuni-hagen.de/ilovepetrinets/"><h1>I <span class="red">❤</span> Petri Nets</h1></a>
+    <a [href]="anchorConfig | hrefConfig : 'https://www.fernuni-hagen.de/ilovepetrinets/'" [routerLink]="anchorConfig | routerLinkConfig">
+        <h1>I <span class="red">❤</span> Petri Nets</h1>
+    </a>
 
     <ng-content></ng-content>
 
-    <hr>
+    <hr *ngIf="hrBeforeFooter">
     <ilpn-footer></ilpn-footer>
 </div>

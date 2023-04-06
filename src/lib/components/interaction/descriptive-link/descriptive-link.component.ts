@@ -18,6 +18,7 @@ export class DescriptiveLinkComponent {
 
     @Input() link: Array<string> | string | undefined;
     @Input() download = false;
+    @Input() router = false;
 
     constructor(@Inject(APP_BASE_HREF) public baseHref: string) {
     }
