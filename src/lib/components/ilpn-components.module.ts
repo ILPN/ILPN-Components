@@ -5,9 +5,12 @@ import {FileUploadComponent} from './interaction/file-upload/file-upload.compone
 import {FlexLayoutModule} from '@angular/flex-layout';
 import {FileDownloadComponent} from './interaction/file-download/file-download.component';
 import {DescriptiveLinkComponent} from './interaction/descriptive-link/descriptive-link.component';
-import { InfoCardComponent } from './interaction/info-card/info-card.component';
+import {InfoCardComponent} from './interaction/info-card/info-card.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import { FileDisplayComponent } from './interaction/file-display/file-display.component';
+import {FileDisplayComponent} from './interaction/file-display/file-display.component';
+import {RouterLinkConfigPipe} from './layout/page-layout/pipes/router-link-config.pipe';
+import {HrefConfigPipe} from './layout/page-layout/pipes/href-config.pipe';
+import {RouterModule} from '@angular/router';
 
 
 @NgModule({
@@ -18,12 +21,15 @@ import { FileDisplayComponent } from './interaction/file-display/file-display.co
         FileDownloadComponent,
         DescriptiveLinkComponent,
         InfoCardComponent,
-        FileDisplayComponent
+        FileDisplayComponent,
+        HrefConfigPipe,
+        RouterLinkConfigPipe
     ],
-	imports: [
-		FlexLayoutModule,
-		BrowserAnimationsModule
-	],
+    imports: [
+        FlexLayoutModule,
+        BrowserAnimationsModule,
+        RouterModule
+    ],
     exports: [
         FooterComponent,
         PageLayoutComponent,
