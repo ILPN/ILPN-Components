@@ -98,7 +98,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
                 }
 
                 result.push(
-                    ...this.equal(t.ingoingArcs.map(a => this.variable(a.sourceId)), outWeight).constraints,
+                    ...this.equal(t.ingoingArcs.map(a => this.variable(this.getPlaceVariableId(0, a.sourceId))), outWeight).constraints,
                 );
             }
         }
@@ -116,7 +116,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
         if (markedSpecPlaces.length === 0 && place.marking > 0) {
             throw new Error(`Initial marking of place ${place.id} does not comply with an unmarked specification net!`);
         }
-        result.push(...this.equal(markedSpecPlaces.map(p => this.variable(p.id!, p.marking)), place.marking).constraints);
+        result.push(...this.equal(markedSpecPlaces.map(p => this.variable(this.getPlaceVariableId(0, p.id!), p.marking)), place.marking).constraints);
 
         return result;
     }
