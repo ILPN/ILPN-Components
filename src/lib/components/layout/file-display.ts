@@ -9,6 +9,11 @@ export const FD_PETRI_NET: FileDisplay = {
     color: 'red'
 };
 
+export const FD_PETRI_NET_SPEC: FileDisplay = {
+    icon: '♥',
+    color: 'black'
+};
+
 export const FD_BPMN: FileDisplay = {
     icon: '♦',
     color: 'red'

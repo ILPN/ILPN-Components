@@ -6,6 +6,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [//]: # (## Unreleased)
 
+## 1.2.0 - 2023-04-11
+### Added
+- Petri net regions / Token trails algorithms implemented
+  - `TokenTrailIlpSolver` contains common implementations of ILP constraints for the Token trail semantics
+  - `TokenTrailValidator` builds upon this solver, to decide the net language inclusion problem
+  - `IncrementalMiner` allows interactive mining of a Petri net in incremental steps 
+    - Instances should be created via the `IncrementalMinerFactoryService`
+    - A single instance can operate on a single set of specifications at the same time
+      - intermediary results are cached
+      - A new set of specifications can be supplied to the miner, clearing the previous cached results
+- `IlpnAlgorithmsModule`
+  - contains the definitions of most services that deal with ILPs
+  - `ILPN_DEBUG_CONFIG` injection token was added, that can configure debugging options of the algorithms contained in the module
+- A `MapArray<K,V>` utility class, representing a `Map<K,Array<V>>` has been added
+- `ExternalRedirectHookGuard` has been added, to allow bypassing Angular router when redirecting to relative URLs that are not handled by an Angular single-page application
+  
+
+### Changed
+- `FileUploadComponent`
+  - file upload dialog now opens on click
+  - cursor changes on hover to indicate, that the component can be clicked
+- `ArcWeightIlpSolver` - source file name changed to kebab-case
+- `glpk.js`
+  - services that use the `glpk.js` solver, now accept configuration objects that configure the message level of the solver
+  - types and interfaces used by this library to create inputs and outputs for the solver are now exported
+- `PnDisplayComponent` rewrite
+  - Petri net related classes now contain no information related to their layout (eg. X and Y coordinates)
+  - A new set of wrapper classes (`SvgPetriNet`, `SvgPlace`, `SvgTransition` ...) has been added to hold this information
+  - The SVG Places can react to user inputs (such as click events) and the display component emits these events
+  - The SVG Places can be filled with a specified color passed via the display component
+  - Markings with less than 10 tokens are now displayed as black dots inside the places
+- `LogToPartialOrderTransformerService` the resulting partial order nets now contain tokens in the places, that correspond to the initial state
+- `RegionIlpSolver`, `RegionSynthesiser` & `Region`
+  - `Region` classes have been renamed to `PetriNetRegion` 
+  - The region solver now accepts multiple nets as inputs
+    - It is no longer necessary to merge multiple net instances into a single net
+  - the `PetriNetRegion` now contains information about the input nets, the markings of these nets that are the region, rises of all labels and an index into the nets, where the initial state can be read
+- `RegionsConfiguration` - `oneBoundRegions` was changed to `noArcWeights`. This change is equivalent for most intents and purposes
+- `PnLayoutingService` - Sugiyama remove cycles method has been made more consistent
+
+### Removed
+- `PnRendererService` used to create SVG Element objects for displaying Petri nets. This functionality is now contained in the new SVG wrapper classes
+- `NetUnionResult` has been removed
+  - The `PetriNet.netUnion()` static method now returns a `PetriNet` instance instead. Place ids of the second argument net, can be prefixed, to distinguish the two nets in the result
+- `PetriNetRegionTransformerService` has been removed
+  - The `applyMarking` method in `PetriNet` and the new `PetriNetRegion` representation can be used to achieve similar results
+
 ## 1.1.0 - 2022-12-16
 ### Added
 - Changelog was added to the project

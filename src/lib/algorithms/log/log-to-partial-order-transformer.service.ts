@@ -15,6 +15,7 @@ import {cleanLog} from './clean-log';
 import {LogSymbol} from './log-symbol';
 
 
+
 export interface LogToPartialOrderTransformerConfiguration {
     cleanLog?: boolean;
     addStartStopEvent?: boolean;
@@ -110,12 +111,13 @@ export class LogToPartialOrderTransformerService {
             last = firstLast[0];
         }
 
-        const preStart = new Place();
+        const preStart = new Place(1);
         const start = new Transition(LogSymbol.START);
         sequenceNet.addPlace(preStart);
         sequenceNet.addTransition(start);
         sequenceNet.addArc(preStart, start);
         sequenceNet.addArc(start, first);
+        first.marking = 0;
 
         const stop = new Transition(LogSymbol.STOP);
         const postStop = new Place();
@@ -147,6 +149,9 @@ export class LogToPartialOrderTransformerService {
         if (startTransition === undefined || (startTransition as Transition).label !== LogSymbol.START) {
             throw new Error('illegal state');
         }
+        (startTransition as Transition).outgoingArcs.forEach(a => {
+            (a.destination as Place).marking = 1;
+        })
         partialOrderNet.removeTransition(startTransition);
 
         let stopTransition: Transition | undefined = undefined;

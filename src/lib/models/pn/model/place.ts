@@ -8,8 +8,8 @@ export class Place extends Node {
     private _foldingStatus?: FoldingStatus;
     private _foldedPair?: Place;
 
-    constructor(marking: number = 0, x: number = 0, y: number = 0, id?: string) {
-        super(x, y, id);
+    constructor(marking: number = 0, id?: string) {
+        super(id);
         this._marking = marking;
     }
 
@@ -35,13 +35,5 @@ export class Place extends Node {
 
     set foldedPair(value: Place | undefined) {
         this._foldedPair = value;
-    }
-
-    protected override svgX(): string {
-        return 'cx';
-    }
-
-    protected override svgY(): string {
-        return 'cy';
     }
 }

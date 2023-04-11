@@ -11,10 +11,11 @@ import {Relabeler} from '../../../../utility/relabeler';
 import {
     TraceMultisetEquivalentStateTraverser
 } from '../../../../utility/multiset/trace-multiset-equivalent-state-traverser';
+import {IlpnAlgorithmsModule} from '../../../ilpn-algorithms.module';
 
 
 @Injectable({
-    providedIn: 'root'
+    providedIn: IlpnAlgorithmsModule
 })
 export class AbelOracleService {
 
@@ -34,7 +35,7 @@ export class AbelOracleService {
     private computePartialOrderFromEquivalentTraces(traces: MultisetEquivalentTraces): Observable<PetriNet> {
         const conversionResult = this.convertTracesToPetriNets(traces.traces);
 
-        return this._regionSynthesisService.synthesise(conversionResult.nets, {obtainPartialOrders: true, oneBoundRegions: true}).pipe(
+        return this._regionSynthesisService.synthesise(conversionResult.nets, {obtainPartialOrders: true, noArcWeights: true}).pipe(
             map(r => {
                 const net = this.relabelNet(r.result, conversionResult.labelMapping);
                 net.frequency = traces.count;

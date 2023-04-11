@@ -1,6 +1,7 @@
 <div fxLayout="column" fxLayoutAlign="start center" class="bottom-margin">
     <span [class.hidden]="!showText && !isHovered">{{descriptionText}}</span>
-    <ilpn-file-display [hover]="isHovered"
+    <ilpn-file-display class="cursor"
+                       [hover]="isHovered"
                        [fileDisplay]="fileDisplay"
                        [squareContent]="squareContent"
                        [bold]="bold"
@@ -10,6 +11,12 @@
                        (dragenter)="hoverStart($event)"
                        (dragleave)="hoverEnd($event)"
                        (dragend)="hoverEnd($event)"
-                       (drop)="fileDrop($event)">
+                       (drop)="fileDrop($event)"
+                       (mouseenter)="hoverStart($event)"
+                       (mouseover)="hoverStart($event)"
+                       (mouseout)="hoverEnd($event)"
+                       (mouseleave)="hoverEnd($event)"
+                       (click)="fileInput.click()">
     </ilpn-file-display>
+    <input #fileInput type="file" class="hidden-input" multiple (change)="fileSelected($event)">
 </div>

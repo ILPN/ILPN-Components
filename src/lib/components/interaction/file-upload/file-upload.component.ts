@@ -1,8 +1,9 @@
-import {Component, EventEmitter, Input, OnDestroy, Output} from '@angular/core';
+import {Component, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
 import {FileReaderService} from '../../../utility/file-reader.service';
-import {take} from 'rxjs';
+import {Subscription, take} from 'rxjs';
 import {DropFile} from '../../../utility/drop-file';
 import {FileDisplay} from '../../layout/file-display';
+import {FormControl} from '@angular/forms';
 
 @Component({
     selector: 'ilpn-file-upload',
@@ -39,14 +40,22 @@ export class FileUploadComponent implements OnDestroy {
         this.isHovered = true;
     }
 
-    hoverEnd(e: MouseEvent, drop = false) {
+    hoverEnd(e: MouseEvent) {
         this.prevent(e);
         this.isHovered = false;
     }
 
     fileDrop(e: DragEvent) {
-        this.hoverEnd(e, true);
-        this._fileReader.processFileUpload(e.dataTransfer?.files).pipe(take(1)).subscribe(result => {
+        this.hoverEnd(e);
+        this.processFiles(e.dataTransfer?.files);
+    }
+
+    fileSelected(e: Event) {
+        this.processFiles((e.target as HTMLInputElement)?.files);
+    }
+
+    private processFiles(files: FileList | undefined | null) {
+        this._fileReader.processFileUpload(files).pipe(take(1)).subscribe(result => {
             if (result.length > 0) {
                 this.fileContentEmitter.emit(result);
             }

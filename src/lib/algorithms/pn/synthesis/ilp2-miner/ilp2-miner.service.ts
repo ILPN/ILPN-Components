@@ -10,6 +10,7 @@ import {Place} from '../../../../models/pn/model/place';
 import {VariableType} from '../../../../utility/glpk/model/variable-type';
 import {DuplicatePlaceRemoverService} from '../../transformation/duplicate-place-remover.service';
 import {LogSymbol} from '../../../log/log-symbol';
+import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 
 
 @Injectable({
@@ -21,9 +22,9 @@ export class Ilp2MinerService extends IlpSolverService {
         super();
     }
 
-    public mine(pos: Array<PartialOrder> | PetriNet): Observable<NetAndReport> {
+    public mine(pos: Array<PartialOrder> | PetriNet, config: SolverConfiguration = {}): Observable<NetAndReport> {
         const solver = new Ilp2MinerIlpSolver(this._solver$.asObservable());
-        return solver.findSolutions(pos).pipe(map(solutions => {
+        return solver.findSolutions(pos, config).pipe(map(solutions => {
             let net = new PetriNet();
             const transitionMap = new Map<string, Transition>();
 

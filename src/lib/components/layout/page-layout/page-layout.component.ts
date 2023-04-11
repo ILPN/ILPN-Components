@@ -1,4 +1,5 @@
-import {Component} from '@angular/core';
+import {Component, Input} from '@angular/core';
+import {AnchorType, HeadingAnchorConfig} from './heading-anchor-config';
 
 @Component({
     selector: 'ilpn-page-layout',
@@ -7,7 +8,12 @@ import {Component} from '@angular/core';
 })
 export class PageLayoutComponent {
 
-    constructor() {
-    }
+    @Input()
+    public anchorConfig: HeadingAnchorConfig = {
+        type: AnchorType.HREF
+    };
+
+    @Input()
+    public hrBeforeFooter = true;
 
 }

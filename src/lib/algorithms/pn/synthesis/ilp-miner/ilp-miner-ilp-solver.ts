@@ -1,4 +1,4 @@
-import {ArcWeightIlpSolver} from '../../../../utility/glpk/ArcWeightIlpSolver';
+import {ArcWeightIlpSolver} from '../../../../utility/glpk/arc-weight-ilp-solver';
 import {concatMap, from, Observable, toArray} from 'rxjs';
 import {GLPK, LP} from 'glpk.js';
 import {Trace} from '../../../../models/log/model/trace';
@@ -12,6 +12,7 @@ import {Goal} from '../../../../models/glpk/glpk-constants';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
 import {VariableName} from '../../../../utility/glpk/model/variable-name';
 import {DirectlyFollowsExtractor} from '../../../../utility/directly-follows-extractor';
+import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 
 
 export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
@@ -20,7 +21,7 @@ export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
         super(solver$);
     }
 
-    public findSolutions(log: Array<Trace>): Observable<Array<ProblemSolution>> {
+    public findSolutions(log: Array<Trace>, config: SolverConfiguration = {}): Observable<Array<ProblemSolution>> {
         const baseIlpConstraints: Array<SubjectTo> = [];
         const directlyFollowsExtractor = new DirectlyFollowsExtractor();
 
@@ -49,7 +50,7 @@ export class IlpMinerIlpSolver extends ArcWeightIlpSolver {
 
         return from(problems).pipe(
             concatMap(problem => {
-                return this.solveILP(this.populateIlp(problem.baseIlp, problem.baseIlpConstraints, problem.pair));
+                return this.solveILP(this.populateIlp(problem.baseIlp, problem.baseIlpConstraints, problem.pair), config.messageLevel);
             }),
             toArray()
         );

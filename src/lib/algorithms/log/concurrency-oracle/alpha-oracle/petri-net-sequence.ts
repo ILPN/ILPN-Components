@@ -12,7 +12,7 @@ export class PetriNetSequence {
 
     constructor() {
         this._net = new PetriNet();
-        this._lastPlace = new Place();
+        this._lastPlace = new Place(1);
         this._net.addPlace(this._lastPlace);
         this._trace = new Trace();
     }
