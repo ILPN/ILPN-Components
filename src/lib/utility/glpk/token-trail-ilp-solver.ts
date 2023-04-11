@@ -73,6 +73,12 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         // non-zero solutions
         result.push(this.greaterEqualThan(placeVarIds.map(vid => this.variable(vid)), 1));
 
+        // markings have an upper-bound k, so that we can express logical conditions with ILP
+        // also prevents an infinite loop in the glpk preprocessor; see https://lists.gnu.org/archive/html/help-glpk/2010-12/msg00055.html
+        for (const vid of placeVarIds) {
+            result.push(this.lessEqualThan(this.variable(vid), IlpSolver.k));
+        }
+
         // find a set of places that determines the initial marking (if any)
         let ni: number;
         for (ni = 0; ni < nets.length; ni++) {
