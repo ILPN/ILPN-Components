@@ -21,16 +21,11 @@ describe('TokenTrailValidatorService', () => {
     let netFig15b: PetriNet;
     let arcWeightsFig15b: PetriNet;
 
-    let defaultTimeoutInterval: number;
-
     beforeEach(() => {
         TestBed.configureTestingModule({});
         service = TestBed.inject(TokenTrailValidatorService);
         parser = TestBed.inject(PetriNetParserService);
         expect(parser).toBeTruthy();
-
-        defaultTimeoutInterval = jasmine.DEFAULT_TIMEOUT_INTERVAL;
-        // jasmine.DEFAULT_TIMEOUT_INTERVAL = 10000;
 
         // Petri net models and specifications are taken from the token trails paper
         netFig1 = parser.parse(`.type pn
@@ -449,10 +444,6 @@ d c8 1
 c6 x2 1
 x2 c2 1`)!;
         expect(arcWeightsFig15b).toBeTruthy();
-    });
-
-    afterEach(() => {
-        jasmine.DEFAULT_TIMEOUT_INTERVAL = defaultTimeoutInterval;
     });
 
     it('should be created', () => {
