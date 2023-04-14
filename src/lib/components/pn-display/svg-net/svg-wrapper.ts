@@ -1,8 +1,8 @@
-import {Identifiable} from '../../../../../utility/get-by-id';
-import {Point} from '../../../../../utility/svg/point';
-import {MouseListener} from '../../../../../models/pn/model/mouse-listener';
+import {Identifiable} from '../../../utility/get-by-id';
+import {Point} from '../../../utility/svg/point';
+import {MouseListener} from '../../../utility/svg/mouse-listener';
 import {BehaviorSubject, Observable, Subject, Subscription} from 'rxjs';
-import {TEXT_STYLE} from '../../constants/text-style';
+import {TEXT_STYLE} from '../internals/constants/text-style';
 
 
 export abstract class SvgWrapper extends Identifiable implements Point, MouseListener {

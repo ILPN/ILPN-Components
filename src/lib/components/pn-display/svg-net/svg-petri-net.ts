@@ -1,14 +1,14 @@
-import {PetriNet} from '../../../../../models/pn/model/petri-net';
+import {PetriNet} from '../../../models/pn/model/petri-net';
 import {SvgPlace} from './svg-place';
 import {SvgTransition} from './svg-transition';
 import {SvgArc} from './svg-arc';
-import {Place} from '../../../../../models/pn/model/place';
-import {Transition} from '../../../../../models/pn/model/transition';
-import {Arc} from '../../../../../models/pn/model/arc';
-import {Node} from '../../../../../models/pn/model/node';
+import {Place} from '../../../models/pn/model/place';
+import {Transition} from '../../../models/pn/model/transition';
+import {Arc} from '../../../models/pn/model/arc';
+import {Node} from '../../../models/pn/model/node';
 import {SvgWrapper} from './svg-wrapper';
 import {merge, Observable, Subject} from 'rxjs';
-import {Marking} from '../../../../../models/pn/model/marking';
+import {Marking} from '../../../models/pn/model/marking';
 
 
 export class SvgPetriNet {

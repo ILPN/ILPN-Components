@@ -1,8 +1,8 @@
 import {SvgWrapper} from './svg-wrapper';
-import {Transition} from '../../../../../models/pn/model/transition';
-import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE, TransitionStyle} from '../../constants/transition-style';
+import {Transition} from '../../../models/pn/model/transition';
+import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE, TransitionStyle} from '../internals/constants/transition-style';
 import {Subscription} from 'rxjs';
-import {Point} from '../../../../../utility/svg/point';
+import {Point} from '../../../utility/svg/point';
 
 
 export class SvgTransition extends SvgWrapper {

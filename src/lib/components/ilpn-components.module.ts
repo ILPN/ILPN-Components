@@ -8,12 +8,11 @@ import {DescriptiveLinkComponent} from './interaction/descriptive-link/descripti
 import {InfoCardComponent} from './interaction/info-card/info-card.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {FileDisplayComponent} from './interaction/file-display/file-display.component';
-import {PnDisplayComponent} from './pn-display/pn-display.component';
-import {ViewBoxPipe} from './pn-display/internals/view-box.pipe';
 import {ReactiveFormsModule} from '@angular/forms';
 import {RouterLinkConfigPipe} from './layout/page-layout/pipes/router-link-config.pipe';
 import {HrefConfigPipe} from './layout/page-layout/pipes/href-config.pipe';
 import {RouterModule} from '@angular/router';
+import {PnDisplayModule} from "./pn-display/pn-display.module";
 
 
 @NgModule({
@@ -25,8 +24,6 @@ import {RouterModule} from '@angular/router';
         DescriptiveLinkComponent,
         InfoCardComponent,
         FileDisplayComponent,
-        PnDisplayComponent,
-        ViewBoxPipe,
         HrefConfigPipe,
         RouterLinkConfigPipe
     ],
@@ -34,7 +31,8 @@ import {RouterModule} from '@angular/router';
         FlexLayoutModule,
         BrowserAnimationsModule,
         ReactiveFormsModule,
-        RouterModule
+        RouterModule,
+        PnDisplayModule,
     ],
     exports: [
         FooterComponent,
@@ -42,7 +40,6 @@ import {RouterModule} from '@angular/router';
         FileUploadComponent,
         FileDownloadComponent,
         DescriptiveLinkComponent,
-        PnDisplayComponent,
     ]
 })
 export class IlpnComponentsModule {

@@ -1,13 +1,13 @@
 import {SvgWrapper} from './svg-wrapper';
 import {DragPoint} from './drag-point';
-import {computeDeltas, Point} from '../../../../../utility/svg/point';
-import {PLACE_STYLE} from '../../constants/place-style';
+import {computeDeltas, Point} from '../../../utility/svg/point';
+import {PLACE_STYLE} from '../internals/constants/place-style';
 import {SvgPlace} from './svg-place';
 import {SvgTransition} from './svg-transition';
-import {Arc} from '../../../../../models/pn/model/arc';
-import {ARC_END_STYLE, ARC_STYLE} from '../../constants/arc-style';
+import {Arc} from '../../../models/pn/model/arc';
+import {ARC_END_STYLE, ARC_STYLE} from '../internals/constants/arc-style';
 import {Subject, Subscription} from 'rxjs';
-import {TransitionStyle} from '../../constants/transition-style';
+import {TransitionStyle} from '../internals/constants/transition-style';
 
 
 interface NewLine {

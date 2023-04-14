@@ -1,27 +1,33 @@
 import {Injectable} from '@angular/core';
-import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE} from '../constants/transition-style';
-import {PLACE_STYLE} from '../constants/place-style';
-import {Node} from '../../../../models/pn/model/node';
-import {PetriNet} from '../../../../models/pn/model/petri-net';
-import {Point} from '../../../../utility/svg/point';
-import {Arc} from '../../../../models/pn/model/arc';
-import {DragPoint} from '../model/svg-net/drag-point';
-import {SvgPetriNet} from '../model/svg-net/svg-petri-net';
-import {SvgWrapper} from '../model/svg-net/svg-wrapper';
-import {SvgPlace} from '../model/svg-net/svg-place';
-import {SvgTransition} from '../model/svg-net/svg-transition';
+import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE} from '../internals/constants/transition-style';
+import {PLACE_STYLE} from '../internals/constants/place-style';
+import {Node} from '../../../models/pn/model/node';
+import {PetriNet} from '../../../models/pn/model/petri-net';
+import {Point} from '../../../utility/svg/point';
+import {Arc} from '../../../models/pn/model/arc';
+import {DragPoint} from '../svg-net/drag-point';
+import {SvgPetriNet} from '../svg-net/svg-petri-net';
+import {SvgWrapper} from '../svg-net/svg-wrapper';
+import {SvgPlace} from '../svg-net/svg-place';
+import {SvgTransition} from '../svg-net/svg-transition';
+import {PetriNetLayoutService} from "./petri-net-layout.service";
+import {Observable, of} from "rxjs";
 
 
+/**
+ * Sugiyama algorithm implemented loosely based on: https://blog.disy.net/sugiyama-method/
+ *
+ * Does not implement crossings minimisation.
+ */
 @Injectable({
     providedIn: 'root'
 })
-export class PnLayoutingService {
+export class SugiyamaLayoutService extends PetriNetLayoutService {
 
     private readonly LAYER_OFFSET = 50;
     private readonly NODE_OFFSET = 40;
 
-    public layout(net: SvgPetriNet): Point {
-        // Sugiyama algorithm implemented loosely based on: https://blog.disy.net/sugiyama-method/
+    public layout(net: SvgPetriNet): Observable<Point> {
         const acyclicArcs = this.removeCycles(net.getNet());
         const acyclicNet = PetriNet.createFromArcSubset(net.getNet(), acyclicArcs);
         const layeredNodes = this.assignLayers(acyclicNet);
@@ -89,7 +95,7 @@ export class PnLayoutingService {
             }
         }
 
-        return {x: maxX, y: maxY};
+        return of({x: maxX, y: maxY});
     }
 
     private removeCycles(net: PetriNet): Array<Arc> {

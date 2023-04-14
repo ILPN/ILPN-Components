@@ -1,5 +1,5 @@
 import {SvgWrapper} from './svg-wrapper';
-import {DRAG_POINT_STYLE} from '../../constants/drag-point-style';
+import {DRAG_POINT_STYLE} from '../internals/constants/drag-point-style';
 
 
 export class DragPoint extends SvgWrapper {

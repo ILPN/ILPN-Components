@@ -1,8 +1,8 @@
 import {SvgWrapper} from './svg-wrapper';
-import {Place} from '../../../../../models/pn/model/place';
-import {PLACE_STYLE} from '../../constants/place-style';
+import {Place} from '../../../models/pn/model/place';
+import {PLACE_STYLE} from '../internals/constants/place-style';
 import {Observable, Subject, Subscription} from 'rxjs';
-import {TOKEN_STYLE} from '../../constants/token-style';
+import {TOKEN_STYLE} from '../internals/constants/token-style';
 
 
 export class SvgPlace extends SvgWrapper {
