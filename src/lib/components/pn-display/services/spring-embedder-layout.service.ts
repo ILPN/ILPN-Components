@@ -1,7 +1,7 @@
 import {Injectable} from "@angular/core";
 import {PetriNetLayoutService} from "./petri-net-layout.service";
 import {SvgPetriNet} from "../svg-net/svg-petri-net";
-import {interval, map, Observable, take, tap} from "rxjs";
+import {interval, map, merge, Observable, of, take, tap} from "rxjs";
 import {addPoints, computeDeltas, computeDistance, Point} from "../../../utility/svg/point";
 import {SvgWrapper} from "../svg-net/svg-wrapper";
 import {SvgTransition} from "../svg-net/svg-transition";
@@ -37,15 +37,18 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
         this.placeNodesRandomly(nodes);
 
-        return interval(500).pipe(
-            take(SpringEmbedderLayoutService.MAX_ITERATIONS),
-            tap(() => {
-                this.computeAndApplyForces(nodes, indices, net);
-            }),
-            map(() => {
-                return this.computeBoundingBox(nodes);
-            })
-        )
+        return merge(
+            of(this.computeBoundingBox(nodes)),
+            interval(500).pipe(
+                take(SpringEmbedderLayoutService.MAX_ITERATIONS),
+                tap(() => {
+                    this.computeAndApplyForces(nodes, indices, net);
+                }),
+                map(() => {
+                    return this.computeBoundingBox(nodes);
+                })
+            )
+        );
     }
 
     private placeNodesRandomly(nodes: Array<SvgTransition | SvgPlace>) {
@@ -125,7 +128,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
         if (cache[u.getId()] === undefined) {
             return undefined;
         }
-        return  cache[u.getId()]![v.getId()];
+        return cache[u.getId()]![v.getId()];
     }
 
     private arcForce(distance: number, deltas: Point): Point {
