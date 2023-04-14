@@ -20,11 +20,12 @@ type Cache<T> = { [k: string]: { [k: string]: T | undefined } | undefined };
 })
 export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
-    private static readonly SPRING_LENGTH = 150;
-    private static readonly SPRING_STIFFNESS = 0.05;
-    private static readonly NODE_REPULSIVENESS = 20000;
+    private static readonly SPRING_LENGTH = 80;
+    private static readonly SPRING_STIFFNESS = 0.1;
+    private static readonly NODE_REPULSIVENESS = 25000;
+    private static readonly IO_SIDE_ATTRACTION = 15;
 
-    private static readonly MAX_ITERATIONS = 50;
+    private static readonly MAX_ITERATIONS = 300;
 
     private static readonly INITIAL_SPREAD_DISTANCE = 500;
 
@@ -39,7 +40,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
         return merge(
             of(this.computeBoundingBox(nodes)),
-            interval(250).pipe(
+            interval(50).pipe(
                 take(SpringEmbedderLayoutService.MAX_ITERATIONS),
                 tap(() => {
                     this.computeAndApplyForces(nodes, indices, net);
@@ -69,11 +70,12 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
         const forces: Array<Point> = nodes.map((n, i) => ({x: 0, y: 0}));
 
-        // cache distances and deltas of all nodes
-        // compute forces between all nodes
         for (let i = 0; i < nodes.length; i++) {
+            const u = nodes[i];
+
+            // cache distances and deltas of all nodes
+            // compute forces between all nodes
             for (let j = i + 1; j < nodes.length; j++) {
-                const u = nodes[i];
                 const v = nodes[j];
                 const deltas = computeDeltas(u, v);
                 this.cache(deltaCache, deltas, u, v);
@@ -83,6 +85,17 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
                 const nodeForce = this.nodeForce(dist, deltas);
                 addPoints(forces[i], nodeForce, -1);
                 addPoints(forces[j], nodeForce);
+            }
+
+            // compute forces affecting individual nodes
+            const netNode =  net.getInverseMappedNode(u)!;
+            if (netNode.ingoingArcWeights.size === 0) {
+                // no ingoing arcs => pulled to the left
+                addPoints(forces[i], {x: -SpringEmbedderLayoutService.IO_SIDE_ATTRACTION, y: 0});
+            }
+            if (netNode.outgoingArcWeights.size === 0) {
+                // no outgoing arcs => pulled to the right
+                addPoints(forces[i], {x: SpringEmbedderLayoutService.IO_SIDE_ATTRACTION, y: 0});
             }
         }
 
