@@ -20,11 +20,11 @@ type Cache<T> = { [k: string]: { [k: string]: T | undefined } | undefined };
 })
 export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
-    private static readonly SPRING_LENGTH = 50;
-    private static readonly SPRING_STIFFNESS = 0.5;
-    private static readonly NODE_REPULSIVENESS = 0.5;
+    private static readonly SPRING_LENGTH = 150;
+    private static readonly SPRING_STIFFNESS = 0.05;
+    private static readonly NODE_REPULSIVENESS = 20000;
 
-    private static readonly MAX_ITERATIONS = 20;
+    private static readonly MAX_ITERATIONS = 50;
 
     private static readonly INITIAL_SPREAD_DISTANCE = 500;
 
@@ -39,7 +39,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
         return merge(
             of(this.computeBoundingBox(nodes)),
-            interval(500).pipe(
+            interval(250).pipe(
                 take(SpringEmbedderLayoutService.MAX_ITERATIONS),
                 tap(() => {
                     this.computeAndApplyForces(nodes, indices, net);
@@ -81,8 +81,8 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
                 this.cache(distanceCache, dist, u, v);
 
                 const nodeForce = this.nodeForce(dist, deltas);
-                addPoints(forces[i], nodeForce);
-                addPoints(forces[j], nodeForce, -1);
+                addPoints(forces[i], nodeForce, -1);
+                addPoints(forces[j], nodeForce);
             }
         }
 
