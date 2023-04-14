@@ -105,6 +105,10 @@ export class SvgPetriNet {
         return this._arcs.get(arc.getId())!;
     }
 
+    public getMappedArcs(): Array<SvgArc> {
+        return Array.from(this._arcs.values());
+    }
+
     public getInverseMappedPlace(svgPlace: SvgPlace | SvgWrapper): Place | undefined {
         return this._net.getPlace(svgPlace.getId());
     }
@@ -115,6 +119,10 @@ export class SvgPetriNet {
 
     public getInverseMappedNode(wrapper: SvgPlace | SvgTransition | SvgWrapper): Place | Transition | undefined {
         return this.getInverseMappedPlace(wrapper) ?? this.getInverseMappedTransition(wrapper);
+    }
+
+    public getMappedNodes(): Array<SvgTransition | SvgPlace> {
+        return [...this._transition.values(), ...this._places.values()];
     }
 
     public getPlaceClicked$(): Observable<string> {

@@ -9,12 +9,13 @@ import {
 } from '@angular/core';
 import {PetriNet} from '../../models/pn/model/petri-net';
 import {Observable, Subject, Subscription} from 'rxjs';
-import {Point} from '../../utility/svg/point';
+import {addPoints, computeDeltas, Point} from '../../utility/svg/point';
 import {OriginAndZoom} from './internals/model/origin-and-zoom';
-import {zoomFactor} from './internals/zoom-factor';
+import {inverseZoomFactor, zoomFactor} from './internals/zoom-factor';
 import {SvgPetriNet} from './svg-net/svg-petri-net';
 import {Marking} from '../../models/pn/model/marking';
 import {PetriNetLayoutService} from "./services/petri-net-layout.service";
+import {BoundingBox} from "../../utility/svg/bounding-box";
 
 
 @Component({
@@ -95,8 +96,8 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                 if (this._netLayoutSub !== undefined) {
                     this._netLayoutSub.unsubscribe();
                 }
-                this._netLayoutSub = this._layoutService.layout(this._svgNet).subscribe(dims => {
-                    this.centerNet(dims);
+                this._netLayoutSub = this._layoutService.layout(this._svgNet).subscribe(bb => {
+                    this.centerNet(bb);
                 });
 
                 this._svgNet.showArcWeights();
@@ -237,12 +238,31 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         this.originAndZoom = this.originAndZoom.update({width: newWidth, height: newHeight});
     }
 
-    private centerNet(netDimensions: Point) {
+    private centerNet(boundingBox: BoundingBox) {
         const canvasDimensions = this.drawingArea?.nativeElement.getBoundingClientRect() as DOMRect;
+        const widthHeight = computeDeltas(boundingBox.tl, boundingBox.br);
+
+        const netWidth = widthHeight.x + 100;
+        const netHeight = widthHeight.y + 100;
+        let canvasWidth = canvasDimensions.width;
+        let canvasHeight = canvasDimensions.height;
+        const netTopLeft = boundingBox.tl;
+        addPoints(netTopLeft, {x: -50, y: -50});
+
+
+        let zoom = 0;
+        if (netWidth > canvasWidth || netHeight > canvasHeight) {
+            const factor = Math.max(netWidth / canvasWidth, netHeight / canvasHeight);
+            zoom = inverseZoomFactor(factor);
+
+            canvasWidth *= factor;
+            canvasHeight *= factor;
+        }
+
         this.originAndZoom = this.originAndZoom.update({
-            x: -((canvasDimensions.width - netDimensions.x) / 2),
-            y: -((canvasDimensions.height - netDimensions.y) / 2),
-            zoom: 0
+            x: netTopLeft.x - ((canvasWidth - netWidth) / 2),
+            y: netTopLeft.y - ((canvasHeight - netHeight) / 2),
+            zoom
         });
     }
 }

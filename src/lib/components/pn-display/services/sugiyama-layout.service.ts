@@ -3,7 +3,6 @@ import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE} from '../internals/constants/
 import {PLACE_STYLE} from '../internals/constants/place-style';
 import {Node} from '../../../models/pn/model/node';
 import {PetriNet} from '../../../models/pn/model/petri-net';
-import {Point} from '../../../utility/svg/point';
 import {Arc} from '../../../models/pn/model/arc';
 import {DragPoint} from '../svg-net/drag-point';
 import {SvgPetriNet} from '../svg-net/svg-petri-net';
@@ -12,6 +11,7 @@ import {SvgPlace} from '../svg-net/svg-place';
 import {SvgTransition} from '../svg-net/svg-transition';
 import {PetriNetLayoutService} from "./petri-net-layout.service";
 import {Observable, of} from "rxjs";
+import {BoundingBox} from "../../../utility/svg/bounding-box";
 
 
 /**
@@ -27,7 +27,7 @@ export class SugiyamaLayoutService extends PetriNetLayoutService {
     private readonly LAYER_OFFSET = 50;
     private readonly NODE_OFFSET = 40;
 
-    public layout(net: SvgPetriNet): Observable<Point> {
+    public layout(net: SvgPetriNet): Observable<BoundingBox> {
         const acyclicArcs = this.removeCycles(net.getNet());
         const acyclicNet = PetriNet.createFromArcSubset(net.getNet(), acyclicArcs);
         const layeredNodes = this.assignLayers(acyclicNet);
@@ -95,7 +95,7 @@ export class SugiyamaLayoutService extends PetriNetLayoutService {
             }
         }
 
-        return of({x: maxX, y: maxY});
+        return of({tl:{x:0, y:0}, br: {x: maxX, y: maxY}});
     }
 
     private removeCycles(net: PetriNet): Array<Arc> {

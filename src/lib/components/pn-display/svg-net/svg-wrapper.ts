@@ -59,6 +59,13 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         return 'y';
     }
 
+    public cloneCenter(): Point {
+        return {
+            x: this.x,
+            y: this.y
+        }
+    }
+
     public destroy() {
         this._subs.forEach(s => s.unsubscribe());
     }
