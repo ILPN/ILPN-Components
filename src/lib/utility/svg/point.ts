@@ -3,7 +3,6 @@ export interface Point {
     y: number;
 }
 
-
 export function computeDeltas(start: Point, end: Point): Point {
     return {
         x: end.x - start.x,
@@ -31,4 +30,15 @@ export function computeDistance(startOrDeltas: Point, end?: Point): number {
 export function addPoints(a: Point, b: Point, coef = 1) {
     a.x += coef * b.x;
     a.y += coef * b.y;
+}
+
+const EPSILON = 1/1024;
+
+/**
+ * @returns `true` if two vectors (determined by the deltas) are parallel with some tolerance, `false` otherwise.
+ * The result is direction sensitive i.e. two vectors that point in opposite directions return `false`.
+ */
+export function areVectorsParallel(deltas1: Point, deltas2: Point): boolean {
+    // from https://stackoverflow.com/a/7572668/15893674
+    return (deltas1.x * deltas2.x + deltas1.y * deltas2.y)/(computeDistance(deltas1) * computeDistance(deltas2)) > 1 - EPSILON;
 }

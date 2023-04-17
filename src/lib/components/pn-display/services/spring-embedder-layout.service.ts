@@ -24,6 +24,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
     private static readonly SPRING_STIFFNESS = 0.1;
     private static readonly NODE_REPULSIVENESS = 25000;
     private static readonly IO_SIDE_ATTRACTION = 15;
+    private static readonly ARC_ROTATION_FORCE = 1;
 
     private static readonly MAX_ITERATIONS = 3000;
 
@@ -88,7 +89,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
             }
 
             // compute forces affecting individual nodes
-            const netNode =  net.getInverseMappedNode(u)!;
+            const netNode = net.getInverseMappedNode(u)!;
             if (netNode.ingoingArcWeights.size === 0) {
                 // no ingoing arcs => pulled to the left
                 addPoints(forces[i], {x: -SpringEmbedderLayoutService.IO_SIDE_ATTRACTION, y: 0});
@@ -114,9 +115,14 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
             }
             const deltas = this.read(deltaCache, s, d)!;
 
-            const arcForce = this.arcForce(dist, deltas);
-            addPoints(forces[indices.get(s.getId())!], arcForce);
-            addPoints(forces[indices.get(d.getId())!], arcForce, -1);
+            const arcAttractionForce = this.arcAttractionForce(dist, deltas);
+            const arcRotationForce = this.arcRotationForce(deltas);
+
+            addPoints(forces[indices.get(s.getId())!], arcAttractionForce);
+            addPoints(forces[indices.get(s.getId())!], arcRotationForce, -1);
+
+            addPoints(forces[indices.get(d.getId())!], arcAttractionForce, -1);
+            addPoints(forces[indices.get(d.getId())!], arcRotationForce);
         }
 
         // apply forces
@@ -144,12 +150,55 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
         return cache[u.getId()]![v.getId()];
     }
 
-    private arcForce(distance: number, deltas: Point): Point {
+    /**
+     * Computes the attraction/repulsion force between two nodes connected by an arc,
+     * caused by the arcs "springiness" (the arc is a spring and has a preferred length).
+     * The force is always tangential to the arc.
+     */
+    private arcAttractionForce(distance: number, deltas: Point): Point {
         const coef = SpringEmbedderLayoutService.SPRING_STIFFNESS * (distance - SpringEmbedderLayoutService.SPRING_LENGTH) / distance;
         return {
             x: deltas.x * coef,
             y: deltas.y * coef,
         };
+    }
+
+    /**
+     * Computes the rotational force on the two endpoints of an arc.
+     * The arc wants to be oriented at an angle, that is a multiple of 45° (pi/4)
+     */
+    private arcRotationForce(deltas: Point): Point {
+        let angle = this.vectorAngle(deltas);
+
+        // don't apply any force, if the arc is oriented correctly?
+        angle += 2 * Math.PI;
+        angle /= (Math.PI / 8);
+        angle = Math.floor(angle);
+        angle = (angle + 17) % 16;
+        // There are 16 different "triangular" regions of the plane where we have to apply different forces
+        // the `angle` is a number 0-15, determining in which of these regions the destination of the arc lies
+        // regions 0 and 1 must force the points towards the positive X axis (in opposite directions); regions 2,3 to the x = y line etc.
+
+        const even = angle % 2 === 0;
+        let planeOctant = angle;
+        if (even) {
+            planeOctant += 1;
+        }
+        planeOctant = Math.floor(planeOctant / 2);
+
+        const planeOctantAngle = planeOctant / 4 * Math.PI;
+
+        let destForce = {
+            x: Math.sin(planeOctantAngle) * SpringEmbedderLayoutService.ARC_ROTATION_FORCE,
+            y: -Math.cos(planeOctantAngle) * SpringEmbedderLayoutService.ARC_ROTATION_FORCE,
+        };
+
+        if (even) {
+            destForce.x *= -1;
+            destForce.y *= -1;
+        }
+
+        return destForce;
     }
 
     private nodeForce(distance: number, deltas: Point): Point {
@@ -158,6 +207,10 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
             x: deltas.x * coef,
             y: deltas.y * coef,
         }
+    }
+
+    private vectorAngle(deltas: Point): number {
+        return Math.atan2(deltas.y, deltas.x);
     }
 
     getMouseMovedReaction(wrapper: SvgWrapper): (e: MouseEvent) => void {
