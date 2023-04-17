@@ -88,7 +88,8 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                     return;
                 }
 
-                this._svgNet = new SvgPetriNet(this._net, this._mouseMoved$, this._mouseUp$);
+                this._svgNet = new SvgPetriNet(this._net);
+                this._svgNet.bindEvents(this._mouseMoved$, this._mouseUp$, (svg) => this._layoutService.getMouseMovedReaction(svg));
                 this._placeClickSub = this._svgNet.getPlaceClicked$().subscribe(pid => {
                     this.placeClicked.next(pid);
                 });

@@ -18,19 +18,17 @@ export class SvgPetriNet {
     private readonly _transition: Map<string, SvgTransition>;
     private readonly _arcs: Map<string, SvgArc>;
 
-    constructor(net: PetriNet, mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>) {
+    constructor(net: PetriNet) {
         this._net = net;
         this._places = new Map<string, SvgPlace>();
         for (const p of net.getPlaces()) {
             const svgPlace = new SvgPlace(p);
             this._places.set(p.getId(), svgPlace);
-            svgPlace.bindEvents(mouseMoved$, mouseUp$);
         }
         this._transition = new Map<string, SvgTransition>();
         for (const t of net.getTransitions()) {
             const svgTransition = new SvgTransition(t);
             this._transition.set(t.getId(), svgTransition);
-            svgTransition.bindEvents(mouseMoved$, mouseUp$);
         }
         this._arcs = new Map<string, SvgArc>();
         for (const a of net.getArcs()) {
@@ -47,7 +45,6 @@ export class SvgPetriNet {
                 svgArc = new SvgArc(s, d, a);
                 this._arcs.set(a.getId(), svgArc);
             }
-            svgArc.bindEvents(mouseMoved$, mouseUp$);
         }
     }
 
@@ -60,6 +57,18 @@ export class SvgPetriNet {
         }
         for (const a of this._arcs.values()) {
             a.destroy();
+        }
+    }
+
+    public bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>, mouseMovedReactionFactory: (svg: SvgWrapper) => (e: MouseEvent) => void) {
+        for (const p of this._places.values()) {
+            p.bindEvents(mouseMoved$, mouseUp$, mouseMovedReactionFactory);
+        }
+        for (const t of this._transition.values()) {
+            t.bindEvents(mouseMoved$, mouseUp$, mouseMovedReactionFactory);
+        }
+        for (const a of this._arcs.values()) {
+            a.bindEvents(mouseMoved$, mouseUp$, mouseMovedReactionFactory);
         }
     }
 

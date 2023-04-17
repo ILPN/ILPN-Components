@@ -7,6 +7,8 @@ export abstract class PetriNetLayoutService {
 
     public abstract layout(net: SvgPetriNet): Observable<BoundingBox>;
 
+    public abstract getMouseMovedReaction(wrapper: SvgWrapper): (e: MouseEvent) => void;
+
     protected computeBoundingBox(nodes: Array<SvgWrapper>): BoundingBox {
         const r = {
             tl: {x: Number.POSITIVE_INFINITY, y: Number.POSITIVE_INFINITY},

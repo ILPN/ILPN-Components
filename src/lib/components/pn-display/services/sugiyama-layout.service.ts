@@ -188,4 +188,10 @@ export class SugiyamaLayoutService extends PetriNetLayoutService {
         }
     }
 
+    getMouseMovedReaction(wrapper: SvgWrapper): (e: MouseEvent) => void {
+        return (e) => {
+            wrapper.processMouseMovedLayered(e);
+        };
+    }
+
 }

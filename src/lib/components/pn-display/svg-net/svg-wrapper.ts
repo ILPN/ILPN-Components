@@ -13,6 +13,8 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
 
     private _dragging = false;
     private _lastPoint: Point | undefined;
+    private _isFixed = false;
+    private _isFixedOld = false;
     protected _mainElement: SVGElement | undefined;
     protected _elements: Array<SVGElement> = [];
     private _preDragPosition: Point;
@@ -59,6 +61,15 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         return 'y';
     }
 
+    get isFixed(): boolean {
+        return this._isFixed;
+    }
+
+    set isFixed(value: boolean) {
+        this._isFixed = value;
+        this._isFixedOld = value;
+    }
+
     public cloneCenter(): Point {
         return {
             x: this.x,
@@ -74,9 +85,10 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         return [...this._elements];
     }
 
-    bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>): void {
+    bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>, mouseMovedReactionFactory: (svg: SvgWrapper) => (e: MouseEvent) => void): void {
+        const processMouseMoved = mouseMovedReactionFactory(this);
         this._subs.push(
-            mouseMoved$.asObservable().subscribe(e => this.processMouseMoved(e)),
+            mouseMoved$.asObservable().subscribe(e => processMouseMoved(e)),
             mouseUp$.asObservable().subscribe(() => this.processMouseUp())
         );
     }
@@ -87,6 +99,8 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         }
         event.stopPropagation();
         this._dragging = true;
+        this._isFixedOld = this._isFixed;
+        this._isFixed = true;
         this._preDragPosition = this.center;
         this._lastPoint = {x: event.x, y: event.y};
     }
@@ -97,18 +111,18 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         }
 
         this._dragging = false;
+        this._isFixed = this._isFixedOld;
         this._lastPoint = undefined;
         this.center = {x: this._preDragPosition.x, y: this._preDragPosition.y}
     }
 
-    public processMouseMoved(event: MouseEvent) {
+    public processMouseMovedLayered(event: MouseEvent) {
         if (!this._dragging || this._mainElement === undefined || this._lastPoint === undefined) {
             return;
         }
 
-        const y = this.y + event.y - this._lastPoint.y;
-        this._lastPoint.x = event.x;
-        this._lastPoint.y = event.y;
+        const y = this.newCoordinates(event).y;
+        this.updateLastPoint(event);
         this.center = {x: this.x, y};
 
         if (this._layerNodes === undefined || this._layerIndex === undefined) {
@@ -128,6 +142,29 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         ) {
             this.swap(neighbourIndex);
         }
+    }
+
+    public processMouseMovedFree(event: MouseEvent) {
+        if (!this._dragging || this._mainElement === undefined || this._lastPoint === undefined) {
+            return;
+        }
+
+        const coords = this.newCoordinates(event);
+        this.updateLastPoint(event);
+        this.center = coords;
+        this._preDragPosition = coords;
+    }
+
+    protected newCoordinates(event: MouseEvent): Point {
+        return {
+            x: this.x + event.x - this._lastPoint!.x,
+            y: this.y + event.y - this._lastPoint!.y,
+        };
+    }
+
+    protected updateLastPoint(event: MouseEvent) {
+        this._lastPoint!.x = event.x;
+        this._lastPoint!.y = event.y;
     }
 
     public registerMainElement(element: SVGElement) {

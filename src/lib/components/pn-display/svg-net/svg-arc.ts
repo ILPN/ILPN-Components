@@ -31,6 +31,7 @@ export class SvgArc extends SvgWrapper {
 
     private _mouseMoved$?: Subject<MouseEvent>;
     private _mouseUp$?: Subject<MouseEvent>;
+    private _mouseMovedReactionFactory?: (svg: SvgWrapper) => (e: MouseEvent) => void;
 
     constructor(source: SvgPlace, destination: SvgTransition, arc: Arc);
     constructor(source: SvgTransition, destination: SvgPlace, arc: Arc);
@@ -63,10 +64,11 @@ export class SvgArc extends SvgWrapper {
         this._subWeight.forEach(s => s.unsubscribe());
     }
 
-    override bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>) {
-        super.bindEvents(mouseMoved$, mouseUp$);
+    override bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>, mouseMovedReactionFactory: (svg: SvgWrapper) => (e: MouseEvent) => void): void {
+        super.bindEvents(mouseMoved$, mouseUp$, mouseMovedReactionFactory);
         this._mouseMoved$ = mouseMoved$;
         this._mouseUp$ = mouseUp$;
+        this._mouseMovedReactionFactory = mouseMovedReactionFactory;
     }
 
     override getElements(): Array<SVGElement> {
@@ -86,7 +88,7 @@ export class SvgArc extends SvgWrapper {
         const updatedSegment = this.addLine(point, this.destination, this._lines[this._lines.length - 1]);
         this._subPoints.push(updatedSegment.subs);
 
-        point.bindEvents(this._mouseMoved$!, this._mouseUp$!);
+        point.bindEvents(this._mouseMoved$!, this._mouseUp$!, this._mouseMovedReactionFactory!);
 
         this._breakpoints.push(point);
     }

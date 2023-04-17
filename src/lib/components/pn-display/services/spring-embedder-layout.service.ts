@@ -25,7 +25,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
     private static readonly NODE_REPULSIVENESS = 25000;
     private static readonly IO_SIDE_ATTRACTION = 15;
 
-    private static readonly MAX_ITERATIONS = 300;
+    private static readonly MAX_ITERATIONS = 3000;
 
     private static readonly INITIAL_SPREAD_DISTANCE = 500;
 
@@ -40,7 +40,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
         return merge(
             of(this.computeBoundingBox(nodes)),
-            interval(50).pipe(
+            interval(10).pipe(
                 take(SpringEmbedderLayoutService.MAX_ITERATIONS),
                 tap(() => {
                     this.computeAndApplyForces(nodes, indices, net);
@@ -158,5 +158,11 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
             x: deltas.x * coef,
             y: deltas.y * coef,
         }
+    }
+
+    getMouseMovedReaction(wrapper: SvgWrapper): (e: MouseEvent) => void {
+        return (e) => {
+            wrapper.processMouseMovedFree(e);
+        };
     }
 }
