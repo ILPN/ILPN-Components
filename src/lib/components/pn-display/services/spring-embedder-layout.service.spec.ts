@@ -66,4 +66,17 @@ describe('SpringEmbedderLayoutService', () => {
         }
 
     });
+
+    it('should compute correct grid axis force', () => {
+        const GRID = SpringEmbedderLayoutService['GRID_SIZE'];
+        const HALF_GRID = SpringEmbedderLayoutService['HALF_GRID_SIZE'];
+
+        expect(service['gridAxisForce'](GRID - 5)).toBe(5);
+        expect(service['gridAxisForce'](GRID + 5)).toBe(-5);
+        expect(service['gridAxisForce'](-GRID + 5)).toBe(-5);
+        expect(service['gridAxisForce'](-GRID - 5)).toBe(5);
+
+        expect(service['gridAxisForce'](HALF_GRID)).toBe(-HALF_GRID);
+        expect(service['gridAxisForce'](-HALF_GRID)).toBe(HALF_GRID);
+    });
 });
