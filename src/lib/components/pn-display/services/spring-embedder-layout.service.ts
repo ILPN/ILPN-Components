@@ -24,9 +24,9 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
     private static readonly SPRING_STIFFNESS = 0.1;
     private static readonly NODE_REPULSIVENESS = 25000;
     private static readonly IO_SIDE_ATTRACTION = 15;
-    private static readonly ARC_ROTATION_FORCE = 1;
+    private static readonly ARC_ROTATION_FORCE_FACTOR = 0.5;
 
-    private static readonly MAX_ITERATIONS = 3000;
+    private static readonly MAX_ITERATIONS = 1000;
 
     private static readonly INITIAL_SPREAD_DISTANCE = 500;
 
@@ -168,29 +168,30 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
      * The arc wants to be oriented at an angle, that is a multiple of 45° (pi/4)
      */
     private arcRotationForce(deltas: Point): Point {
-        let angle = this.vectorAngle(deltas);
+        const angle = this.vectorAngle(deltas);
 
         // don't apply any force, if the arc is oriented correctly?
-        angle += 2 * Math.PI;
-        angle /= (Math.PI / 8);
-        angle = Math.floor(angle);
-        angle = (angle + 17) % 16;
+        let section = angle + 2 * Math.PI;
+        section /= (Math.PI / 8);
+        section = Math.floor(section);
+        section = (section + 17) % 16;
         // There are 16 different "triangular" regions of the plane where we have to apply different forces
         // the `angle` is a number 0-15, determining in which of these regions the destination of the arc lies
         // regions 0 and 1 must force the points towards the positive X axis (in opposite directions); regions 2,3 to the x = y line etc.
 
-        const odd = angle % 2 === 1;
-        let planeOctant = angle;
+        const odd = section % 2 === 1;
         if (odd) {
-            planeOctant -= 1;
+            section -= 1;
         }
-        planeOctant = planeOctant / 2;
+        section = section / 2;
 
-        const planeOctantAngle = planeOctant / 4 * Math.PI;
+        const planeOctantAngle = section / 4 * Math.PI;
+        const distanceToLine = Math.abs(Math.sin(angle) * deltas.x - Math.cos(angle) * deltas.y);
+        const factor = distanceToLine * SpringEmbedderLayoutService.ARC_ROTATION_FORCE_FACTOR;
 
         let destForce = {
-            x: -Math.sin(planeOctantAngle) * SpringEmbedderLayoutService.ARC_ROTATION_FORCE,
-            y: Math.cos(planeOctantAngle) * SpringEmbedderLayoutService.ARC_ROTATION_FORCE,
+            x: -Math.sin(planeOctantAngle) * factor,
+            y: Math.cos(planeOctantAngle) * factor,
         };
 
         if (odd) {
