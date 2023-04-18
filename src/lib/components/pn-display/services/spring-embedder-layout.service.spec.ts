@@ -26,7 +26,7 @@ describe('SpringEmbedderLayoutService', () => {
             {x: -10, y: 11},
             {x: -11, y: 10},
             {x: -10, y: 1},
-            {x: -10, y: 1},
+            {x: -10, y: -1},
             {x: -11, y: -10},
             {x: -10, y: -11},
             {x: -1, y: -10},

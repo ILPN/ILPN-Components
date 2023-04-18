@@ -179,21 +179,21 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
         // the `angle` is a number 0-15, determining in which of these regions the destination of the arc lies
         // regions 0 and 1 must force the points towards the positive X axis (in opposite directions); regions 2,3 to the x = y line etc.
 
-        const even = angle % 2 === 0;
+        const odd = angle % 2 === 1;
         let planeOctant = angle;
-        if (even) {
-            planeOctant += 1;
+        if (odd) {
+            planeOctant -= 1;
         }
-        planeOctant = Math.floor(planeOctant / 2);
+        planeOctant = planeOctant / 2;
 
         const planeOctantAngle = planeOctant / 4 * Math.PI;
 
         let destForce = {
-            x: Math.sin(planeOctantAngle) * SpringEmbedderLayoutService.ARC_ROTATION_FORCE,
-            y: -Math.cos(planeOctantAngle) * SpringEmbedderLayoutService.ARC_ROTATION_FORCE,
+            x: -Math.sin(planeOctantAngle) * SpringEmbedderLayoutService.ARC_ROTATION_FORCE,
+            y: Math.cos(planeOctantAngle) * SpringEmbedderLayoutService.ARC_ROTATION_FORCE,
         };
 
-        if (even) {
+        if (odd) {
             destForce.x *= -1;
             destForce.y *= -1;
         }
