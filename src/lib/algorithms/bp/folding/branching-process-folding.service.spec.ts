@@ -537,8 +537,8 @@ f 8
         expect(isomorphism.arePetriNetsIsomorphic(folded, result)).toBeTrue();
     });
 
-    /* TODO the isomorphism is even worse than I thought....
-    it(`two conflicting parallel branches should fold correctly`, () => {
+    // TODO the isomorphism is even worse than I thought....
+    xit(`two conflicting parallel branches should fold correctly`, () => {
         expect(service).toBeTruthy();
         const once = parser.parse(`.type pn
 .transitions
@@ -654,10 +654,9 @@ d2 9
 
         expect(isomorphism.arePetriNetsIsomorphic(folded, result)).toBeTrue();
     });
-    */
 
-    /* TODO a by-hand comparison of the two results shows, that the algorithm works correctly. The existing isomorphism implementation is so inefficient, that the comparison of the actual with the expected result does not complete in time and the test is aborted
-    it(`simplified 'repair example' should fold correctly`, () => {
+    // TODO a by-hand comparison of the two results shows, that the algorithm works correctly. The existing isomorphism implementation is so inefficient, that the comparison of the actual with the expected result does not complete in time and the test is aborted
+    xit(`simplified 'repair example' should fold correctly`, () => {
         expect(service).toBeTruthy();
         const simple = parser.parse(`.type pn
 .transitions
@@ -877,5 +876,4 @@ r4 18
 
         expect(isomorphism.arePetriNetsIsomorphic(folded, result)).toBeTrue();
     });
-    */
 });
