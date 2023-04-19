@@ -3,7 +3,11 @@ import {Observable} from "rxjs";
 import {BoundingBox} from "../../../utility/svg/bounding-box";
 import {SvgWrapper} from "../svg-net/svg-wrapper";
 
-export abstract class PetriNetLayoutService {
+export abstract class PetriNetLayoutManagerFactoryService {
+    public abstract create(): PetriNetLayoutManager;
+}
+
+export abstract class PetriNetLayoutManager {
 
     public abstract layout(net: SvgPetriNet): Observable<BoundingBox>;
 

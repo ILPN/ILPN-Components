@@ -14,7 +14,7 @@ import {OriginAndZoom} from './internals/model/origin-and-zoom';
 import {inverseZoomFactor, zoomFactor} from './internals/zoom-factor';
 import {SvgPetriNet} from './svg-net/svg-petri-net';
 import {Marking} from '../../models/pn/model/marking';
-import {PetriNetLayoutService} from "./services/petri-net-layout.service";
+import {PetriNetLayoutManager, PetriNetLayoutManagerFactoryService} from "./services/petri-net-layout.manager";
 import {BoundingBox} from "../../utility/svg/bounding-box";
 
 
@@ -46,8 +46,10 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     private _svgNet: SvgPetriNet | undefined;
     private _placeClickSub: Subscription | undefined;
     private _netLayoutSub: Subscription | undefined;
+    private _layoutManager: PetriNetLayoutManager;
 
-    constructor(private _layoutService: PetriNetLayoutService) {
+    constructor(layoutManagerFactory: PetriNetLayoutManagerFactoryService) {
+        this._layoutManager = layoutManagerFactory.create();
         this._mouseMoved$ = new Subject<MouseEvent>();
         this._mouseUp$ = new Subject<MouseEvent>();
         this._subs = [];
@@ -89,7 +91,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                 }
 
                 this._svgNet = new SvgPetriNet(this._net);
-                this._svgNet.bindEvents(this._mouseMoved$, this._mouseUp$, (svg) => this._layoutService.getMouseMovedReaction(svg));
+                this._svgNet.bindEvents(this._mouseMoved$, this._mouseUp$, (svg) => this._layoutManager.getMouseMovedReaction(svg));
                 this._placeClickSub = this._svgNet.getPlaceClicked$().subscribe(pid => {
                     this.placeClicked.next(pid);
                 });
@@ -97,7 +99,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                 if (this._netLayoutSub !== undefined) {
                     this._netLayoutSub.unsubscribe();
                 }
-                this._netLayoutSub = this._layoutService.layout(this._svgNet).subscribe(bb => {
+                this._netLayoutSub = this._layoutManager.layout(this._svgNet).subscribe(bb => {
                     this.centerNet(bb);
                 });
 

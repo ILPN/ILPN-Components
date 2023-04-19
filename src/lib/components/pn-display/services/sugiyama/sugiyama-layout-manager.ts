@@ -1,17 +1,16 @@
-import {Injectable} from '@angular/core';
-import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE} from '../internals/constants/transition-style';
-import {PLACE_STYLE} from '../internals/constants/place-style';
-import {Node} from '../../../models/pn/model/node';
-import {PetriNet} from '../../../models/pn/model/petri-net';
-import {Arc} from '../../../models/pn/model/arc';
-import {DragPoint} from '../svg-net/drag-point';
-import {SvgPetriNet} from '../svg-net/svg-petri-net';
-import {SvgWrapper} from '../svg-net/svg-wrapper';
-import {SvgPlace} from '../svg-net/svg-place';
-import {SvgTransition} from '../svg-net/svg-transition';
-import {PetriNetLayoutService} from "./petri-net-layout.service";
+import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE} from '../../internals/constants/transition-style';
+import {PLACE_STYLE} from '../../internals/constants/place-style';
+import {Node} from '../../../../models/pn/model/node';
+import {PetriNet} from '../../../../models/pn/model/petri-net';
+import {Arc} from '../../../../models/pn/model/arc';
+import {DragPoint} from '../../svg-net/drag-point';
+import {SvgPetriNet} from '../../svg-net/svg-petri-net';
+import {SvgWrapper} from '../../svg-net/svg-wrapper';
+import {SvgPlace} from '../../svg-net/svg-place';
+import {SvgTransition} from '../../svg-net/svg-transition';
+import {PetriNetLayoutManager} from "../petri-net-layout.manager";
 import {Observable, of} from "rxjs";
-import {BoundingBox} from "../../../utility/svg/bounding-box";
+import {BoundingBox} from "../../../../utility/svg/bounding-box";
 
 
 /**
@@ -19,10 +18,7 @@ import {BoundingBox} from "../../../utility/svg/bounding-box";
  *
  * Does not implement crossings minimisation.
  */
-@Injectable({
-    providedIn: 'root'
-})
-export class SugiyamaLayoutService extends PetriNetLayoutService {
+export class SugiyamaLayoutManager extends PetriNetLayoutManager {
 
     private readonly LAYER_OFFSET = 50;
     private readonly NODE_OFFSET = 40;

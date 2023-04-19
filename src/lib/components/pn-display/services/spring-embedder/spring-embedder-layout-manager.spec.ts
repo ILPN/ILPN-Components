@@ -1,14 +1,14 @@
-import {SpringEmbedderLayoutService} from "./spring-embedder-layout.service";
+import {SpringEmbedderLayoutManager} from "./spring-embedder-layout-manager";
 import {TestBed} from "@angular/core/testing";
 import {expect} from "@angular/flex-layout/_private-utils/testing";
-import {areVectorsParallel, Point} from "../../../utility/svg/point";
+import {areVectorsParallel, Point} from "../../../../utility/svg/point";
 
-describe('SpringEmbedderLayoutService', () => {
-    let service: SpringEmbedderLayoutService;
+describe('SpringEmbedderLayoutManager', () => {
+    let service: SpringEmbedderLayoutManager;
 
     beforeEach(() => {
         TestBed.configureTestingModule({});
-        service = TestBed.inject(SpringEmbedderLayoutService);
+        service = TestBed.inject(SpringEmbedderLayoutManager);
     });
 
     it('should be created', () => {
@@ -68,8 +68,8 @@ describe('SpringEmbedderLayoutService', () => {
     });
 
     it('should compute correct grid axis force', () => {
-        const GRID = SpringEmbedderLayoutService['GRID_SIZE'];
-        const HALF_GRID = SpringEmbedderLayoutService['HALF_GRID_SIZE'];
+        const GRID = SpringEmbedderLayoutManager['GRID_SIZE'];
+        const HALF_GRID = SpringEmbedderLayoutManager['HALF_GRID_SIZE'];
 
         expect(service['gridAxisForce'](GRID - 5)).toBe(5);
         expect(service['gridAxisForce'](GRID + 5)).toBe(-5);

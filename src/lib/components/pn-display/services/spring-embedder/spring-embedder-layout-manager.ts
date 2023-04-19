@@ -1,12 +1,11 @@
-import {Injectable} from "@angular/core";
-import {PetriNetLayoutService} from "./petri-net-layout.service";
-import {SvgPetriNet} from "../svg-net/svg-petri-net";
+import {PetriNetLayoutManager} from "../petri-net-layout.manager";
+import {SvgPetriNet} from "../../svg-net/svg-petri-net";
 import {interval, map, merge, Observable, of, take, tap} from "rxjs";
-import {addPoints, computeDeltas, computeDistance, Point} from "../../../utility/svg/point";
-import {SvgWrapper} from "../svg-net/svg-wrapper";
-import {SvgTransition} from "../svg-net/svg-transition";
-import {SvgPlace} from "../svg-net/svg-place";
-import {BoundingBox} from "../../../utility/svg/bounding-box";
+import {addPoints, computeDeltas, computeDistance, Point} from "../../../../utility/svg/point";
+import {SvgWrapper} from "../../svg-net/svg-wrapper";
+import {SvgTransition} from "../../svg-net/svg-transition";
+import {SvgPlace} from "../../svg-net/svg-place";
+import {BoundingBox} from "../../../../utility/svg/bounding-box";
 
 
 type Cache<T> = { [k: string]: { [k: string]: T | undefined } | undefined };
@@ -15,10 +14,7 @@ type Cache<T> = { [k: string]: { [k: string]: T | undefined } | undefined };
 /**
  * Spring Embedder algorithm implementation based on: https://medium.com/@ceccarellisimone1/network-force-directed-paradigm-spring-embedder-3f27dc723d3d
  */
-@Injectable({
-    providedIn: 'root'
-})
-export class SpringEmbedderLayoutService extends PetriNetLayoutService {
+export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
 
     private static readonly SPRING_LENGTH = 120;
     private static readonly SPRING_STIFFNESS = 1/8;
@@ -32,7 +28,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
     private static readonly INITIAL_SPREAD_DISTANCE = 500;
     private static readonly GRID_SIZE = 120;
-    private static readonly HALF_GRID_SIZE = SpringEmbedderLayoutService.GRID_SIZE / 2;
+    private static readonly HALF_GRID_SIZE = SpringEmbedderLayoutManager.GRID_SIZE / 2;
 
     layout(net: SvgPetriNet): Observable<BoundingBox> {
         const indices = new Map<string, number>();
@@ -46,7 +42,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
         return merge(
             of(this.computeBoundingBox(nodes)),
             interval(1).pipe(
-                take(SpringEmbedderLayoutService.MAX_ITERATIONS),
+                take(SpringEmbedderLayoutManager.MAX_ITERATIONS),
                 tap((iter: number) => {
                     for (let i = 0; i < 10; i++) {
                         this.computeAndApplyForces(nodes, indices, net, iter);
@@ -62,7 +58,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
     private placeNodesRandomly(nodes: Array<SvgTransition | SvgPlace>) {
         for (const n of nodes) {
             const angle = Math.random() * 2 * Math.PI;
-            const distance = Math.random() * SpringEmbedderLayoutService.INITIAL_SPREAD_DISTANCE;
+            const distance = Math.random() * SpringEmbedderLayoutManager.INITIAL_SPREAD_DISTANCE;
 
             n.center = {
                 x: Math.cos(angle) * distance,
@@ -77,8 +73,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
         const forces: Array<Point> = nodes.map((n, i) => ({x: 0, y: 0}));
 
-        const ioAttraction = SpringEmbedderLayoutService.IO_SIDE_ATTRACTION_START - ((SpringEmbedderLayoutService.IO_SIDE_ATTRACTION_START - SpringEmbedderLayoutService.IO_SIDE_ATTRACTION_END)/SpringEmbedderLayoutService.MAX_ITERATIONS * iter);
-        console.log(iter, ioAttraction);
+        const ioAttraction = SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_START - ((SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_START - SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_END)/SpringEmbedderLayoutManager.MAX_ITERATIONS * iter);
 
         for (let i = 0; i < nodes.length; i++) {
             const u = nodes[i];
@@ -166,7 +161,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
      * The force is always tangential to the arc.
      */
     private arcAttractionForce(distance: number, deltas: Point): Point {
-        const coef = SpringEmbedderLayoutService.SPRING_STIFFNESS * (distance - SpringEmbedderLayoutService.SPRING_LENGTH) / distance;
+        const coef = SpringEmbedderLayoutManager.SPRING_STIFFNESS * (distance - SpringEmbedderLayoutManager.SPRING_LENGTH) / distance;
         return {
             x: deltas.x * coef,
             y: deltas.y * coef,
@@ -197,7 +192,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
 
         const planeOctantAngle = section / 4 * Math.PI;
         const distanceToLine = Math.abs(Math.sin(angle) * deltas.x - Math.cos(angle) * deltas.y);
-        const factor = distanceToLine * SpringEmbedderLayoutService.ARC_ROTATION_FORCE_FACTOR;
+        const factor = distanceToLine * SpringEmbedderLayoutManager.ARC_ROTATION_FORCE_FACTOR;
 
         let destForce = {
             x: -Math.sin(planeOctantAngle) * factor,
@@ -213,7 +208,7 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
     }
 
     private nodeForce(distance: number, deltas: Point): Point {
-        const coef = SpringEmbedderLayoutService.NODE_REPULSIVENESS / distance / distance / distance;
+        const coef = SpringEmbedderLayoutManager.NODE_REPULSIVENESS / distance / distance / distance;
         return {
             x: deltas.x * coef,
             y: deltas.y * coef,
@@ -223,18 +218,18 @@ export class SpringEmbedderLayoutService extends PetriNetLayoutService {
     private gridForce(coords: Point): Point {
         return {
             x: 0,//this.gridAxisForce(coords.x) * SpringEmbedderLayoutService.GRID_FORCE_FACTOR,
-            y: this.gridAxisForce(coords.y) * SpringEmbedderLayoutService.GRID_FORCE_FACTOR,
+            y: this.gridAxisForce(coords.y) * SpringEmbedderLayoutManager.GRID_FORCE_FACTOR,
         }
     }
 
     private gridAxisForce(coord: number): number {
-        const rest = coord % SpringEmbedderLayoutService.GRID_SIZE;
-        if (rest <= SpringEmbedderLayoutService.HALF_GRID_SIZE
-            && rest >= -SpringEmbedderLayoutService.HALF_GRID_SIZE) {
+        const rest = coord % SpringEmbedderLayoutManager.GRID_SIZE;
+        if (rest <= SpringEmbedderLayoutManager.HALF_GRID_SIZE
+            && rest >= -SpringEmbedderLayoutManager.HALF_GRID_SIZE) {
             return -rest;
         }
         const sign = Math.sign(rest);
-        return sign * SpringEmbedderLayoutService.GRID_SIZE - coord;
+        return sign * SpringEmbedderLayoutManager.GRID_SIZE - coord;
     }
 
     private vectorAngle(deltas: Point): number {

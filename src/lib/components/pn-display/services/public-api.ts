@@ -1,3 +1,4 @@
-export * from './petri-net-layout.service';
-export * from './sugiyama-layout.service';
-export * from './spring-embedder-layout.service';
+export * from './petri-net-layout.manager';
+
+export * from './sugiyama/public-api';
+export * from './spring-embedder/public-api';

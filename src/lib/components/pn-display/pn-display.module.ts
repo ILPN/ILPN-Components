@@ -1,8 +1,8 @@
 import {NgModule} from "@angular/core";
 import {PnDisplayComponent} from "./pn-display.component";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
-import {PetriNetLayoutService} from "./services/petri-net-layout.service";
-import {SugiyamaLayoutService} from "./services/sugiyama-layout.service";
+import {PetriNetLayoutManagerFactoryService} from "./services/petri-net-layout.manager";
+import {SugiyamaLayoutManagerFactoryService} from "./services/sugiyama/sugiyama-layout-manager-factory.service";
 import {ViewBoxPipe} from "./internals/view-box.pipe";
 
 @NgModule({
@@ -17,7 +17,7 @@ import {ViewBoxPipe} from "./internals/view-box.pipe";
         PnDisplayComponent,
     ],
     providers: [
-        {provide: PetriNetLayoutService, useExisting: SugiyamaLayoutService}
+        {provide: PetriNetLayoutManagerFactoryService, useExisting: SugiyamaLayoutManagerFactoryService}
     ]
 })
 export class PnDisplayModule {
