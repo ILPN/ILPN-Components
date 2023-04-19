@@ -1,14 +1,13 @@
 import {PetriNetLayoutManager} from "../petri-net-layout.manager";
 import {SvgPetriNet} from "../../svg-net/svg-petri-net";
-import {interval, map, merge, Observable, of, take, tap} from "rxjs";
+import {filter, interval, map, merge, Observable, of, tap} from "rxjs";
 import {addPoints, computeDeltas, computeDistance, Point} from "../../../../utility/svg/point";
 import {SvgWrapper} from "../../svg-net/svg-wrapper";
 import {SvgTransition} from "../../svg-net/svg-transition";
 import {SvgPlace} from "../../svg-net/svg-place";
 import {BoundingBox} from "../../../../utility/svg/bounding-box";
-
-
-type Cache<T> = { [k: string]: { [k: string]: T | undefined } | undefined };
+import {Cache} from "./internal/cache";
+import {StreamFilterState} from "./internal/stream-filter-state";
 
 
 /**
@@ -16,8 +15,10 @@ type Cache<T> = { [k: string]: { [k: string]: T | undefined } | undefined };
  */
 export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
 
+    private static readonly UPDATE_SQUARE_THRESHOLD = 10;
+
     private static readonly SPRING_LENGTH = 120;
-    private static readonly SPRING_STIFFNESS = 1/8;
+    private static readonly SPRING_STIFFNESS = 1 / 8;
     private static readonly NODE_REPULSIVENESS = 25000;
     private static readonly IO_SIDE_ATTRACTION_START = 20;
     private static readonly IO_SIDE_ATTRACTION_END = 1;
@@ -30,6 +31,13 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
     private static readonly GRID_SIZE = 120;
     private static readonly HALF_GRID_SIZE = SpringEmbedderLayoutManager.GRID_SIZE / 2;
 
+    private readonly _streamFilterState: StreamFilterState;
+
+    constructor() {
+        super();
+        this._streamFilterState = new StreamFilterState(SpringEmbedderLayoutManager.MAX_ITERATIONS);
+    }
+
     layout(net: SvgPetriNet): Observable<BoundingBox> {
         const indices = new Map<string, number>();
         const nodes = net.getMappedNodes();
@@ -37,12 +45,15 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
             indices.set(value.getId(), index);
         });
 
+        this._streamFilterState.reset();
+
         this.placeNodesRandomly(nodes);
 
         return merge(
             of(this.computeBoundingBox(nodes)),
             interval(1).pipe(
-                take(SpringEmbedderLayoutManager.MAX_ITERATIONS),
+                filter(() => this._streamFilterState.filter()),
+                map( () => this._streamFilterState.currentIteration()),
                 tap((iter: number) => {
                     for (let i = 0; i < 10; i++) {
                         this.computeAndApplyForces(nodes, indices, net, iter);
@@ -73,7 +84,7 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
 
         const forces: Array<Point> = nodes.map((n, i) => ({x: 0, y: 0}));
 
-        const ioAttraction = SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_START - ((SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_START - SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_END)/SpringEmbedderLayoutManager.MAX_ITERATIONS * iter);
+        const ioAttraction = SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_START - ((SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_START - SpringEmbedderLayoutManager.IO_SIDE_ATTRACTION_END) / SpringEmbedderLayoutManager.MAX_ITERATIONS * iter);
 
         for (let i = 0; i < nodes.length; i++) {
             const u = nodes[i];
@@ -133,6 +144,9 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
         // apply forces
         for (let i = 0; i < nodes.length; i++) {
             const node = nodes[i];
+            if (node.isFixed) {
+                continue;
+            }
             const force = forces[i];
             const newCenter = node.cloneCenter();
             addPoints(newCenter, force);
@@ -239,6 +253,9 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
     getMouseMovedReaction(wrapper: SvgWrapper): (e: MouseEvent) => void {
         return (e) => {
             wrapper.processMouseMovedFree(e);
+            if (wrapper.dragging) {
+                this._streamFilterState.reset();
+            }
         };
     }
 }

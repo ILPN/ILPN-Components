@@ -7,7 +7,7 @@ import {Transition} from '../../../models/pn/model/transition';
 import {Arc} from '../../../models/pn/model/arc';
 import {Node} from '../../../models/pn/model/node';
 import {SvgWrapper} from './svg-wrapper';
-import {merge, Observable, Subject} from 'rxjs';
+import {BehaviorSubject, combineLatest, merge, Observable, Subject, Subscription} from 'rxjs';
 import {Marking} from '../../../models/pn/model/marking';
 
 
@@ -17,18 +17,25 @@ export class SvgPetriNet {
     private readonly _places: Map<string, SvgPlace>;
     private readonly _transition: Map<string, SvgTransition>;
     private readonly _arcs: Map<string, SvgArc>;
+    private readonly _dragging$: BehaviorSubject<boolean>;
+    private readonly _sub: Subscription;
 
     constructor(net: PetriNet) {
+        this._dragging$ = new BehaviorSubject<boolean>(false);
+        const observables: Array<Observable<boolean>> = [];
+
         this._net = net;
         this._places = new Map<string, SvgPlace>();
         for (const p of net.getPlaces()) {
             const svgPlace = new SvgPlace(p);
             this._places.set(p.getId(), svgPlace);
+            observables.push(svgPlace.isDragging$());
         }
         this._transition = new Map<string, SvgTransition>();
         for (const t of net.getTransitions()) {
             const svgTransition = new SvgTransition(t);
             this._transition.set(t.getId(), svgTransition);
+            observables.push(svgTransition.isDragging$());
         }
         this._arcs = new Map<string, SvgArc>();
         for (const a of net.getArcs()) {
@@ -45,10 +52,18 @@ export class SvgPetriNet {
                 svgArc = new SvgArc(s, d, a);
                 this._arcs.set(a.getId(), svgArc);
             }
+            observables.push(svgArc.isDragging$());
         }
+
+        this._sub = combineLatest(observables).subscribe(dragging => {
+            this._dragging$.next(dragging.some(b => b));
+        });
     }
 
     public destroy() {
+        this._sub.unsubscribe();
+        this._dragging$.complete();
+
         for (const p of this._places.values()) {
             p.destroy();
         }
@@ -58,6 +73,10 @@ export class SvgPetriNet {
         for (const a of this._arcs.values()) {
             a.destroy();
         }
+    }
+
+    public get dragging(): boolean {
+        return this._dragging$.value;
     }
 
     public bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>, mouseMovedReactionFactory: (svg: SvgWrapper) => (e: MouseEvent) => void) {

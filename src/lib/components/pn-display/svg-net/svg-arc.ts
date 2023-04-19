@@ -6,7 +6,7 @@ import {SvgPlace} from './svg-place';
 import {SvgTransition} from './svg-transition';
 import {Arc} from '../../../models/pn/model/arc';
 import {ARC_END_STYLE, ARC_STYLE} from '../internals/constants/arc-style';
-import {Subject, Subscription} from 'rxjs';
+import {Observable, Subject, Subscription} from 'rxjs';
 import {TransitionStyle} from '../internals/constants/transition-style';
 
 
@@ -49,6 +49,11 @@ export class SvgArc extends SvgWrapper {
         this._subPoints = [newLine.subs];
 
         this._subWeight = [];
+    }
+
+    override isDragging$(): Observable<boolean> {
+        return super.isDragging$();
+        // TODO include breakpoint dragging
     }
 
     get hasBreakpoints(): boolean {

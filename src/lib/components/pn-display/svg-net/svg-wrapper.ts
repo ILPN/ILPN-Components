@@ -11,7 +11,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
 
     protected _center$: BehaviorSubject<Point>;
 
-    private _dragging = false;
+    private _dragging$: BehaviorSubject<boolean>;
     private _lastPoint: Point | undefined;
     private _isFixed = false;
     private _isFixedOld = false;
@@ -27,6 +27,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
     protected constructor(id?: string) {
         super(id);
         this._center$ = new BehaviorSubject<Point>({x: 0, y: 0});
+        this._dragging$ = new BehaviorSubject<boolean>(false);
         this._preDragPosition = {x: 0, y: 0};
         this._subs = [
             this._center$.subscribe(_ => this.updateMainElementPos())
@@ -61,6 +62,10 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         return 'y';
     }
 
+    get dragging(): boolean {
+        return this._dragging$.value;
+    }
+
     get isFixed(): boolean {
         return this._isFixed;
     }
@@ -68,6 +73,10 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
     set isFixed(value: boolean) {
         this._isFixed = value;
         this._isFixedOld = value;
+    }
+
+    public isDragging$(): Observable<boolean> {
+        return this._dragging$.asObservable();
     }
 
     public cloneCenter(): Point {
@@ -78,6 +87,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
     }
 
     public destroy() {
+        this._dragging$.complete();
         this._subs.forEach(s => s.unsubscribe());
     }
 
@@ -98,7 +108,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
             return;
         }
         event.stopPropagation();
-        this._dragging = true;
+        this._dragging$.next(true);
         this._isFixedOld = this._isFixed;
         this._isFixed = true;
         this._preDragPosition = this.center;
@@ -106,18 +116,18 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
     }
 
     public processMouseUp() {
-        if (this._mainElement === undefined || !this._dragging) {
+        if (this._mainElement === undefined || !this.dragging) {
             return;
         }
 
-        this._dragging = false;
+        this._dragging$.next(false);
         this._isFixed = this._isFixedOld;
         this._lastPoint = undefined;
         this.center = {x: this._preDragPosition.x, y: this._preDragPosition.y}
     }
 
     public processMouseMovedLayered(event: MouseEvent) {
-        if (!this._dragging || this._mainElement === undefined || this._lastPoint === undefined) {
+        if (!this.dragging || this._mainElement === undefined || this._lastPoint === undefined) {
             return;
         }
 
@@ -145,7 +155,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
     }
 
     public processMouseMovedFree(event: MouseEvent) {
-        if (!this._dragging || this._mainElement === undefined || this._lastPoint === undefined) {
+        if (!this.dragging || this._mainElement === undefined || this._lastPoint === undefined) {
             return;
         }
 

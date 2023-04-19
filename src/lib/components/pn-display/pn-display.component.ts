@@ -100,7 +100,9 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                     this._netLayoutSub.unsubscribe();
                 }
                 this._netLayoutSub = this._layoutManager.layout(this._svgNet).subscribe(bb => {
-                    this.centerNet(bb);
+                    if (!this._svgNet!.dragging) {
+                        this.centerNet(bb);
+                    }
                 });
 
                 this._svgNet.showArcWeights();
