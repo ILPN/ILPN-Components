@@ -195,7 +195,6 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
 
     processMouseScroll(event: WheelEvent) {
         if (event.deltaY < 0) {
-            console.log('in');
             this.zoomingIn$.next(true);
             this.zoomingOut$.next(false);
             this.setTimeout(() => {
@@ -211,8 +210,14 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
 
         const oldF = zoomFactor(this.originAndZoom.zoom);
         const newF = zoomFactor(this.originAndZoom.zoom + event.deltaY);
-        const mouseSvgX = event.pageX - (event.target as SVGElement).getBoundingClientRect().x;
-        const mouseSvgY = event.pageY - (event.target as SVGElement).getBoundingClientRect().y;
+
+        let svgElement = event.target as Element;
+        while (svgElement.tagName !== 'svg') {
+            svgElement = svgElement.parentElement!;
+        }
+
+        const mouseSvgX = event.pageX - (svgElement as SVGElement).getBoundingClientRect().x;
+        const mouseSvgY = event.pageY - (svgElement as SVGElement).getBoundingClientRect().y;
         this.originAndZoom = this.originAndZoom.update({
             x: this.computeZoomOffset(oldF, newF, this.originAndZoom.x, mouseSvgX),
             y: this.computeZoomOffset(oldF, newF, this.originAndZoom.y, mouseSvgY),
