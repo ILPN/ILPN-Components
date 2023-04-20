@@ -7,6 +7,9 @@ import {TEXT_STYLE} from '../internals/constants/text-style';
 
 export abstract class SvgWrapper extends Identifiable implements Point, MouseListener {
 
+    protected static readonly CSS_DRAGGABLE = 'draggable';
+    protected static readonly CSS_DRAGGING = 'dragging';
+
     protected readonly TEXT_OFFSET = 20;
 
     protected _center$: BehaviorSubject<Point>;
@@ -113,6 +116,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         this._isFixed = true;
         this._preDragPosition = this.center;
         this._lastPoint = {x: event.x, y: event.y};
+        this.swapMainElementCssClass(SvgWrapper.CSS_DRAGGABLE, SvgWrapper.CSS_DRAGGING);
     }
 
     public processMouseUp() {
@@ -124,6 +128,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         this._isFixed = this._isFixedOld;
         this._lastPoint = undefined;
         this.center = {x: this._preDragPosition.x, y: this._preDragPosition.y}
+        this.swapMainElementCssClass(SvgWrapper.CSS_DRAGGING, SvgWrapper.CSS_DRAGGABLE);
     }
 
     public processMouseMovedLayered(event: MouseEvent) {
@@ -238,5 +243,14 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         for (const entry of Object.entries(style)) {
             element.setAttribute(entry[0], entry[1]);
         }
+    }
+
+    private swapMainElementCssClass(remove: string, add: string) {
+        if (this._mainElement === undefined) {
+            return;
+        }
+
+        this._mainElement.classList.remove(remove);
+        this._mainElement.classList.add(add);
     }
 }

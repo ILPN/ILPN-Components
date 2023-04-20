@@ -1,4 +1,4 @@
-<svg #drawingArea class="canvas"
+<svg #drawingArea class="canvas" [ngClass]="{'dragging': panning}"
      [attr.width]="_width"
      [attr.height]="_height"
      [attr.viewBox]="originAndZoom | viewBox"

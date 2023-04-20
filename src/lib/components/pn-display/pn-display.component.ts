@@ -38,7 +38,6 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     _height: number | string = '100%';
 
     private _subs: Array<Subscription>;
-    private _dragging = false;
     private _lastPoint: Point | undefined;
     private readonly _mouseMoved$: Subject<MouseEvent>;
     private readonly _mouseUp$: Subject<MouseEvent>;
@@ -47,6 +46,8 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     private _placeClickSub: Subscription | undefined;
     private _netLayoutSub: Subscription | undefined;
     private _layoutManager: PetriNetLayoutManager;
+
+    public panning = false;
 
     constructor(layoutManagerFactory: PetriNetLayoutManagerFactoryService) {
         this._layoutManager = layoutManagerFactory.create();
@@ -168,7 +169,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     }
 
     processMouseDown(event: MouseEvent) {
-        this._dragging = true;
+        this.panning = true;
         this._lastPoint = {x: event.x, y: event.y};
     }
 
@@ -202,12 +203,12 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     }
 
     private processMouseUp(event: MouseEvent) {
-        this._dragging = false;
+        this.panning = false;
         this._lastPoint = undefined;
     }
 
     private processMouseMove(event: MouseEvent) {
-        if (this._dragging) {
+        if (this.panning) {
             const factor = zoomFactor(this.originAndZoom.zoom);
             this.originAndZoom = this.originAndZoom.update({
                 x: this.originAndZoom.x - (event.x - this._lastPoint!.x) * factor,
