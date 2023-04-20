@@ -5,3 +5,7 @@
 .canvas .drag-point:hover {
     fill-opacity: 0.5;
 }
+
+.canvas .draggable {
+    cursor: move;
+}

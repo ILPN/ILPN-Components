@@ -18,6 +18,7 @@ export class SvgPlace extends SvgWrapper {
 
         const placeEl = this.createSvgElement('circle');
         this.applyStyle(placeEl, PLACE_STYLE);
+        placeEl.classList.add('draggable');
         this.registerMainElement(placeEl);
         this._clicked$ = new Subject<string>();
         this._mainElement!.onclick = (_) => {

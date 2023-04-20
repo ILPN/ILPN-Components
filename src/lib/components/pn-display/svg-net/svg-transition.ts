@@ -18,6 +18,7 @@ export class SvgTransition extends SvgWrapper {
         const transEl = this.createSvgElement('rect');
         const style = this.resolveTransitionStyle();
         this.applyStyle(transEl, style);
+        transEl.classList.add('draggable');
         this.registerMainElement(transEl);
 
         if (transition.isSilent) {

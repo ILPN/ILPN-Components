@@ -9,7 +9,7 @@ export class DragPoint extends SvgWrapper {
 
         const dragPoint = this.createSvgElement('circle');
         this.applyStyle(dragPoint, DRAG_POINT_STYLE);
-        dragPoint.classList.add('drag-point');
+        dragPoint.classList.add('drag-point', 'draggable');
         this.registerMainElement(dragPoint);
     }
 
