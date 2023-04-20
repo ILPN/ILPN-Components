@@ -254,7 +254,7 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
         return (e) => {
             wrapper.processMouseMovedFree(e);
             if (wrapper.dragging) {
-                this._streamFilterState.reset();
+                this._streamFilterState.reset(Math.floor(SpringEmbedderLayoutManager.MAX_ITERATIONS * 0.8));
             }
         };
     }
