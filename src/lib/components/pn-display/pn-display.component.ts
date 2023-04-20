@@ -216,8 +216,8 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
             svgElement = svgElement.parentElement!;
         }
 
-        const mouseSvgX = event.pageX - (svgElement as SVGElement).getBoundingClientRect().x;
-        const mouseSvgY = event.pageY - (svgElement as SVGElement).getBoundingClientRect().y;
+        const mouseSvgX = event.clientX - (svgElement as SVGElement).getBoundingClientRect().x;
+        const mouseSvgY = event.clientY - (svgElement as SVGElement).getBoundingClientRect().y;
         this.originAndZoom = this.originAndZoom.update({
             x: this.computeZoomOffset(oldF, newF, this.originAndZoom.x, mouseSvgX),
             y: this.computeZoomOffset(oldF, newF, this.originAndZoom.y, mouseSvgY),
