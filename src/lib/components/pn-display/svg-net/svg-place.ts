@@ -3,6 +3,7 @@ import {Place} from '../../../models/pn/model/place';
 import {PLACE_STYLE} from '../internals/constants/place-style';
 import {Observable, Subject, Subscription} from 'rxjs';
 import {TOKEN_STYLE} from '../internals/constants/token-style';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
 
 
 export class SvgPlace extends SvgWrapper {
@@ -13,8 +14,8 @@ export class SvgPlace extends SvgWrapper {
     private readonly _markingTextEl: SVGElement;
     private readonly _markingTokenEls: Array<SVGElement>;
 
-    constructor(place: Place) {
-        super(place.id);
+    constructor(place: Place, zoomWrapper?: ZoomWrapper) {
+        super(place.id, zoomWrapper);
 
         const placeEl = this.createSvgElement('circle');
         this.applyStyle(placeEl, PLACE_STYLE);

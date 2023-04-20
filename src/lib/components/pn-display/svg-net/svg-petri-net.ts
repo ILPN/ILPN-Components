@@ -9,6 +9,7 @@ import {Node} from '../../../models/pn/model/node';
 import {SvgWrapper} from './svg-wrapper';
 import {BehaviorSubject, combineLatest, merge, Observable, Subject, Subscription} from 'rxjs';
 import {Marking} from '../../../models/pn/model/marking';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
 
 
 export class SvgPetriNet {
@@ -20,20 +21,20 @@ export class SvgPetriNet {
     private readonly _dragging$: BehaviorSubject<boolean>;
     private readonly _sub: Subscription;
 
-    constructor(net: PetriNet) {
+    constructor(net: PetriNet, private _zoomWrapper?: ZoomWrapper) {
         this._dragging$ = new BehaviorSubject<boolean>(false);
         const observables: Array<Observable<boolean>> = [];
 
         this._net = net;
         this._places = new Map<string, SvgPlace>();
         for (const p of net.getPlaces()) {
-            const svgPlace = new SvgPlace(p);
+            const svgPlace = new SvgPlace(p, this._zoomWrapper);
             this._places.set(p.getId(), svgPlace);
             observables.push(svgPlace.isDragging$());
         }
         this._transition = new Map<string, SvgTransition>();
         for (const t of net.getTransitions()) {
-            const svgTransition = new SvgTransition(t);
+            const svgTransition = new SvgTransition(t, this._zoomWrapper);
             this._transition.set(t.getId(), svgTransition);
             observables.push(svgTransition.isDragging$());
         }
@@ -44,12 +45,12 @@ export class SvgPetriNet {
             if (a.source instanceof Place) {
                 s = this._places.get(a.sourceId)!;
                 d = this._transition.get(a.destinationId)!;
-                svgArc =  new SvgArc(s, d, a);
+                svgArc =  new SvgArc(s, d, a, this._zoomWrapper);
                 this._arcs.set(a.getId(), svgArc);
             } else {
                 s = this._transition.get(a.sourceId!)!;
                 d = this._places.get(a.destinationId)!;
-                svgArc = new SvgArc(s, d, a);
+                svgArc = new SvgArc(s, d, a, this._zoomWrapper);
                 this._arcs.set(a.getId(), svgArc);
             }
             observables.push(svgArc.isDragging$());

@@ -3,6 +3,8 @@ import {Point} from '../../../utility/svg/point';
 import {MouseListener} from '../../../utility/svg/mouse-listener';
 import {BehaviorSubject, Observable, Subject, Subscription} from 'rxjs';
 import {TEXT_STYLE} from '../internals/constants/text-style';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
+import {zoomFactor} from "../internals/zoom-factor";
 
 
 export abstract class SvgWrapper extends Identifiable implements Point, MouseListener {
@@ -27,7 +29,7 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
 
     private _subs: Array<Subscription>;
 
-    protected constructor(id?: string) {
+    protected constructor(id?: string, protected readonly _zoomWrapper?: ZoomWrapper) {
         super(id);
         this._center$ = new BehaviorSubject<Point>({x: 0, y: 0});
         this._dragging$ = new BehaviorSubject<boolean>(false);
@@ -171,9 +173,10 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
     }
 
     protected newCoordinates(event: MouseEvent): Point {
+        const factor = this._zoomWrapper ? zoomFactor(this._zoomWrapper.value.zoom) : 1;
         return {
-            x: this.x + event.x - this._lastPoint!.x,
-            y: this.y + event.y - this._lastPoint!.y,
+            x: this.x + (event.x - this._lastPoint!.x) * factor,
+            y: this.y + (event.y - this._lastPoint!.y) * factor,
         };
     }
 

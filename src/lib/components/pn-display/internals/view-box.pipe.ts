@@ -8,7 +8,10 @@ import {zoomFactor} from './zoom-factor';
 })
 export class ViewBoxPipe implements PipeTransform {
 
-    transform(value: OriginAndZoom): string {
+    transform(value: OriginAndZoom | null): string {
+        if (value === null) {
+            throw new Error('ViewBoxPipe value is null');
+        }
         const factor = zoomFactor(value.zoom);
         return `${value.x} ${value.y} ${value.width * factor} ${value.height * factor}`;
     }

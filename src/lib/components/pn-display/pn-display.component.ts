@@ -34,7 +34,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     @Input() marking$: Observable<Marking> | undefined;
     @Output() placeClicked: EventEmitter<string>;
 
-    originAndZoom: OriginAndZoom; // TODO fix drag when zoomed, fix zoom when website scrolled
+    readonly originAndZoom$: BehaviorSubject<OriginAndZoom>;
 
     _width: number | string = '100%';
     _height: number | string = '100%';
@@ -61,7 +61,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         this.zoomingIn$ = new BehaviorSubject<boolean>(false);
         this.zoomingOut$ = new BehaviorSubject<boolean>(false);
         this._subs = [];
-        this.originAndZoom = new OriginAndZoom(0, 0, 0);
+        this.originAndZoom$ = new BehaviorSubject<OriginAndZoom>(new OriginAndZoom(0, 0, 0));
         this.placeClicked = new EventEmitter<string>();
 
         this._subs.push(
@@ -76,10 +76,10 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         }
 
         const canvasDimensions = this.drawingArea.nativeElement.getBoundingClientRect() as DOMRect;
-        this.originAndZoom = this.originAndZoom.update({
+        this.originAndZoom$.next(this.originAndZoom$.value.update({
             width: canvasDimensions.width,
             height: canvasDimensions.height
-        });
+        }));
 
         this._subs.push(
             this.petriNet$.subscribe(net => {
@@ -98,7 +98,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                     return;
                 }
 
-                this._svgNet = new SvgPetriNet(this._net);
+                this._svgNet = new SvgPetriNet(this._net, this.originAndZoom$);
                 this._svgNet.bindEvents(this._mouseMoved$, this._mouseUp$, (svg) => this._layoutManager.getMouseMovedReaction(svg));
                 this._placeClickSub = this._svgNet.getPlaceClicked$().subscribe(pid => {
                     this.placeClicked.next(pid);
@@ -159,6 +159,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         if (this._netLayoutSub !== undefined) {
             this._netLayoutSub.unsubscribe();
         }
+        this.originAndZoom$.complete();
         this._mouseMoved$.complete();
         this._mouseUp$.complete();
         this._svgNet?.destroy();
@@ -208,8 +209,10 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
             })
         }
 
-        const oldF = zoomFactor(this.originAndZoom.zoom);
-        const newF = zoomFactor(this.originAndZoom.zoom + event.deltaY);
+        const oaz = this.originAndZoom$.value;
+
+        const oldF = zoomFactor(oaz.zoom);
+        const newF = zoomFactor(oaz.zoom + event.deltaY);
 
         let svgElement = event.target as Element;
         while (svgElement.tagName !== 'svg') {
@@ -218,11 +221,11 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
 
         const mouseSvgX = event.clientX - (svgElement as SVGElement).getBoundingClientRect().x;
         const mouseSvgY = event.clientY - (svgElement as SVGElement).getBoundingClientRect().y;
-        this.originAndZoom = this.originAndZoom.update({
-            x: this.computeZoomOffset(oldF, newF, this.originAndZoom.x, mouseSvgX),
-            y: this.computeZoomOffset(oldF, newF, this.originAndZoom.y, mouseSvgY),
-            zoom: this.originAndZoom.zoom + event.deltaY
-        });
+        this.originAndZoom$.next(oaz.update({
+            x: this.computeZoomOffset(oldF, newF, oaz.x, mouseSvgX),
+            y: this.computeZoomOffset(oldF, newF, oaz.y, mouseSvgY),
+            zoom: oaz.zoom + event.deltaY
+        }));
         event.preventDefault();
     }
 
@@ -236,15 +239,17 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     }
 
     private processMouseMove(event: MouseEvent) {
-        if (this.panning) {
-            const factor = zoomFactor(this.originAndZoom.zoom);
-            this.originAndZoom = this.originAndZoom.update({
-                x: this.originAndZoom.x - (event.x - this._lastPoint!.x) * factor,
-                y: this.originAndZoom.y - (event.y - this._lastPoint!.y) * factor
-            });
-            this._lastPoint!.x = event.x;
-            this._lastPoint!.y = event.y;
+        if (!this.panning) {
+            return;
         }
+        const oaz = this.originAndZoom$.value;
+        const factor = zoomFactor(oaz.zoom);
+        this.originAndZoom$.next(oaz.update({
+            x: oaz.x - (event.x - this._lastPoint!.x) * factor,
+            y: oaz.y - (event.y - this._lastPoint!.y) * factor
+        }));
+        this._lastPoint!.x = event.x;
+        this._lastPoint!.y = event.y;
     }
 
     private clearDrawingArea() {
@@ -269,7 +274,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     }
 
     private resize(newWidth: number, newHeight: number) {
-        this.originAndZoom = this.originAndZoom.update({width: newWidth, height: newHeight});
+        this.originAndZoom$.next(this.originAndZoom$.value.update({width: newWidth, height: newHeight}));
     }
 
     private centerNet(boundingBox: BoundingBox) {
@@ -293,11 +298,11 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
             canvasHeight *= factor;
         }
 
-        this.originAndZoom = this.originAndZoom.update({
+        this.originAndZoom$.next(this.originAndZoom$.value.update({
             x: netTopLeft.x - ((canvasWidth - netWidth) / 2),
             y: netTopLeft.y - ((canvasHeight - netHeight) / 2),
             zoom
-        });
+        }));
     }
 
     private setTimeout(callback: () => void) {

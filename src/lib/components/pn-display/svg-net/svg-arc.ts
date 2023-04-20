@@ -8,6 +8,7 @@ import {Arc} from '../../../models/pn/model/arc';
 import {ARC_END_STYLE, ARC_STYLE} from '../internals/constants/arc-style';
 import {Observable, Subject, Subscription} from 'rxjs';
 import {TransitionStyle} from '../internals/constants/transition-style';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
 
 
 interface NewLine {
@@ -33,10 +34,10 @@ export class SvgArc extends SvgWrapper {
     private _mouseUp$?: Subject<MouseEvent>;
     private _mouseMovedReactionFactory?: (svg: SvgWrapper) => (e: MouseEvent) => void;
 
-    constructor(source: SvgPlace, destination: SvgTransition, arc: Arc);
-    constructor(source: SvgTransition, destination: SvgPlace, arc: Arc);
-    constructor(source: SvgPlace | SvgTransition, destination: SvgTransition | SvgPlace, arc: Arc) {
-        super();
+    constructor(source: SvgPlace, destination: SvgTransition, arc: Arc, zoomWrapper?: ZoomWrapper);
+    constructor(source: SvgTransition, destination: SvgPlace, arc: Arc, zoomWrapper?: ZoomWrapper);
+    constructor(source: SvgPlace | SvgTransition, destination: SvgTransition | SvgPlace, arc: Arc, zoomWrapper?: ZoomWrapper) {
+        super(undefined, zoomWrapper);
         this._arc = arc;
         this._breakpoints = [];
 
