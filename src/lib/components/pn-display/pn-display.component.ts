@@ -8,7 +8,7 @@ import {
     ViewEncapsulation
 } from '@angular/core';
 import {PetriNet} from '../../models/pn/model/petri-net';
-import {Observable, Subject, Subscription} from 'rxjs';
+import {BehaviorSubject, Observable, Subject, Subscription} from 'rxjs';
 import {addPoints, computeDeltas, Point} from '../../utility/svg/point';
 import {OriginAndZoom} from './internals/model/origin-and-zoom';
 import {inverseZoomFactor, zoomFactor} from './internals/zoom-factor';
@@ -26,6 +26,8 @@ import {BoundingBox} from "../../utility/svg/bounding-box";
 })
 export class PnDisplayComponent implements AfterViewInit, OnDestroy {
 
+    private static readonly TIMEOUT = 100;
+
     @ViewChild('drawingArea') drawingArea: ElementRef<SVGElement> | undefined;
     @Input() petriNet$: Observable<PetriNet> | undefined;
     @Input() placeFill$: Observable<Map<string, string> | undefined> | undefined;
@@ -37,6 +39,10 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     _width: number | string = '100%';
     _height: number | string = '100%';
 
+    public panning = false;
+    public zoomingIn$: BehaviorSubject<boolean>;
+    public zoomingOut$: BehaviorSubject<boolean>;
+
     private _subs: Array<Subscription>;
     private _lastPoint: Point | undefined;
     private readonly _mouseMoved$: Subject<MouseEvent>;
@@ -46,13 +52,14 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     private _placeClickSub: Subscription | undefined;
     private _netLayoutSub: Subscription | undefined;
     private _layoutManager: PetriNetLayoutManager;
-
-    public panning = false;
+    private _timeout?: number;
 
     constructor(layoutManagerFactory: PetriNetLayoutManagerFactoryService) {
         this._layoutManager = layoutManagerFactory.create();
         this._mouseMoved$ = new Subject<MouseEvent>();
         this._mouseUp$ = new Subject<MouseEvent>();
+        this.zoomingIn$ = new BehaviorSubject<boolean>(false);
+        this.zoomingOut$ = new BehaviorSubject<boolean>(false);
         this._subs = [];
         this.originAndZoom = new OriginAndZoom(0, 0, 0);
         this.placeClicked = new EventEmitter<string>();
@@ -147,6 +154,7 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.stopTimeout();
         this._subs.forEach(s => s.unsubscribe());
         if (this._netLayoutSub !== undefined) {
             this._netLayoutSub.unsubscribe();
@@ -186,6 +194,21 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
     }
 
     processMouseScroll(event: WheelEvent) {
+        if (event.deltaY < 0) {
+            console.log('in');
+            this.zoomingIn$.next(true);
+            this.zoomingOut$.next(false);
+            this.setTimeout(() => {
+                this.zoomingIn$.next(false);
+            })
+        } else {
+            this.zoomingIn$.next(false);
+            this.zoomingOut$.next(true);
+            this.setTimeout(() => {
+                this.zoomingOut$.next(false);
+            })
+        }
+
         const oldF = zoomFactor(this.originAndZoom.zoom);
         const newF = zoomFactor(this.originAndZoom.zoom + event.deltaY);
         const mouseSvgX = event.pageX - (event.target as SVGElement).getBoundingClientRect().x;
@@ -270,5 +293,17 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
             y: netTopLeft.y - ((canvasHeight - netHeight) / 2),
             zoom
         });
+    }
+
+    private setTimeout(callback: () => void) {
+        this.stopTimeout();
+        this._timeout = setTimeout(callback, PnDisplayComponent.TIMEOUT);
+    }
+
+    private stopTimeout() {
+        if (this._timeout !== undefined) {
+            clearTimeout(this._timeout);
+            this._timeout = undefined;
+        }
     }
 }
