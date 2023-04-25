@@ -1,6 +1,6 @@
 import {PetriNetLayoutManager} from "../petri-net-layout.manager";
 import {SvgPetriNet} from "../../svg-net/svg-petri-net";
-import {filter, interval, map, merge, Observable, of, tap} from "rxjs";
+import {filter, interval, map, merge, Observable, of, Subject, takeUntil, tap} from "rxjs";
 import {addPoints, computeDeltas, computeDistance, Point} from "../../../../utility/svg/point";
 import {SvgWrapper} from "../../svg-net/svg-wrapper";
 import {SvgTransition} from "../../svg-net/svg-transition";
@@ -8,6 +8,9 @@ import {SvgPlace} from "../../svg-net/svg-place";
 import {BoundingBox} from "../../../../utility/svg/bounding-box";
 import {Cache} from "./internal/cache";
 import {StreamFilterState} from "./internal/stream-filter-state";
+import {Transition} from "../../../../models/pn/model/transition";
+import {Place} from "../../../../models/pn/model/place";
+import {BidirectionalMap} from "../../../../utility/bidirectional-map";
 
 
 /**
@@ -26,37 +29,54 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
     private static readonly GRID_FORCE_FACTOR = 0;
 
     private static readonly MAX_ITERATIONS = 60;
+    private static readonly OVERLAY_FIXED_ITERATIONS = Math.floor(SpringEmbedderLayoutManager.MAX_ITERATIONS / 2);
 
     private static readonly INITIAL_SPREAD_DISTANCE = 500;
     private static readonly GRID_SIZE = 120;
     private static readonly HALF_GRID_SIZE = SpringEmbedderLayoutManager.GRID_SIZE / 2;
 
     private readonly _streamFilterState: StreamFilterState;
+    private _killInterval$: Subject<void> | undefined;
+    private _currentNet: SvgPetriNet | undefined;
 
     constructor() {
         super();
         this._streamFilterState = new StreamFilterState(SpringEmbedderLayoutManager.MAX_ITERATIONS);
     }
 
-    layout(net: SvgPetriNet): Observable<BoundingBox> {
-        const indices = new Map<string, number>();
+    private placeNodesAndLayout(net: SvgPetriNet, placeNodes: (nodes: Array<SvgTransition | SvgPlace>) => void, unfixAfter?: number) {
+        const cacheIndices = new Map<string, number>();
         const nodes = net.getMappedNodes();
         nodes.forEach((value, index) => {
-            indices.set(value.getId(), index);
+            cacheIndices.set(value.getId(), index);
         });
 
-        this._streamFilterState.reset();
+        if (this._killInterval$ !== undefined) {
+            this._killInterval$.next();
+        } else {
+            this._killInterval$ = new Subject<void>();
+        }
 
-        this.placeNodesRandomly(nodes);
+        placeNodes(nodes);
+
+        this._currentNet = net;
+        this._streamFilterState.reset();
 
         return merge(
             of(this.computeBoundingBox(nodes)),
             interval(1).pipe(
+                takeUntil(this._killInterval$.asObservable()),
                 filter(() => this._streamFilterState.filter()),
                 map( () => this._streamFilterState.currentIteration()),
                 tap((iter: number) => {
+                    if (unfixAfter !== undefined && iter === unfixAfter) {
+                        for (const n of this._currentNet!.getMappedNodes()) {
+                            n.isFixed = false;
+                        }
+                    }
+
                     for (let i = 0; i < 10; i++) {
-                        this.computeAndApplyForces(nodes, indices, net, iter);
+                        this.computeAndApplyForces(nodes, cacheIndices, net, iter);
                     }
                 }),
                 map(() => {
@@ -66,19 +86,171 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
         );
     }
 
-    private placeNodesRandomly(nodes: Array<SvgTransition | SvgPlace>) {
-        for (const n of nodes) {
-            const angle = Math.random() * 2 * Math.PI;
-            const distance = Math.random() * SpringEmbedderLayoutManager.INITIAL_SPREAD_DISTANCE;
+    layout(net: SvgPetriNet): Observable<BoundingBox> {
+        return this.placeNodesAndLayout(net, nodes => {
+            for (const n of nodes) {
+                this.placeNodeRandomly(n);
+            }
+        });
+    }
 
-            n.center = {
-                x: Math.cos(angle) * distance,
-                y: Math.sin(angle) * distance
-            };
+    /**
+     * If both the previous and the new nets are unlabeled,
+     * maps the same labels to the same positions,
+     * maps the same places to the positions of previous places,
+     * maps new places in between existing transitions,
+     * maps new elements (places, transitions) randomly near their existing connections (if any)
+     * and lets the elements settle in accordance to the spring embedder rules.
+     */
+    override overlayLayout(net: SvgPetriNet): Observable<BoundingBox> {
+        if (this._currentNet === undefined) {
+            return this.layout(net);
+        }
+        if (this._currentNet.getNet().hasMoreThanNTransitionsWithTheSameLabel(1) || net.getNet().hasMoreThanNTransitionsWithTheSameLabel(1)) {
+            console.debug('Either the previous, or the new net has duplicate labels! Currently unsupported. Running standard layout instead.');
+            return this.layout(net);
+        }
+
+        return this.placeNodesAndLayout(net, nodes => {
+            this.placeNodesOverlay(net, nodes);
+        }, SpringEmbedderLayoutManager.OVERLAY_FIXED_ITERATIONS);
+    }
+
+    override destroy() {
+        super.destroy();
+        if (this._killInterval$ !== undefined) {
+            this._killInterval$.next();
+            this._killInterval$.complete();
         }
     }
 
-    private computeAndApplyForces(nodes: Array<SvgTransition | SvgPlace>, indices: Map<string, number>, net: SvgPetriNet, iter: number) {
+    private placeNodeRandomly(node: SvgTransition | SvgPlace) {
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = Math.random() * SpringEmbedderLayoutManager.INITIAL_SPREAD_DISTANCE;
+
+        node.center = {
+            x: Math.cos(angle) * distance,
+            y: Math.sin(angle) * distance
+        };
+    }
+
+    private placeNodesOverlay(net: SvgPetriNet, nodes: Array<SvgTransition | SvgPlace>) {
+        // assumes the previous and current nets are unlabeled
+
+        const oldTransitions = new Map<string | undefined, SvgTransition>();
+        for (const old of this._currentNet!.getMappedNodes()) {
+            if (old instanceof SvgPlace) {
+                continue;
+            }
+            oldTransitions.set(old.getLabel(), old);
+        }
+
+        const oldNewMap = new BidirectionalMap<Transition, Transition>();
+        const unsorted: Array<SvgTransition | SvgPlace> = [];
+
+        // place nodes with pairs at their previous positions and fix them
+        for (const newNode of nodes) {
+            if (newNode instanceof SvgTransition) {
+                const old = oldTransitions.get(newNode.getLabel());
+                if (old === undefined) {
+                    unsorted.push(newNode);
+                } else {
+                    oldNewMap.set(this._currentNet!.getInverseMappedTransition(old)!, net.getInverseMappedTransition(newNode)!);
+                    newNode.center = old.center;
+                    newNode.isFixed = true;
+                }
+                continue;
+            }
+
+            // SvgPlace
+            // implementation relies on the fact, that all transitions are iterated over before all places!
+            const place = net.getInverseMappedPlace(newNode)!;
+            const oldPlace = this.findMatchingPlace(place, oldNewMap);
+            if (oldPlace === undefined) {
+                unsorted.push(newNode);
+                continue;
+            }
+
+            const oldNode = this._currentNet!.getMappedPlace(oldPlace)!;
+            newNode.center = oldNode.center;
+            newNode.isFixed = true;
+        }
+
+        // place nodes without pairs, but with all connections paired in the center point
+        // place the rest randomly
+        for (const unsortedNode of unsorted) {
+            const unwrapped = net.getInverseMappedNode(unsortedNode)!;
+            const preset = unwrapped.ingoingArcs.map(a => net.getMappedWrapper(a.source)!);
+            if (preset.some(pre => !pre.isFixed)) {
+                this.placeNodeRandomly(unsortedNode);
+                continue;
+            }
+            const postset = unwrapped.outgoingArcs.map(a => net.getMappedWrapper(a.destination)!);
+            if (postset.some(post => !post.isFixed)) {
+                this.placeNodeRandomly(unsortedNode);
+                continue;
+            }
+            const sum: Point = {x: 0, y: 0};
+            for (const n of [...preset, ...postset]) {
+                sum.x += n.x;
+                sum.y += n.y;
+            }
+            const count = preset.length + postset.length;
+            sum.x /= count;
+            sum.y /= count;
+            unsortedNode.center = sum;
+        }
+    }
+
+    private findMatchingPlace(newPlace: Place, oldNewTransitions: BidirectionalMap<Transition, Transition>): undefined | Place {
+        if (newPlace.ingoingArcWeights.size > 0) {
+            const arc = newPlace.ingoingArcs[0];
+            const source = oldNewTransitions.getInverse(arc.sourceId);
+            if (source === undefined) {
+                return undefined;
+            }
+            return this.compareArcs(newPlace, source.outgoingArcs.map(a => a.destination as Place), oldNewTransitions);
+        } else if (newPlace.outgoingArcWeights.size > 0) {
+            const arc = newPlace.outgoingArcs[0];
+            const dest = oldNewTransitions.getInverse(arc.destinationId);
+            if (dest === undefined) {
+                return undefined;
+            }
+            return this.compareArcs(newPlace, dest.ingoingArcs.map(a => a.source as Place), oldNewTransitions);
+        }
+        return undefined;
+    }
+
+    private compareArcs(newPlace: Place, oldCandidates: Array<Place>, oldNewTransitions: BidirectionalMap<Transition, Transition>): undefined | Place {
+        for (const oldPlace of oldCandidates) {
+            if (newPlace.ingoingArcWeights.size !== oldPlace.ingoingArcWeights.size) {
+                continue;
+            }
+            if (newPlace.outgoingArcWeights.size !== oldPlace.outgoingArcWeights.size) {
+                continue;
+            }
+            if (this.areMapsEqual(newPlace.ingoingArcWeights, oldPlace.ingoingArcWeights, oldNewTransitions) && this.areMapsEqual(newPlace.outgoingArcWeights, oldPlace.outgoingArcWeights, oldNewTransitions)) {
+                return oldPlace;
+            }
+        }
+        return undefined;
+    }
+
+    private areMapsEqual(mapB: Map<string, number>, mapA: Map<string, number>, mappingBA: BidirectionalMap<Transition, Transition>): boolean {
+        // assumes sizes are the same!
+        for (const [idB, weightB] of mapB.entries()) {
+            const idA = mappingBA.getInverseId(idB);
+            if (idA === undefined) {
+                return false;
+            }
+            if (weightB !== mapA.get(idA)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private computeAndApplyForces(nodes: Array<SvgTransition | SvgPlace>, cacheIndices: Map<string, number>, net: SvgPetriNet, iter: number) {
         const distanceCache: Cache<number> = {};
         const deltaCache: Cache<Point> = {};
 
@@ -134,11 +306,11 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
             const arcAttractionForce = this.arcAttractionForce(dist, deltas);
             const arcRotationForce = this.arcRotationForce(deltas);
 
-            addPoints(forces[indices.get(s.getId())!], arcAttractionForce);
-            addPoints(forces[indices.get(s.getId())!], arcRotationForce, -1);
+            addPoints(forces[cacheIndices.get(s.getId())!], arcAttractionForce);
+            addPoints(forces[cacheIndices.get(s.getId())!], arcRotationForce, -1);
 
-            addPoints(forces[indices.get(d.getId())!], arcAttractionForce, -1);
-            addPoints(forces[indices.get(d.getId())!], arcRotationForce);
+            addPoints(forces[cacheIndices.get(d.getId())!], arcAttractionForce, -1);
+            addPoints(forces[cacheIndices.get(d.getId())!], arcRotationForce);
         }
 
         // apply forces

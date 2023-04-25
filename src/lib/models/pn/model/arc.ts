@@ -1,5 +1,5 @@
 import {Node} from './node';
-import {Identifiable} from '../../../utility/get-by-id';
+import {Identifiable} from '../../../utility/identifiable';
 
 
 export class Arc extends Identifiable {

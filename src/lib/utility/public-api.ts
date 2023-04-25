@@ -15,4 +15,5 @@ export * from './map-set';
 export * from './string-sequence';
 export * from './directly-follows-extractor';
 export * from './set-operations';
-export * from './get-by-id';
+export * from './identifiable';
+export * from './bidirectional-map';

@@ -55,4 +55,8 @@ export class SvgTransition extends SvgWrapper {
     public isSilent(): boolean {
         return this._transition.isSilent;
     }
+
+    public getLabel(): string | undefined {
+        return this._transition.label;
+    }
 }

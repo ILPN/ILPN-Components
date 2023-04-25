@@ -11,7 +11,18 @@ export abstract class PetriNetLayoutManager {
 
     public abstract layout(net: SvgPetriNet): Observable<BoundingBox>;
 
+    /**
+     * Places the new net in such a way, that it resembles the previous net as much as possible.
+     */
+    public overlayLayout(net: SvgPetriNet): Observable<BoundingBox> {
+        console.debug('overlayLayout is not supported! Running standard layout instead');
+        return this.layout(net);
+    }
+
     public abstract getMouseMovedReaction(wrapper: SvgWrapper): (e: MouseEvent) => void;
+
+    public destroy() {
+    }
 
     protected computeBoundingBox(nodes: Array<SvgWrapper>): BoundingBox {
         const r = {

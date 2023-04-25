@@ -1,4 +1,4 @@
-import {Identifiable} from '../../../utility/get-by-id';
+import {Identifiable} from '../../../utility/identifiable';
 import {Point} from '../../../utility/svg/point';
 import {MouseListener} from '../../../utility/svg/mouse-listener';
 import {BehaviorSubject, Observable, Subject, Subscription} from 'rxjs';

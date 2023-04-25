@@ -1,5 +1,5 @@
 import {Arc} from './arc';
-import {getById, Identifiable} from '../../../utility/get-by-id';
+import {getByValueId, Identifiable} from '../../../utility/identifiable';
 
 export class Node extends Identifiable {
 
@@ -44,12 +44,12 @@ export class Node extends Identifiable {
     }
 
     public removeArc(arc: Arc | string) {
-        let a = getById(this._ingoingArcs, arc);
+        let a = getByValueId(this._ingoingArcs, arc);
         if (a !== undefined) {
             this._ingoingArcs.delete(a.getId());
             this._ingoingArcWeights.delete(a.getId());
         }
-        a = getById(this._outgoingArcs, arc);
+        a = getByValueId(this._outgoingArcs, arc);
         if (a !== undefined) {
             this._outgoingArcs.delete(a.getId());
             this._outgoingArcWeights.delete(a.getId());

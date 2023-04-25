@@ -2,7 +2,7 @@ import {Place} from './place';
 import {Transition} from './transition';
 import {Arc} from './arc';
 import {createUniqueString, IncrementingCounter} from '../../../utility/incrementing-counter';
-import {getById} from '../../../utility/get-by-id';
+import {getByValueId} from '../../../utility/identifiable';
 import {Marking} from './marking';
 
 export class PetriNet {
@@ -174,7 +174,7 @@ export class PetriNet {
     }
 
     public removeTransition(transition: Transition | string) {
-        const t = getById(this._transitions, transition);
+        const t = getByValueId(this._transitions, transition);
         if (t === undefined) {
             return;
         }
@@ -221,7 +221,7 @@ export class PetriNet {
     }
 
     public removePlace(place: Place | string) {
-        const p = getById(this._places, place);
+        const p = getByValueId(this._places, place);
         if (p === undefined) {
             return;
         }
@@ -268,7 +268,7 @@ export class PetriNet {
     }
 
     public removeArc(arc: Arc | string) {
-        const a = getById(this._arcs, arc);
+        const a = getByValueId(this._arcs, arc);
         if (a === undefined) {
             return;
         }
@@ -331,6 +331,19 @@ export class PetriNet {
 
     public getLabelCount(): Map<string | undefined, number> {
         return new Map<string | undefined, number>(this._labelCount);
+    }
+
+    /**
+     * @param n
+     * @returns whether the net contains more than `n` transitions that have the same label (including no label)
+     */
+    public hasMoreThanNTransitionsWithTheSameLabel(n: number): boolean {
+        for (const count of this._labelCount.values()) {
+            if (count > n) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public isEmpty(): boolean {

@@ -21,7 +21,11 @@ export abstract class Identifiable {
     }
 }
 
-export function getById<T extends Identifiable>(map: Map<string, T>, object: T | string): T | undefined {
+export function getByValueId<V extends Identifiable>(map: Map<string, V>, object: V | string): V | undefined {
+    return getByKeyId(map, object);
+}
+
+export function getByKeyId<V> (map: Map<string, V>, object: Identifiable | string): V | undefined {
     if (typeof object === 'string') {
         return map.get(object);
     } else {
