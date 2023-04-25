@@ -347,6 +347,13 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
      * The force is always tangential to the arc.
      */
     private arcAttractionForce(distance: number, deltas: Point): Point {
+        if (distance === 0) {
+            return {
+                x: 0,
+                y: 0,
+            };
+        }
+
         const coef = SpringEmbedderLayoutManager.SPRING_STIFFNESS * (distance - SpringEmbedderLayoutManager.SPRING_LENGTH) / distance;
         return {
             x: deltas.x * coef,
@@ -394,6 +401,13 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
     }
 
     private nodeForce(distance: number, deltas: Point): Point {
+        if (distance === 0) {
+            return {
+                x: 0,
+                y: 0,
+            };
+        }
+
         const coef = SpringEmbedderLayoutManager.NODE_REPULSIVENESS / distance / distance / distance;
         return {
             x: deltas.x * coef,
