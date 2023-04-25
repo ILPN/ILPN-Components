@@ -47,12 +47,12 @@ export class Node extends Identifiable {
         let a = getByValueId(this._ingoingArcs, arc);
         if (a !== undefined) {
             this._ingoingArcs.delete(a.getId());
-            this._ingoingArcWeights.delete(a.getId());
+            this._ingoingArcWeights.delete(a.sourceId);
         }
         a = getByValueId(this._outgoingArcs, arc);
         if (a !== undefined) {
             this._outgoingArcs.delete(a.getId());
-            this._outgoingArcWeights.delete(a.getId());
+            this._outgoingArcWeights.delete(a.destinationId);
         }
     }
 }
