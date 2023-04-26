@@ -131,4 +131,8 @@ export class IncrementalMiner {
             this._cache.put(containedIndices, net);
         }
     }
+
+    public clearCache() {
+        this._cache.clear();
+    }
 }

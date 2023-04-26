@@ -18,7 +18,7 @@ interface DfsStackFrame {
 export class IncrementalMinerCache {
 
     private readonly _domain: Array<PetriNet>;
-    private readonly _root: CacheTrieNode;
+    private _root: CacheTrieNode;
 
     /**
      * Initializes a new cache. Sets containing a single element of the list (atoms) are mapped to the domain elements.
@@ -27,10 +27,7 @@ export class IncrementalMinerCache {
     public constructor(domain: Array<PetriNet>) {
         this._domain = [...domain];
         this._root = new CacheTrieNode();
-
-        for (let i = 0; i < this._domain.length; i++) {
-            this._root.insertChild([i], this._domain[i]);
-        }
+        this.populateCacheWithDomain();
     }
 
     /**
@@ -101,5 +98,16 @@ export class IncrementalMinerCache {
             frame = frame.previousFrame;
         }
         return r;
+    }
+
+    public clear() {
+        this._root = new CacheTrieNode();
+        this.populateCacheWithDomain();
+    }
+
+    private populateCacheWithDomain() {
+        for (let i = 0; i < this._domain.length; i++) {
+            this._root.insertChild([i], this._domain[i]);
+        }
     }
 }
