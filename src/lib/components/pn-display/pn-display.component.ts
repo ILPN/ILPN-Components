@@ -94,6 +94,10 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
                 this.clearDrawingArea();
 
                 if (this._net.isEmpty()) {
+                    if (this._netLayoutSub !== undefined) {
+                        this._netLayoutSub.unsubscribe();
+                        this._netLayoutSub = undefined;
+                    }
                     this._svgNet = undefined;
                     return;
                 }
