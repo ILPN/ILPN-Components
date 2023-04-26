@@ -8,7 +8,7 @@ import {
     ViewEncapsulation
 } from '@angular/core';
 import {PetriNet} from '../../models/pn/model/petri-net';
-import {BehaviorSubject, Observable, Subject, Subscription} from 'rxjs';
+import {BehaviorSubject, distinctUntilChanged, Observable, Subject, Subscription} from 'rxjs';
 import {addPoints, computeDeltas, Point} from '../../utility/svg/point';
 import {OriginAndZoom} from './internals/model/origin-and-zoom';
 import {inverseZoomFactor, zoomFactor} from './internals/zoom-factor';
@@ -82,7 +82,9 @@ export class PnDisplayComponent implements AfterViewInit, OnDestroy {
         }));
 
         this._subs.push(
-            this.petriNet$.subscribe(net => {
+            this.petriNet$.pipe(
+                distinctUntilChanged()
+            ).subscribe(net => {
                 if (this._svgNet !== undefined) {
                     this._svgNet.destroy();
                     if (this._placeClickSub !== undefined) {
