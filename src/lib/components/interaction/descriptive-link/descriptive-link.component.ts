@@ -9,6 +9,8 @@ import {FileDisplay} from '../../layout/file-display';
 })
 export class DescriptiveLinkComponent {
 
+    public static readonly DRAG_DATA_KEY = 'ilpn-descriptive-link';
+
     @Input() squareContent: string = '?';
     @Input() title: string = '';
     @Input() description: string = '';
@@ -44,15 +46,40 @@ export class DescriptiveLinkComponent {
             return;
         }
 
-        const links = (this.link as Array<string>).map(l => this.resolveSingleLink(l));
+        const links = this.resolveLinks();
 
         for (const link of links) {
             this.createDownloadLink(link);
         }
     }
 
+    addDragInformation(e: DragEvent) {
+        if (this.isAnchor()) {
+            this.configureDragTransfer(e, this.resolveSingleLink(this.link as string));
+            return;
+        }
+        const links = this.resolveLinks();
+        if (links.length === 0) {
+            e.preventDefault();
+            return;
+        }
+        this.configureDragTransfer(e, JSON.stringify(links));
+    }
+
+    private configureDragTransfer(e: DragEvent, data: string) {
+        e.dataTransfer!.effectAllowed = 'link';
+        e.dataTransfer!.setData(DescriptiveLinkComponent.DRAG_DATA_KEY, data);
+    }
+
     private isAnchor(): boolean {
         return this.link !== undefined && !Array.isArray(this.link);
+    }
+
+    private resolveLinks() {
+        if (!Array.isArray(this.link)) {
+            return [];
+        }
+        return this.link.map(l => this.resolveSingleLink(l));
     }
 
     private resolveSingleLink(link: string) {

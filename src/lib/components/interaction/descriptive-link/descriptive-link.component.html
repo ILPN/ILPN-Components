@@ -1,12 +1,16 @@
 <!-- single link -->
 <ng-template [ngIf]="type() === 'anchor' && !router">
-    <a class="link" [href]="resolveAnchorLink()" [attr.download]="download ? '' : null">
-        <ilpn-info-card [fileDisplay]="fileDisplay"
-                        [squareContent]="squareContent"
-                        [description]="description"
-                        [title]="title"
-                        [descriptionLines]="descriptionLines"></ilpn-info-card>
-    </a>
+    <div draggable="true" (dragstart)="addDragInformation($event)">
+        <a class="link"
+           [href]="resolveAnchorLink()"
+           [attr.download]="download ? '' : null">
+            <ilpn-info-card [fileDisplay]="fileDisplay"
+                            [squareContent]="squareContent"
+                            [description]="description"
+                            [title]="title"
+                            [descriptionLines]="descriptionLines"></ilpn-info-card>
+        </a>
+    </div>
 </ng-template>
 
 <!-- single link Angular router -->
@@ -22,7 +26,10 @@
 
 <!-- multiple links -->
 <ng-template [ngIf]="type() === 'button'">
-    <button class="buttonStyle" (click)="buttonClick()">
+    <button class="buttonStyle"
+            (click)="buttonClick()"
+            draggable="true"
+            (dragstart)="addDragInformation($event)">
         <ilpn-info-card [fileDisplay]="fileDisplay"
                         [squareContent]="squareContent"
                         [description]="description"
