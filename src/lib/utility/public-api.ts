@@ -17,3 +17,4 @@ export * from './directly-follows-extractor';
 export * from './set-operations';
 export * from './identifiable';
 export * from './bidirectional-map';
+export * from './ordered-pair-set';

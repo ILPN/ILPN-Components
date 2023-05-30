@@ -13,6 +13,7 @@ import {PartialOrderNetWithContainedTraces} from '../../models/pn/model/partial-
 import {LogEvent} from '../../models/log/model/logEvent';
 import {cleanLog} from './clean-log';
 import {LogSymbol} from './log-symbol';
+import {OrderedPairSet} from "../../utility/ordered-pair-set";
 
 
 
@@ -178,6 +179,22 @@ export class LogToPartialOrderTransformerService {
     private convertSequenceToPartialOrder(sequence: PetriNetSequence, concurrencyRelation: ConcurrencyRelation): PartialOrderNetWithContainedTraces {
         const net = sequence.net;
         const placeQueue = net.getPlaces();
+        const enqueuedPairs = new OrderedPairSet<Transition, Transition>();
+
+        for (const place of placeQueue) {
+            if (place.ingoingArcs.length === 0 || place.outgoingArcs.length === 0) {
+                continue;
+            }
+            if (place.ingoingArcs.length > 1 || place.outgoingArcs.length > 1) {
+                console.debug(place);
+                console.debug(sequence);
+                throw new Error('Illegal state. The processed net is not a partial order!');
+            }
+
+            const preEvent = place.ingoingArcs[0].source as Transition;
+            const postEvent = place.outgoingArcs[0].destination as Transition;
+            enqueuedPairs.add(preEvent, postEvent);
+        }
 
         while (placeQueue.length > 0) {
             const place = placeQueue.shift() as Place;
@@ -190,8 +207,8 @@ export class LogToPartialOrderTransformerService {
                 throw new Error('Illegal state. The processed net is not a partial order!');
             }
 
-            const preEvent = (place.ingoingArcs[0].source as Transition);
-            const postEvent = (place.outgoingArcs[0].destination as Transition);
+            const preEvent = place.ingoingArcs[0].source as Transition;
+            const postEvent = place.outgoingArcs[0].destination as Transition;
             if (
                 preEvent.label! === postEvent.label!                           // no auto-concurrency
                 || !concurrencyRelation.isConcurrent(preEvent.label!, postEvent.label!)
@@ -202,10 +219,11 @@ export class LogToPartialOrderTransformerService {
 
             net.removePlace(place);
 
+            const postEventHasInitialStateAsPrecondition = postEvent.ingoingArcs.some(a => a.source.ingoingArcs.length === 0);
             for (const a of preEvent.ingoingArcs) {
                 const inPlace = a.source as Place;
 
-                if (inPlace.ingoingArcs.length === 0 && postEvent.ingoingArcs.some(a => a.source.ingoingArcs.length === 0)) {
+                if (inPlace.ingoingArcs.length === 0 && postEventHasInitialStateAsPrecondition) {
                     continue;
                 }
                 if (inPlace.ingoingArcs.length > 0) {
@@ -215,21 +233,28 @@ export class LogToPartialOrderTransformerService {
                     }
                 }
 
+                const inPlaceInTransition = inPlace.ingoingArcs[0]?.source as Transition;
+                if (enqueuedPairs.has(inPlaceInTransition, postEvent)) {
+                    continue;
+                }
+
                 const clone = new Place();
                 net.addPlace(clone);
                 placeQueue.push(clone);
+                enqueuedPairs.add(inPlaceInTransition, postEvent);
 
-                if (inPlace.ingoingArcs.length > 0) {
-                    net.addArc(inPlace.ingoingArcs[0].source as Transition, clone);
+                if (inPlaceInTransition !== undefined) {
+                    net.addArc(inPlaceInTransition, clone);
                 }
 
                 net.addArc(clone, postEvent)
             }
 
+            const preEventHasFinalStateAsPostcondition = preEvent.outgoingArcs.some(a => a.destination.outgoingArcs.length === 0);
             for (const a of postEvent.outgoingArcs) {
                 const outPlace = a.destination as Place;
 
-                if (outPlace.outgoingArcs.length === 0 && preEvent.outgoingArcs.some(a => a.destination.outgoingArcs.length === 0)) {
+                if (outPlace.outgoingArcs.length === 0 && preEventHasFinalStateAsPostcondition) {
                     continue;
                 }
                 if (outPlace.outgoingArcs.length > 0) {
@@ -239,16 +264,24 @@ export class LogToPartialOrderTransformerService {
                     }
                 }
 
+                const outPlaceOutTransition = outPlace.outgoingArcs[0]?.destination as Transition;
+                if (enqueuedPairs.has(preEvent, outPlaceOutTransition)) {
+                    continue;
+                }
+
                 const clone = new Place();
                 net.addPlace(clone);
                 placeQueue.push(clone);
+                enqueuedPairs.add(preEvent, outPlaceOutTransition);
 
-                if (outPlace.outgoingArcs.length > 0) {
-                    net.addArc(clone, outPlace.outgoingArcs[0].destination as Transition);
+                if (outPlaceOutTransition !== undefined) {
+                    net.addArc(clone, outPlaceOutTransition);
                 }
 
                 net.addArc(preEvent, clone)
             }
+
+            enqueuedPairs.delete(preEvent, postEvent);
         }
 
         return new PartialOrderNetWithContainedTraces(net, [sequence.trace]);
