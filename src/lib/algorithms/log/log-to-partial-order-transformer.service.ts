@@ -14,6 +14,7 @@ import {LogEvent} from '../../models/log/model/logEvent';
 import {cleanLog} from './clean-log';
 import {LogSymbol} from './log-symbol';
 import {OrderedPairSet} from "../../utility/ordered-pair-set";
+import {PetriNetSerialisationService} from "../../models/pn/parser/petri-net-serialisation.service";
 
 
 
@@ -28,7 +29,7 @@ export interface LogToPartialOrderTransformerConfiguration {
 })
 export class LogToPartialOrderTransformerService {
 
-    constructor(protected _pnIsomorphismService: PetriNetIsomorphismService) {
+    constructor(protected _pnIsomorphismService: PetriNetIsomorphismService, private _ser: PetriNetSerialisationService) {
     }
 
     public transformToPartialOrders(log: Array<Trace>, concurrencyRelation: ConcurrencyRelation, config: LogToPartialOrderTransformerConfiguration = {}): Array<PartialOrderNetWithContainedTraces> {
@@ -36,30 +37,81 @@ export class LogToPartialOrderTransformerService {
             return [];
         }
 
+        console.debug('start');
+        let pStart = performance.now();
+
         if (!!config.cleanLog) {
             log = cleanLog(log);
         } else {
             console.warn(`relabeling a log with both 'start' and 'complete' events will result in unexpected label associations!`);
         }
 
+        console.debug('clean');
+        let pStop = performance.now();
+        console.debug(pStop - pStart);
+        pStart = pStop;
+
         concurrencyRelation.relabeler.relabelSequencesPreserveNonUniqueIdentities(log);
 
+        console.debug('relabel');
+        pStop = performance.now();
+        console.debug(pStop - pStart);
+        pStart = pStop;
+
         const sequences = this.convertLogToPetriNetSequences(log, !!config.discardPrefixes);
+
+        console.debug('toPN');
+        pStop = performance.now();
+        console.debug(pStop - pStart);
+        pStart = pStop;
 
         // transitive reduction requires all places to be internal => always add start/stop and remove later
         sequences.forEach(seq => {
             this.addStartAndStopEvent(seq);
         });
+
+        console.debug('add start stop');
+        pStop = performance.now();
+        console.debug(pStop - pStart);
+        pStart = pStop;
+
         const partialOrders = this.convertSequencesToPartialOrders(sequences, concurrencyRelation);
+
+        console.debug('toPO');
+        pStop = performance.now();
+        console.debug(pStop - pStart);
+        pStart = pStop;
+
         this.removeTransitiveDependencies(partialOrders);
+
+        console.debug('transitive reduction');
+        pStop = performance.now();
+        console.debug(pStop - pStart);
+        pStart = pStop;
+
         if (!config.addStartStopEvent) {
             partialOrders.forEach(po => {
                 this.removeStartAndStopEvent(po);
             });
         }
+
+        console.debug('remove start stop');
+        pStop = performance.now();
+        console.debug(pStop - pStart);
+        pStart = pStop;
+
         const result = this.filterAndCombinePartialOrderNets(partialOrders);
 
+        console.debug('filter combine');
+        pStop = performance.now();
+        console.debug(pStop - pStart);
+        pStart = pStop;
+
         concurrencyRelation.relabeler.undoSequencesLabeling(result.map(po => new EditableStringSequenceWrapper(po.net.getTransitions())));
+
+        console.debug('undo relabel');
+        pStop = performance.now();
+        console.debug(pStop - pStart);
 
         return result;
     }
@@ -173,10 +225,14 @@ export class LogToPartialOrderTransformerService {
     }
 
     private convertSequencesToPartialOrders(sequences: Array<PetriNetSequence>, concurrencyRelation: ConcurrencyRelation): Array<PartialOrderNetWithContainedTraces> {
-        return sequences.map(seq => this.convertSequenceToPartialOrder(seq, concurrencyRelation));
+        return sequences.map((seq, i) => this.convertSequenceToPartialOrder(seq, concurrencyRelation, i));
     }
 
-    private convertSequenceToPartialOrder(sequence: PetriNetSequence, concurrencyRelation: ConcurrencyRelation): PartialOrderNetWithContainedTraces {
+    private convertSequenceToPartialOrder(sequence: PetriNetSequence, concurrencyRelation: ConcurrencyRelation, i: number): PartialOrderNetWithContainedTraces {
+
+        console.debug('conver sequence to PO start');
+        const start = performance.now();
+
         const net = sequence.net;
         const placeQueue = net.getPlaces();
         const enqueuedPairs = new OrderedPairSet<Transition, Transition>();
@@ -196,8 +252,10 @@ export class LogToPartialOrderTransformerService {
             enqueuedPairs.add(preEvent, postEvent);
         }
 
+        let j = 0;
         while (placeQueue.length > 0) {
             const place = placeQueue.shift() as Place;
+            j++;
             if (place.ingoingArcs.length === 0 || place.outgoingArcs.length === 0) {
                 continue;
             }
@@ -283,6 +341,9 @@ export class LogToPartialOrderTransformerService {
 
             enqueuedPairs.delete(preEvent, postEvent);
         }
+
+        console.debug(`convert stop - ${i}`);
+        console.debug(performance.now() - start);
 
         return new PartialOrderNetWithContainedTraces(net, [sequence.trace]);
     }
