@@ -7,9 +7,9 @@ describe('TraceMultisetEquivalentStateTraverser', () => {
         const traverser = new TraceMultisetEquivalentStateTraverser();
         const outputs: Array<string> = [];
         traverser.traverseMultisetEquivalentStates([
-            createMockTrace([{n:'a'}, {n:'a'}, {n:'b'}]),
-            createMockTrace([{n:'a'}, {n:'b'}, {n:'a'}]),
-            createMockTrace([{n:'b'}, {n:'a'}, {n:'a'}]),
+            createMockTrace('a', 'a', 'b'),
+            createMockTrace('a', 'b', 'a'),
+            createMockTrace('b', 'a', 'a'),
         ],(prefix, step) => {
             outputs.push(step);
         });
@@ -18,9 +18,9 @@ describe('TraceMultisetEquivalentStateTraverser', () => {
 
     it('should return correct set of multiset equivalent traces', () => {
         const traverser = new TraceMultisetEquivalentStateTraverser();
-        const t1 = createMockTrace([{n:'a'}, {n:'a'}, {n:'b'}]);
-        const t2 = createMockTrace([{n:'a'}, {n:'b'}, {n:'a'}]);
-        const t3 = createMockTrace([{n:'b'}, {n:'a'}, {n:'a'}]);
+        const t1 = createMockTrace('a', 'a', 'b');
+        const t2 = createMockTrace('a', 'b', 'a');
+        const t3 = createMockTrace('b', 'a', 'a');
         const result = traverser.traverseMultisetEquivalentStates([t1, t2, t3]);
         expect(result).toBeTruthy();
         expect(result.length).toBe(1);

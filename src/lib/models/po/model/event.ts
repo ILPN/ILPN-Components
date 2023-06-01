@@ -1,8 +1,9 @@
 import {Transition} from '../../pn/model/transition';
+import {EditableString} from "../../../utility/string-sequence";
 
-export class Event {
+export class Event implements EditableString {
     private readonly _id: string;
-    private readonly _label: string | undefined;
+    private _label: string | undefined;
     private readonly _nextEvents: Set<Event>;
     private readonly _previousEvents: Set<Event>;
 
@@ -22,6 +23,10 @@ export class Event {
 
     get label(): string | undefined {
         return this._label;
+    }
+
+    set label(value: string | undefined) {
+        this._label = value;
     }
 
     get nextEvents(): Set<Event> {
@@ -53,7 +58,28 @@ export class Event {
         this._previousEvents.add(event);
     }
 
+    public removeNextEvent(event: Event) {
+        this._nextEvents.delete(event);
+        event.removePreviousEvent(this);
+    }
+
+    protected removePreviousEvent(event: Event) {
+        this._previousEvents.delete(event);
+    }
+
     public initializeLocalMarking(size: number) {
         this._localMarking = new Array<number>(size).fill(0);
+    }
+
+    getString(): string {
+        const l = this.label;
+        if (l === undefined) {
+            throw new Error('Event label is undefined');
+        }
+        return l;
+    }
+
+    setString(value: string): void {
+        this.label = value;
     }
 }

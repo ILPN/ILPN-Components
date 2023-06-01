@@ -3,10 +3,10 @@ import {createMockTrace} from '../../../utility/test/create-mock-trace';
 
 describe('Trace', () => {
     it('should equal', () => {
-        const t1 = createMockTrace([{n:'a'}, {n: 'a'}, {n: 'b'}]);
-        const t2 = createMockTrace([{n:'a'}, {n: 'a'}, {n: 'b'}]);
-        const t3 = createMockTrace([{n:'a'}, {n: 'b'}]);
-        const t4 = createMockTrace([{n:'a'}, {n: 'a'}, {n: 'a'}]);
+        const t1 = createMockTrace('a', 'a', 'b');
+        const t2 = createMockTrace('a', 'a', 'b');
+        const t3 = createMockTrace('a', 'b');
+        const t4 = createMockTrace('a', 'a', 'a');
         expect(t1.equals(t1)).toBeTrue();
         expect(t1.equals(t2)).toBeTrue();
         expect(t2.equals(t1)).toBeTrue();

@@ -1,6 +1,10 @@
 import {Event} from './event';
+import {Trace} from "../../log/model/trace";
 
 export class PartialOrder {
+    public frequency?: number;
+    public readonly containedTraces: Array<Trace>;
+
     private readonly _events: Map<string, Event>;
     private readonly _initialEvents: Set<Event>;
     private readonly _finalEvents: Set<Event>;
@@ -9,6 +13,7 @@ export class PartialOrder {
         this._events = new Map<string, Event>();
         this._initialEvents = new Set<Event>();
         this._finalEvents = new Set<Event>();
+        this.containedTraces = [];
     }
 
     get initialEvents(): Set<Event> {
