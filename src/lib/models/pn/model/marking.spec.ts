@@ -84,4 +84,11 @@ describe('Marking', () => {
         expect(m1.get('b')).toBe(Number.POSITIVE_INFINITY);
         expect(m1.get('c')).toBe(Number.POSITIVE_INFINITY);
     });
+
+    it('should serialise', () => {
+        const m = new Marking({'a':0, 'b': 1, 'c': 2});
+
+        expect(m.serialise(['a','b','c'])).toBe('0,1,2');
+        expect(m.serialise(['c','a','b'])).toBe('2,0,1');
+    });
 });

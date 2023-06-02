@@ -76,4 +76,8 @@ export class Marking {
         const otherKeys = new Set(marking.getKeys());
         return [myKeys, otherKeys];
     }
+
+    public serialise(placeOrdering: Array<string>): string {
+        return placeOrdering.map(pid => this.get(pid)).join(',');
+    }
 }

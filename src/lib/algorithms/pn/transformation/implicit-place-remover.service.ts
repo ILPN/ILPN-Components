@@ -2,13 +2,23 @@ import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {Marking} from '../../../models/pn/model/marking';
 import {PetriNetCoverabilityService} from '../reachability/petri-net-coverability.service';
+import {Trace} from "../../../models/log/model/trace";
+import {PetriNetReachabilityService} from "../reachability/petri-net-reachability.service";
 
 @Injectable({
     providedIn: 'root'
 })
 export class ImplicitPlaceRemoverService {
 
-    constructor(protected _coverabilityTreeService: PetriNetCoverabilityService) {
+    constructor(protected _coverabilityTreeService: PetriNetCoverabilityService,
+                protected _reachabilityService: PetriNetReachabilityService) {
+    }
+
+    public removeImplicitPlacesBasedOnTraces(net: PetriNet, traces: Array<Trace>): PetriNet {
+        // roughly based on:  https://ceur-ws.org/Vol-2625/paper-02.pdf
+
+        const reachableMarkings = this._reachabilityService.getMarkingsReachableByTraces(net, traces);
+        return this.removePlacesByMarking(net, reachableMarkings);
     }
 
     /**
@@ -17,43 +27,46 @@ export class ImplicitPlaceRemoverService {
      */
     public removeImplicitPlaces(net: PetriNet): PetriNet {
         const reachableMarkings = this.generateReachableMarkings(net);
+        return this.removePlacesByMarking(net, Array.from(reachableMarkings.values()));
+    }
 
-        const placeOrdering = net.getPlaces().map(p => p.id!);
+    protected removePlacesByMarking(net: PetriNet, markings: Array<Marking>): PetriNet {
+        const placeOrdering = net.getPlaces().map(p => p.getId());
         const removedPlaceIds = new Set<string>();
         const result = net.clone();
 
         p1For:
-        for (const p1 of placeOrdering) {
-            if (removedPlaceIds.has(p1)) {
-                continue;
-            }
-
-            p2For:
-            for (const p2 of placeOrdering) {
-                if (removedPlaceIds.has(p2)) {
-                    continue;
-                }
-                if (p1 === p2) {
+            for (const p1 of placeOrdering) {
+                if (removedPlaceIds.has(p1)) {
                     continue;
                 }
 
-                let isGreater = false;
-                for (const marking of reachableMarkings.values()) {
-                    if (marking.get(p1)! < marking.get(p2)!) {
-                        continue p2For;
-                    } else if (marking.get(p1)! > marking.get(p2)!) {
-                        isGreater = true;
+                p2For:
+                    for (const p2 of placeOrdering) {
+                        if (removedPlaceIds.has(p2)) {
+                            continue;
+                        }
+                        if (p1 === p2) {
+                            continue;
+                        }
+
+                        let isGreater = false;
+                        for (const marking of markings) {
+                            if (marking.get(p1)! < marking.get(p2)!) {
+                                continue p2For;
+                            } else if (marking.get(p1)! > marking.get(p2)!) {
+                                isGreater = true;
+                            }
+                        }
+
+                        if (isGreater) {
+                            // p1 is > than some other place p2 => p1 is an implicit place and can be removed from the net
+                            removedPlaceIds.add(p1);
+                            result.removePlace(p1);
+                            continue p1For;
+                        }
                     }
-                }
-
-                if (isGreater) {
-                    // p1 is > than some other place p2 => p1 is an implicit place and can be removed from the net
-                    removedPlaceIds.add(p1);
-                    result.removePlace(p1);
-                    continue p1For;
-                }
             }
-        }
 
         return result;
     }
@@ -67,27 +80,9 @@ export class ImplicitPlaceRemoverService {
             const next = toExplore.shift()!;
             toExplore.push(...next.getChildren())
             const m = next.omegaMarking;
-            reachableMarkings.set(this.stringifyMarking(m, placeOrdering), m);
+            reachableMarkings.set(m.serialise(placeOrdering), m);
         }
 
         return reachableMarkings;
-    }
-
-    protected getLabelMapping(net: PetriNet): Map<string, string> {
-        const result = new Map<string, string>();
-        for (const t of net.getTransitions()) {
-            if (t.label === undefined) {
-                throw new Error(`Silent transitions are unsupported! The transition with id '${t.id}' has no label`);
-            }
-            if (result.has(t.label!)) {
-                throw new Error(`Label splitting is not supported! The label '${t.label}' is shared by at least two transitions`);
-            }
-            result.set(t.label, t.id!);
-        }
-        return result;
-    }
-
-    protected stringifyMarking(marking: Marking, placeOrdering: Array<string>): string {
-        return placeOrdering.map(pid => marking.get(pid)).join(',');
     }
 }
