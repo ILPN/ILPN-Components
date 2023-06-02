@@ -4,6 +4,7 @@ import {Marking} from '../../../models/pn/model/marking';
 import {PetriNetCoverabilityService} from '../reachability/petri-net-coverability.service';
 import {Trace} from "../../../models/log/model/trace";
 import {PetriNetReachabilityService} from "../reachability/petri-net-reachability.service";
+import {Place} from "../../../models/pn/model/place";
 
 @Injectable({
     providedIn: 'root'
@@ -60,10 +61,15 @@ export class ImplicitPlaceRemoverService {
                         }
 
                         if (isGreater) {
-                            // p1 is > than some other place p2 => p1 is an implicit place and can be removed from the net
-                            removedPlaceIds.add(p1);
-                            result.removePlace(p1);
-                            continue p1For;
+                            // p1 is > than some other place p2
+                            // we can compute a new place p3 = p1 - p2
+                            // if p3 is present in the net p1 is implicit and can be removed
+
+                            if (this.computeAndCheckReplacement(net, p1, p2)) {
+                                removedPlaceIds.add(p1);
+                                result.removePlace(p1);
+                                continue p1For;
+                            }
                         }
                     }
             }
@@ -84,5 +90,61 @@ export class ImplicitPlaceRemoverService {
         }
 
         return reachableMarkings;
+    }
+
+    protected computeAndCheckReplacement(net: PetriNet, p1Id: string, p2Id: string): boolean {
+        const p1 = net.getPlace(p1Id)!;
+        const p2 = net.getPlace(p2Id)!;
+
+        const regionGradient = this.computeRegionGradient(p1);
+        const p2Gradient = this.computeRegionGradient(p2);
+
+        // p3 = p1 - p2
+        for (const [t, w] of p2Gradient) {
+            const gradient = regionGradient.get(t);
+            if (gradient === undefined) {
+                regionGradient.set(t, -w);
+            } else {
+                regionGradient.set(t, gradient - w);
+            }
+        }
+
+        const preset = new Map<string, number>();
+        const postset = new Map<string, number>();
+        for (const [t, w] of regionGradient) {
+            if (w > 0) {
+                preset.set(t, w);
+            } else if (w < 0) {
+                postset.set(t, -w);
+            }
+        }
+
+        return net.getPlaces().some(p => {
+            for (const [t, w] of preset) {
+                if (p.ingoingArcWeights.get(t) !== w) {
+                    return false;
+                }
+            }
+            for (const [t, w] of postset) {
+                if (p.outgoingArcWeights.get(t) !== w) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }
+
+    protected computeRegionGradient(p: Place): Map<string, number> {
+        const regionGradient = new Map(p.ingoingArcWeights);
+        for (const [t, w] of p.outgoingArcWeights) {
+            const gradient = regionGradient.get(t);
+            if (gradient === undefined) {
+                regionGradient.set(t, -w);
+            } else {
+                throw new Error('self-loops are not supported!');
+                // regionGradient.set(t, gradient - w);
+            }
+        }
+        return regionGradient;
     }
 }
