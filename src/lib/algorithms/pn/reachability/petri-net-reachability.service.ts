@@ -71,4 +71,34 @@ export class PetriNetReachabilityService {
         return reachableMarkings;
     }
 
+    public getReachableMarkings(net: PetriNet): Array<Marking> {
+        const reachableMarkings = [net.getInitialMarking()];
+        const placeOrdering = net.getPlaces().map(p => p.getId());
+
+        const reachedMarkings = new Set<string>();
+        reachedMarkings.add(reachableMarkings[0].serialise(placeOrdering));
+
+        const toExplore = [net.getInitialMarking()];
+
+        while (toExplore.length > 0) {
+            const current = toExplore.shift()!;
+
+            const transitions = PetriNet.getAllEnabledTransitions(net, current);
+            for (const t of transitions) {
+                const m  = PetriNet.fireTransitionInMarking(net, t.getId(), current);
+                const sm = m.serialise(placeOrdering);
+                if (!reachedMarkings.has(sm)) {
+                    reachableMarkings.push(m);
+                    reachedMarkings.add(sm);
+                    if (m.isNSafe(1)) {
+                        toExplore.push(m);
+                    }
+                }
+            }
+
+        }
+
+        return reachableMarkings;
+    }
+
 }

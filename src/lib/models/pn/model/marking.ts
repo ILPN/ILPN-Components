@@ -80,4 +80,8 @@ export class Marking {
     public serialise(placeOrdering: Array<string>): string {
         return placeOrdering.map(pid => this.get(pid)).join(',');
     }
+
+    public isNSafe(n: number): boolean {
+        return Object.values(this._marking).every(v => v <= n);
+    }
 }

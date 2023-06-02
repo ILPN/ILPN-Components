@@ -27,8 +27,9 @@ export class ImplicitPlaceRemoverService {
      * @returns a copy of the input Petri net without the implicit places
      */
     public removeImplicitPlaces(net: PetriNet): PetriNet {
-        const reachableMarkings = this.generateReachableMarkings(net);
-        return this.removePlacesByMarking(net, Array.from(reachableMarkings.values()));
+        // const reachableMarkings = this.generateReachableMarkings(net);
+        // return this.removePlacesByMarking(net, Array.from(reachableMarkings.values()));
+        return this.removePlacesByMarking(net, this._reachabilityService.getReachableMarkings(net));
     }
 
     protected removePlacesByMarking(net: PetriNet, markings: Array<Marking>): PetriNet {
@@ -65,11 +66,11 @@ export class ImplicitPlaceRemoverService {
                             // we can compute a new place p3 = p1 - p2
                             // if p3 is present in the net p1 is implicit and can be removed
 
-                            if (this.computeAndCheckReplacement(net, p1, p2)) {
+                            // if (this.computeAndCheckReplacement(net, p1, p2)) {
                                 removedPlaceIds.add(p1);
                                 result.removePlace(p1);
                                 continue p1For;
-                            }
+                            // }
                         }
                     }
             }
