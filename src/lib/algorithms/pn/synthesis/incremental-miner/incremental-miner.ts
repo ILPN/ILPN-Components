@@ -89,15 +89,19 @@ export class IncrementalMiner {
 
             let synthesisedNet = context.result.result;
             if (context.changed) {
-                synthesisedNet = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
+                console.debug('removing implicit places')
+                synthesisedNet = this._implicitPlaceRemover.removeImplicitPlacesBasedOnTraces(synthesisedNet, context.input.containedTraces);
             }
 
             if (context.input.hasNoMissingIndices()) {
+                console.debug('model synthesis completed. Returning result...');
+                synthesisedNet.containedTraces.push(...context.input.containedTraces);
                 this.cacheNet(domainSubsetIndices, synthesisedNet);
                 minerInput$.complete();
                 result$.next(synthesisedNet);
                 result$.complete();
             } else {
+                console.debug('combining intermediate result with next specification');
                 this.cacheNet(context.input.containedIndices, synthesisedNet);
                 minerInput$.next(this.addMissingTrace(synthesisedNet, context.input.containedIndices, context.input.missingIndices));
             }
@@ -119,11 +123,11 @@ export class IncrementalMiner {
     private addMissingTrace(model: PetriNet, containedIndices: Array<number>, missing: Array<number>): IncrementalMinerInput {
         const index = missing.shift()!;
         const cached = this._cache.get([index])
-        return new IncrementalMinerInput(model, cached.value, [...containedIndices, index], missing);
+        return new IncrementalMinerInput(model, cached.value, [...containedIndices, index], [...model.containedTraces, ...cached.value.containedTraces], missing);
     }
 
     private wrapLabelSplitPo(po: PetriNet): IncrementalMinerInput {
-        return new IncrementalMinerInput(new PetriNet(), po, []);
+        return new IncrementalMinerInput(new PetriNet(), po, [], [...po.containedTraces]);
     }
 
     private cacheNet(containedIndices: Array<number>, net: PetriNet) {

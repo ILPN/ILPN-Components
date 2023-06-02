@@ -42,6 +42,7 @@ export class PartialOrderToPetriNetTransformerService {
         }
 
         result.frequency = po.frequency;
+        result.containedTraces.push(...po.containedTraces);
         return result;
     }
 

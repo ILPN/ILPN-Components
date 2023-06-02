@@ -4,6 +4,7 @@ import {Arc} from './arc';
 import {createUniqueString, IncrementingCounter} from '../../../utility/incrementing-counter';
 import {getByValueId} from '../../../utility/identifiable';
 import {Marking} from './marking';
+import {Trace} from "../../log/model/trace";
 
 export class PetriNet {
     private readonly _places: Map<string, Place>;
@@ -19,6 +20,8 @@ export class PetriNet {
     private _transitionCounter = new IncrementingCounter();
     private _arcCounter = new IncrementingCounter();
 
+    public readonly containedTraces: Array<Trace>;
+
     constructor() {
         this._places = new Map<string, Place>();
         this._transitions = new Map<string, Transition>();
@@ -26,6 +29,7 @@ export class PetriNet {
         this._inputPlaces = new Set<string>();
         this._outputPlaces = new Set<string>();
         this._labelCount = new Map<string | undefined, number>();
+        this.containedTraces = [];
     }
 
     public static createFromArcSubset(net: PetriNet, arcs: Array<Arc>, placeIdPrefix: string = ''): PetriNet {
@@ -351,7 +355,9 @@ export class PetriNet {
     }
 
     public clone(placeIdPrefix?: string): PetriNet {
-        return PetriNet.createFromArcSubset(this, this.getArcs(), placeIdPrefix);
+        const pn = PetriNet.createFromArcSubset(this, this.getArcs(), placeIdPrefix);
+        pn.containedTraces.push(...this.containedTraces);
+        return pn;
     }
 
     private getPlacesById(ids: Set<string>): Array<Place> {
