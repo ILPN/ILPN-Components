@@ -19,7 +19,10 @@ export class ImplicitPlaceRemoverService {
         // roughly based on:  https://ceur-ws.org/Vol-2625/paper-02.pdf
 
         const reachableMarkings = this._reachabilityService.getMarkingsReachableByTraces(net, traces);
-        return this.removePlacesByMarking(net, reachableMarkings);
+        reachableMarkings.push(...this._reachabilityService.getReachableMarkings(net));
+        const r = this.removePlacesByMarking(net, reachableMarkings);
+        this.removeFakeEndStates(r);
+        return r;
     }
 
     /**
@@ -147,5 +150,19 @@ export class ImplicitPlaceRemoverService {
             }
         }
         return regionGradient;
+    }
+
+    private removeFakeEndStates(net: PetriNet) {
+        for (const p of net.getPlaces()) {
+            if (p.ingoingArcWeights.size === 0) {
+                continue;
+            }
+
+            const pre = p.ingoingArcs.map(a => a.source);
+
+            if (p.outgoingArcWeights.size === 0 && pre.every(t => t.outgoingArcWeights.size > 1)) {
+                net.removePlace(p);
+            }
+        }
     }
 }

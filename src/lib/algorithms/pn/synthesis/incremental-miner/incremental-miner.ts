@@ -91,7 +91,7 @@ export class IncrementalMiner {
             if (context.changed) {
                 console.debug('removing implicit places')
                 const start = performance.now();
-                synthesisedNet = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet /*, context.input.containedTraces*/);
+                synthesisedNet = this._implicitPlaceRemover.removeImplicitPlacesBasedOnTraces(synthesisedNet , context.input.containedTraces);
                 console.debug('elasped', performance.now() - start);
             }
 
