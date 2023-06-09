@@ -40,10 +40,16 @@ export class PartialOrderParserService extends AbstractBlockParser<PartialOrder>
     }
 
     private parseEvents(lines: Array<string>, partialOrder: PartialOrder) {
+        const ids = new Set<string>();
+
         this.parseEachLine(lines, (parts, line) => {
             if (parts.length !== 2) {
                 throw new Error(`line ${line} does not have the correct number of elements! Event definitions must consist of exactly two elements!`);
             }
+            if (ids.has(parts[0])) {
+                throw new Error(`line ${line} event ids must be unique!`);
+            }
+            ids.add(parts[0]);
             partialOrder.addEvent(new Event(parts[0], parts[1]));
         });
     }

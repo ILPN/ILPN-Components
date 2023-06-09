@@ -30,7 +30,7 @@ describe('PetriNetParserService', () => {
 .places
 .arcs`
         )
-        expect(result).toBeTruthy();
+        expect(result).toBeDefined();
         expect(result?.getTransitions().length).toBe(0);
         expect(result?.getPlaces().length).toBe(0);
         expect(result?.getArcs().length).toBe(0);
