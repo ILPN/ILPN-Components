@@ -129,7 +129,7 @@ export class PetriNet {
         return net.getTransitions().filter(t => PetriNet.isTransitionEnabledInMarking(net, t.id!, marking));
     }
 
-    public static isTransitionEnabledInMarking(net: PetriNet, transitionId: string, marking: Marking): boolean {
+    public static isTransitionEnabledInMarking(net: PetriNet, transitionId: string, marking: Marking, ignorePlacesWithNoMarking = false): boolean {
         const transition = net.getTransition(transitionId);
         if (transition === undefined) {
             throw new Error(`The given net does not contain a transition with id '${transitionId}'`);
@@ -138,9 +138,10 @@ export class PetriNet {
         for (const inArc of transition.ingoingArcs) {
             const m = marking.get(inArc.sourceId);
             if (m === undefined) {
-                throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
-            }
-            if (m - inArc.weight < 0) {
+                if (!ignorePlacesWithNoMarking) {
+                    throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
+                }
+            } else if (m - inArc.weight < 0) {
                 return false;
             }
         }

@@ -2,6 +2,7 @@ import {Injectable} from '@angular/core';
 import {PetriNet} from "../../../models/pn/model/petri-net";
 import {Trace} from "../../../models/log/model/trace";
 import {Marking} from "../../../models/pn/model/marking";
+import {MarkingWithEnabledTransitions} from "./model/marking-with-enabled-transitions";
 
 @Injectable({
     providedIn: 'root'
@@ -71,28 +72,32 @@ export class PetriNetReachabilityService {
         return reachableMarkings;
     }
 
-    public getReachableMarkings(net: PetriNet): Array<Marking> {
-        const reachableMarkings = [net.getInitialMarking()];
+    public getReachableMarkings(net: PetriNet): Array<MarkingWithEnabledTransitions> {
+        const reachableMarkings = [new MarkingWithEnabledTransitions(net.getInitialMarking())];
         const placeOrdering = net.getPlaces().map(p => p.getId());
 
         const reachedMarkings = new Set<string>();
-        reachedMarkings.add(reachableMarkings[0].serialise(placeOrdering));
+        reachedMarkings.add(reachableMarkings[0].marking.serialise(placeOrdering));
 
-        const toExplore = [net.getInitialMarking()];
+        const toExplore = [reachableMarkings[0]];
 
         while (toExplore.length > 0) {
             const current = toExplore.shift()!;
 
-            const transitions = PetriNet.getAllEnabledTransitions(net, current);
+            const transitions = PetriNet.getAllEnabledTransitions(net, current.marking);
+            current.addEnabledTransitions(transitions);
+
             for (const t of transitions) {
-                const m  = PetriNet.fireTransitionInMarking(net, t.getId(), current);
+                const m  = PetriNet.fireTransitionInMarking(net, t.getId(), current.marking);
                 const sm = m.serialise(placeOrdering);
                 if (!reachedMarkings.has(sm)) {
-                    reachableMarkings.push(m);
+                    const wrapper = new MarkingWithEnabledTransitions(m);
+                    reachableMarkings.push(wrapper);
                     reachedMarkings.add(sm);
-                    if (m.isNSafe(1)) {
-                        toExplore.push(m);
+                    if (reachableMarkings.some(rm => m.isGreaterThan(rm.marking))) {
+                        continue;
                     }
+                    toExplore.push(wrapper);
                 }
             }
 

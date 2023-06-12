@@ -1,28 +1,16 @@
 import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {Marking} from '../../../models/pn/model/marking';
-import {PetriNetCoverabilityService} from '../reachability/petri-net-coverability.service';
-import {Trace} from "../../../models/log/model/trace";
 import {PetriNetReachabilityService} from "../reachability/petri-net-reachability.service";
-import {Place} from "../../../models/pn/model/place";
+import {MarkingWithEnabledTransitions} from "../reachability/model/marking-with-enabled-transitions";
+import {Transition} from "../../../models/pn/model/transition";
 
 @Injectable({
     providedIn: 'root'
 })
 export class ImplicitPlaceRemoverService {
 
-    constructor(protected _coverabilityTreeService: PetriNetCoverabilityService,
-                protected _reachabilityService: PetriNetReachabilityService) {
-    }
-
-    public removeImplicitPlacesBasedOnTraces(net: PetriNet, traces: Array<Trace>): PetriNet {
-        // roughly based on:  https://ceur-ws.org/Vol-2625/paper-02.pdf
-
-        const reachableMarkings = this._reachabilityService.getMarkingsReachableByTraces(net, traces);
-        reachableMarkings.push(...this._reachabilityService.getReachableMarkings(net));
-        const r = this.removePlacesByMarking(net, reachableMarkings);
-        this.removeFakeEndStates(r);
-        return r;
+    constructor(protected _reachabilityService: PetriNetReachabilityService) {
     }
 
     /**
@@ -35,134 +23,74 @@ export class ImplicitPlaceRemoverService {
         return this.removePlacesByMarking(net, this._reachabilityService.getReachableMarkings(net));
     }
 
-    protected removePlacesByMarking(net: PetriNet, markings: Array<Marking>): PetriNet {
+    protected removePlacesByMarking(net: PetriNet, markings: Array<MarkingWithEnabledTransitions>): PetriNet {
         const placeOrdering = net.getPlaces().map(p => p.getId());
         const removedPlaceIds = new Set<string>();
         const result = net.clone();
 
-        p1For:
-            for (const p1 of placeOrdering) {
-                if (removedPlaceIds.has(p1)) {
-                    continue;
-                }
+        console.debug(`inspecting ${net.getPlaceCount()} places to remove implicit ones based on ${markings.length} reachable markings`);
 
-                p2For:
-                    for (const p2 of placeOrdering) {
-                        if (removedPlaceIds.has(p2)) {
-                            continue;
-                        }
-                        if (p1 === p2) {
-                            continue;
+        const originalMarkingSize = result.getPlaceCount();
+
+        for (const p of placeOrdering) {
+            const inspectedPlace = net.getPlace(p);
+            if (inspectedPlace === undefined) {
+                throw new Error(`Illegal state. Inspected place with id ${p} is not in net!`);
+            }
+
+            const postset = inspectedPlace.outgoingArcs.map(a => a.destination) as Array<Transition>;
+
+            let implicit = true;
+
+            if (postset.length > 0) {
+                forMarkings:
+                    for (const rm of markings) {
+                        this.trimMarking(rm.marking, removedPlaceIds, originalMarkingSize);
+                        if (!rm.evaluatedEnabledTransitions) {
+                            rm.addEnabledTransitions(PetriNet.getAllEnabledTransitions(result, rm.marking));
                         }
 
-                        let isGreater = false;
-                        for (const marking of markings) {
-                            if (marking.get(p1)! < marking.get(p2)!) {
-                                continue p2For;
-                            } else if (marking.get(p1)! > marking.get(p2)!) {
-                                isGreater = true;
+                        const reduced = new Marking(rm.marking);
+                        reduced.delete(p);
+
+                        for (const t of postset) {
+                            if (PetriNet.isTransitionEnabledInMarking(result, t.getId(), reduced, true)
+                                && !rm.enabledTransitions.includes(t.getId())) {
+                                // removing the place would enable a new transition in some marking => NOT implicit
+                                implicit = false;
+                                break forMarkings;
                             }
-                        }
-
-                        if (isGreater) {
-                            // p1 is > than some other place p2
-                            // we can compute a new place p3 = p1 - p2
-                            // if p3 is present in the net p1 is implicit and can be removed
-
-                            // if (this.computeAndCheckReplacement(net, p1, p2)) {
-                                removedPlaceIds.add(p1);
-                                result.removePlace(p1);
-                                continue p1For;
-                            // }
                         }
                     }
             }
 
+            if (implicit) {
+                const preset = inspectedPlace.ingoingArcs.map(a => a.source) as Array<Transition>;
+                if (preset.some(t => t.outgoingArcWeights.size === 1)) {
+                    // we don't want to delete a place if this is the only place in the postset of some transition
+                    continue;
+                }
+
+                result.removePlace(inspectedPlace);
+                removedPlaceIds.add(p);
+            }
+        }
+
         return result;
     }
 
-    protected generateReachableMarkings(net: PetriNet): Map<string, Marking> {
-        const reachableMarkings = new Map<string, Marking>();
-        const toExplore = [this._coverabilityTreeService.getCoverabilityTree(net)];
-        const placeOrdering = toExplore[0].omegaMarking.getKeys();
-
-        while (toExplore.length > 0) {
-            const next = toExplore.shift()!;
-            toExplore.push(...next.getChildren())
-            const m = next.omegaMarking;
-            reachableMarkings.set(m.serialise(placeOrdering), m);
+    private trimMarking(marking: Marking, removedPlaceIds: Set<string>, originalSize: number) {
+        const expectedSize = originalSize - removedPlaceIds.size;
+        if (marking.size === expectedSize) {
+            return;
         }
-
-        return reachableMarkings;
-    }
-
-    protected computeAndCheckReplacement(net: PetriNet, p1Id: string, p2Id: string): boolean {
-        const p1 = net.getPlace(p1Id)!;
-        const p2 = net.getPlace(p2Id)!;
-
-        const regionGradient = this.computeRegionGradient(p1);
-        const p2Gradient = this.computeRegionGradient(p2);
-
-        // p3 = p1 - p2
-        for (const [t, w] of p2Gradient) {
-            const gradient = regionGradient.get(t);
-            if (gradient === undefined) {
-                regionGradient.set(t, -w);
-            } else {
-                regionGradient.set(t, gradient - w);
+        if (marking.size > expectedSize) {
+            for (const p of removedPlaceIds) {
+                marking.delete(p);
             }
-        }
-
-        const preset = new Map<string, number>();
-        const postset = new Map<string, number>();
-        for (const [t, w] of regionGradient) {
-            if (w > 0) {
-                preset.set(t, w);
-            } else if (w < 0) {
-                postset.set(t, -w);
-            }
-        }
-
-        return net.getPlaces().some(p => {
-            for (const [t, w] of preset) {
-                if (p.ingoingArcWeights.get(t) !== w) {
-                    return false;
-                }
-            }
-            for (const [t, w] of postset) {
-                if (p.outgoingArcWeights.get(t) !== w) {
-                    return false;
-                }
-            }
-            return true;
-        });
-    }
-
-    protected computeRegionGradient(p: Place): Map<string, number> {
-        const regionGradient = new Map(p.ingoingArcWeights);
-        for (const [t, w] of p.outgoingArcWeights) {
-            const gradient = regionGradient.get(t);
-            if (gradient === undefined) {
-                regionGradient.set(t, -w);
-            } else {
-                throw new Error('self-loops are not supported!');
-                // regionGradient.set(t, gradient - w);
-            }
-        }
-        return regionGradient;
-    }
-
-    private removeFakeEndStates(net: PetriNet) {
-        for (const p of net.getPlaces()) {
-            if (p.ingoingArcWeights.size === 0) {
-                continue;
-            }
-
-            const pre = p.ingoingArcs.map(a => a.source);
-
-            if (p.outgoingArcWeights.size === 0 && pre.every(t => t.outgoingArcWeights.size > 1)) {
-                net.removePlace(p);
-            }
+            return;
+        } else {
+            throw new Error('Unexpected state. Marking size is less than expected');
         }
     }
 }

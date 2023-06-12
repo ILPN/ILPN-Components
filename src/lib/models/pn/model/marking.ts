@@ -13,6 +13,14 @@ export class Marking {
         this._marking[placeId] = tokens;
     }
 
+    public delete(placeId: string) {
+        delete this._marking[placeId];
+    }
+
+    public get size(): number {
+        return Object.keys(this._marking).length;
+    }
+
     public equals(marking: Marking): boolean {
         const [myKeys, otherKeys] = this.getComparisonKeys(marking);
 
