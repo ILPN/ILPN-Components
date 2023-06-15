@@ -4,13 +4,15 @@ import {Marking} from '../../../models/pn/model/marking';
 import {PetriNetReachabilityService} from "../reachability/petri-net-reachability.service";
 import {MarkingWithEnabledTransitions} from "../reachability/model/marking-with-enabled-transitions";
 import {Transition} from "../../../models/pn/model/transition";
+import {PetriNetSerialisationService} from "../../../models/pn/parser/petri-net-serialisation.service";
 
 @Injectable({
     providedIn: 'root'
 })
 export class ImplicitPlaceRemoverService {
 
-    constructor(protected _reachabilityService: PetriNetReachabilityService) {
+    constructor(protected _reachabilityService: PetriNetReachabilityService,
+                protected _ser: PetriNetSerialisationService) {
     }
 
     /**

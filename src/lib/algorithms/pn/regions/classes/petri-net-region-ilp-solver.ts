@@ -12,6 +12,8 @@ import {Marking} from '../../../../models/pn/model/marking';
 
 export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
 
+    public static readonly RUNTIME_LIMIT_EXCEEDED_ERROR = 'Runtime limit exceeded';
+
     private readonly _transitionLabels: Set<string>;
 
     constructor(_solver$: Observable<GLPK>) {
@@ -23,10 +25,20 @@ export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
         this.collectTransitionLabels(nets);
         const regions$ = new ReplaySubject<PetriNetRegion>();
         const ilp$ = new BehaviorSubject(this.setUpInitialILP(nets, config));
+
+        const isTimeLimited = config.runtimeLimit !== undefined;
+        const startTime = performance.now();
+
         ilp$.pipe(switchMap(ilp => this.solveILP(ilp, config.messageLevel))).subscribe((ps: ProblemSolution) => {
             if (ps.solution.result.status === Solution.OPTIMAL) {
-                regions$.next(this.extractRegionFromSolution(nets, ps.solution));
-                ilp$.next(this.addConstraintsToILP(ps));
+                if (!isTimeLimited || performance.now() - startTime < config.runtimeLimit!) {
+                    regions$.next(this.extractRegionFromSolution(nets, ps.solution));
+                    ilp$.next(this.addConstraintsToILP(ps));
+                } else {
+                    regions$.error(PetriNetRegionIlpSolver.RUNTIME_LIMIT_EXCEEDED_ERROR);
+                    regions$.complete();
+                    ilp$.complete();
+                }
             } else {
                 // we are done, there are no more regions
                 console.debug('final non-optimal result', ps.solution);

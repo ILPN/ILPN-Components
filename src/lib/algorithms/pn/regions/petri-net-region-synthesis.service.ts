@@ -41,6 +41,11 @@ export class PetriNetRegionSynthesisService {
             complete: () => {
                 result$.next(new SynthesisResult(arrayInput, synthesiser.synthesise(), fileName));
                 result$.complete();
+            },
+            error: err => {
+                console.debug('compute regions error: ', err);
+                result$.error(err);
+                result$.complete();
             }
         });
 

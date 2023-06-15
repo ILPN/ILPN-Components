@@ -1,4 +1,15 @@
-import {BehaviorSubject, concatMap, EMPTY, map, Observable, of, ReplaySubject, Subscription} from 'rxjs';
+import {
+    BehaviorSubject,
+    catchError,
+    concatMap,
+    EMPTY,
+    map,
+    Observable,
+    of,
+    ReplaySubject,
+    Subscription,
+    throwError
+} from 'rxjs';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {PetriNetRegionSynthesisService} from '../../regions/petri-net-region-synthesis.service';
 import {ImplicitPlaceRemoverService} from '../../transformation/implicit-place-remover.service';
@@ -11,6 +22,8 @@ import {RegionsConfiguration} from '../../../../utility/glpk/model/regions-confi
 import {IncrementalMinerCache} from './cache/incremental-miner-cache';
 import {IncrementalMinerInput} from './incremental-miner-input';
 import {setDifference} from '../../../../utility/set-operations';
+import {Measurement} from "./model/measurement";
+import {PetriNetRegionIlpSolver} from "../../regions/classes/petri-net-region-ilp-solver";
 
 
 export class IncrementalMiner {
@@ -36,7 +49,7 @@ export class IncrementalMiner {
      * @param domainSubsetIndices a sorted array of the domain indices that must be included in the result
      * @param config region configuration
      */
-    public mine(domainSubsetIndices: Array<number>, config: RegionsConfiguration = {}): Observable<PetriNet> {
+    public mine(domainSubsetIndices: Array<number>, config: RegionsConfiguration = {}): Observable<[PetriNet, Array<Measurement>]> {
         if (domainSubsetIndices.length === 0) {
             console.error('Miner input must be non empty');
             return EMPTY;
@@ -50,15 +63,20 @@ export class IncrementalMiner {
                 input = this.wrapLabelSplitPo(input);
             } else {
                 // the requested net was cached
-                return of(input);
+                return of([input, []]);
             }
         }
 
-        const result$ = new ReplaySubject<PetriNet>(1);
+        const result$ = new ReplaySubject<[PetriNet, Array<Measurement>]>(1);
         const minerInput$ = new BehaviorSubject<IncrementalMinerInput>(input);
+        const measurements: Array<Measurement> = [];
+
+        // let tracesPushedBack = 0;
 
         minerInput$.pipe(
             concatMap(nextInput => {
+                const timeStart = performance.now();
+
                 // fire PO
                 const po = this._pnToPoTransformer.transform(nextInput.partialOrder);
                 let mustSynthesise;
@@ -70,39 +88,85 @@ export class IncrementalMiner {
                 }
 
                 if (mustSynthesise) {
-                    return this._synthesisService.synthesise([nextInput.model, nextInput.partialOrder], config).pipe(map(
+                    // let c = {...config};
+                    // if (tracesPushedBack >= nextInput.missingIndices.length + 1) {
+                    //     delete c.runtimeLimit;
+                    // }
+
+                    return this._synthesisService.synthesise([nextInput.model, nextInput.partialOrder], config).pipe(
+                        catchError(err => {
+                            if (config.runtimeLimit !== undefined && err === PetriNetRegionIlpSolver.RUNTIME_LIMIT_EXCEEDED_ERROR) {
+                                return of(null);
+                            }
+                            return throwError(err);
+                        }),
+                        map(
                         result => ({
                             result,
                             input: nextInput,
+                            timeStart,
                             changed: true
                         })
                     ));
                 } else {
                     return of({
                         result: new SynthesisResult([nextInput.model], nextInput.model),
-                        input: nextInput
+                        input: nextInput,
+                        timeStart
                     });
                 }
             })
-        ).subscribe((context: { result: SynthesisResult, input: IncrementalMinerInput, changed?: boolean }) => {
+        ).subscribe((context: { result: SynthesisResult | null, input: IncrementalMinerInput, timeStart: number, changed?: boolean }) => {
             console.debug(`Iteration completed`, context);
+
+            if (context.result === null) {
+                // push the current trace to the back of the queue
+                console.debug('runtime limit exceeded');
+                const lastIndex = context.input.containedIndices.pop()!; // containedTraces Array is now corrupted!
+                console.debug(`disacrding trace ${lastIndex}`);
+                // context.input.missingIndices.push(lastIndex);
+                // tracesPushedBack++;
+                measurements.push(new Measurement(
+                    lastIndex,
+                    0,
+                    0,
+                    performance.now() - context.timeStart,
+                    !!context.changed,
+                    1
+                ));
+                minerInput$.next(this.addMissingTrace(context.input.model, context.input.containedIndices, context.input.missingIndices));
+                return;
+            }
+
+
+            const placeCount = context.result.result.getPlaceCount();
 
             let synthesisedNet = context.result.result;
             if (context.changed) {
                 console.debug('removing implicit places')
                 const start = performance.now();
                 synthesisedNet = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
-                console.debug('elasped', performance.now() - start);
+                console.debug('elapsed', performance.now() - start);
             }
+
+            measurements.push(new Measurement(
+                context.input.containedIndices[context.input.containedIndices.length - 1],
+                placeCount,
+                synthesisedNet.getPlaceCount(),
+                performance.now() - context.timeStart,
+                !!context.changed,
+                0
+            ));
 
             if (context.input.hasNoMissingIndices()) {
                 console.debug('model synthesis completed. Returning result...');
                 synthesisedNet.containedTraces.push(...context.input.containedTraces);
                 this.cacheNet(domainSubsetIndices, synthesisedNet);
                 minerInput$.complete();
-                result$.next(synthesisedNet);
+                result$.next([synthesisedNet, measurements]);
                 result$.complete();
             } else {
+                console.debug(`intermediate result contains ${context.input.containedIndices.length} of ${domainSubsetIndices.length} traces`);
                 console.debug('combining intermediate result with next specification');
                 this.cacheNet(context.input.containedIndices, synthesisedNet);
                 minerInput$.next(this.addMissingTrace(synthesisedNet, context.input.containedIndices, context.input.missingIndices));

@@ -5,4 +5,5 @@ export interface RegionsConfiguration extends SolverConfiguration {
     noArcWeights?: boolean;
     noOutputPlaces?: boolean;
     obtainPartialOrders?: boolean;
+    runtimeLimit?: number;
 }
