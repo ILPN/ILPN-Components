@@ -104,7 +104,7 @@ export class PetriNet {
         const newMarking: Marking = new Marking(marking);
 
         for (const inArc of transition.ingoingArcs) {
-            const m = marking.get(inArc.sourceId);
+            const m = newMarking.get(inArc.sourceId);
             if (m === undefined) {
                 throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
             }
@@ -115,7 +115,7 @@ export class PetriNet {
         }
 
         for (const outArc of transition.outgoingArcs) {
-            const m = marking.get(outArc.destinationId);
+            const m = newMarking.get(outArc.destinationId);
             if (m === undefined) {
                 throw new Error(`The transition with id '${transitionId}' has an outgoing arc to a place with id '${outArc.destinationId}' but no such place is defined in the provided marking!`);
             }

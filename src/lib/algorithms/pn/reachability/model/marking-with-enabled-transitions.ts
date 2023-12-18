@@ -16,4 +16,23 @@ export class MarkingWithEnabledTransitions {
         }
         this.evaluatedEnabledTransitions = true;
     }
+
+    public equals(other: MarkingWithEnabledTransitions) {
+        if (!this.marking.equals(other.marking)) {
+            return false;
+        }
+        if (this.evaluatedEnabledTransitions !== other.evaluatedEnabledTransitions) {
+            return false;
+        }
+        if (!this.evaluatedEnabledTransitions) {
+            return true;
+        }
+        if (this.enabledTransitions.length !== other.enabledTransitions.length) {
+            return false;
+        }
+        // inefficient?
+        return this.enabledTransitions.every(t => {
+            return other.enabledTransitions.find(ot => ot === t ) !== undefined;
+        });
+    }
 }

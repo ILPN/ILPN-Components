@@ -365,7 +365,9 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
      * Computes the rotational force on the two endpoints of an arc.
      * The arc wants to be oriented at an angle, that is a multiple of 45° (pi/4)
      */
-    private arcRotationForce(deltas: Point): Point {
+    private arcRotationForce(deltas: Point, FORCE_FACTOR = SpringEmbedderLayoutManager.ARC_ROTATION_FORCE_FACTOR): Point {
+        // currently, the factor with which this force is applied is 0 => no force. For unit testing purposes, this factor can be overridden.
+
         const angle = this.vectorAngle(deltas);
 
         // don't apply any force, if the arc is oriented correctly?
@@ -385,7 +387,7 @@ export class SpringEmbedderLayoutManager extends PetriNetLayoutManager {
 
         const planeOctantAngle = section / 4 * Math.PI;
         const distanceToLine = Math.abs(Math.sin(angle) * deltas.x - Math.cos(angle) * deltas.y);
-        const factor = distanceToLine * SpringEmbedderLayoutManager.ARC_ROTATION_FORCE_FACTOR;
+        const factor = distanceToLine * FORCE_FACTOR;
 
         let destForce = {
             x: -Math.sin(planeOctantAngle) * factor,

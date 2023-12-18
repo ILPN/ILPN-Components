@@ -1,7 +1,9 @@
-export class Marking {
-    private readonly _marking: { [placeId: string]: number };
+export type Markinglike = { [p: string]: number };
 
-    constructor(marking: { [p: string]: number } | Marking = {}) {
+export class Marking {
+    private readonly _marking: Markinglike;
+
+    constructor(marking: Markinglike | Marking = {}) {
         this._marking = Object.assign({}, marking instanceof Marking ? marking._marking : marking);
     }
 

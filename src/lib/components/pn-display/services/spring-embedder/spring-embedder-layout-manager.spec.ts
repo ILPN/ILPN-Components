@@ -2,13 +2,16 @@ import {SpringEmbedderLayoutManager} from "./spring-embedder-layout-manager";
 import {TestBed} from "@angular/core/testing";
 import {expect} from "@angular/flex-layout/_private-utils/testing";
 import {areVectorsParallel, Point} from "../../../../utility/svg/point";
+import {SpringEmbedderLayoutManagerFactoryService} from "./spring-embedder-layout-manager-factory.service";
 
 describe('SpringEmbedderLayoutManager', () => {
     let service: SpringEmbedderLayoutManager;
+    let serviceFactory: SpringEmbedderLayoutManagerFactoryService;
 
     beforeEach(() => {
         TestBed.configureTestingModule({});
-        service = TestBed.inject(SpringEmbedderLayoutManager);
+        serviceFactory = TestBed.inject(SpringEmbedderLayoutManagerFactoryService);
+        service = serviceFactory.create();
     });
 
     it('should be created', () => {
@@ -58,7 +61,7 @@ describe('SpringEmbedderLayoutManager', () => {
         for (let i = 0; i < deltas.length; i++) {
             const delta = deltas[i];
             // bypass private modifier in tests: https://stackoverflow.com/a/35991491/15893674
-            const force = service['arcRotationForce'](delta);
+            const force = service['arcRotationForce'](delta, 1.0);
 
             const expectedForceDirection = expectedNormalizedForceDirections[i];
             const parallel = areVectorsParallel(force, expectedForceDirection);
