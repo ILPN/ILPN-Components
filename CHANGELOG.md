@@ -6,6 +6,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [//]: # (## Unreleased)
 
+## 1.3.0 - 2023-12-19
+### Added
+- Displaying a Petri net
+  - An abstract `PetriNetLayoutManagerFactoryService` is now injected by the `PnDisplayComponent`
+    - Multiple implementations of graph layout algorithms are now supported
+    - Currently, these implementations are provided in root as factory services and you can select which should be applied by a custom providers entry
+      - Example: `{provide: PetriNetLayoutManagerFactoryService, useExisting: SugiyamaLayoutManagerFactoryService}`
+  - `SugiyamaLayoutManagerFactoryService` creates a manager for the Sugiyama layout
+    - This is the algorithm available in previous version of this library and remains unchanged otherwise
+  - `SpringEmbedderLayoutManagerFactoryService` creates a manager for the spring embedder layout
+    - Used as the default layout manager factory if none is set
+    - Nodes repel each other, arcs act as springs and pull connected nodes closer together, the graph settles at an equilibrium
+    - Nodes can be dragged using the mouse and the rest of the graph will react to the dragging and change its layout
+    - A new net can replace an old net and inherit the positions of all the nodes they have in common
+- `DescriptiveLinkComponent` can now be drag-and-dropped onto a `FileUploadComponent` to transfer its content
+- `IncrementalMiner` now has a `clearCache` method that clears the cached synthesis results
+- `PetriNetReachabilityService` was added
+  - can compute all reachable markings of a Petri net
+  - can compute all markings reachable by executing provided traces in a Petri net with no label splitting
+- `Marking` class has new methods
+  - `serialise` method that produces a comma separated string containing the marking of the places with the provided transition ids
+  - `isNSafe` method that checks if the marking values of all places are smaller than or equal to the argument
+- New utility function `arraysContainSameElements` checks if two Arrays have the same size and contain the same elements
+
+### Changed
+- Displaying a Petri net
+  - `PnDisplayComponent` has been moved into its own Angular module - `PnDisplayModule`
+  - Mouse cursor changes when hovering over a draggable element
+  - Mouse cursor changes when dragging
+  - The display area can be zoomed into using the mouse wheel and panned by dragging the background infinitely in all directions
+- Performance improvements in `LogToPartialOrderTransformerService`
+- `ImplicitPlaceRemoverService` had its algorithm updated
+
+
+### Fixed
+- SVG token in a marked place no longer blocks the click event for its place
+- If a singular run is selected in the incremental miner and it contains label splitting it will now be passed by itself into the synthesis algorithm to remove label splitting
+- Fixed a bug in `PartialOrderIsomorphismService`
+- The I ❤ Petri nets header now redirects correctly in the `PageLayoutComponent` when using Angular router
+- Petri net now fires transitions with self-loops correctly
+
+### Removed
+- `PnLayoutingService` was removed
+  - Layout is now handled by the `LayoutManager` classes created by the `LayoutManagerFactory` services
+
 ## 1.2.0 - 2023-04-11
 ### Added
 - Petri net regions / Token trails algorithms implemented
