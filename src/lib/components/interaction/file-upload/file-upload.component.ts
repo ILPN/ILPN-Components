@@ -1,9 +1,11 @@
-import {Component, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
+import {Component, EventEmitter, Input, OnDestroy, Output} from '@angular/core';
 import {FileReaderService} from '../../../utility/file-reader.service';
-import {Subscription, take} from 'rxjs';
+import {catchError, forkJoin, Observable, of, take} from 'rxjs';
 import {DropFile} from '../../../utility/drop-file';
 import {FileDisplay} from '../../layout/file-display';
-import {FormControl} from '@angular/forms';
+import {DescriptiveLinkComponent} from "../descriptive-link/descriptive-link.component";
+import {HttpClient} from "@angular/common/http";
+
 
 @Component({
     selector: 'ilpn-file-upload',
@@ -22,7 +24,7 @@ export class FileUploadComponent implements OnDestroy {
 
     isHovered = false;
 
-    constructor(private _fileReader: FileReaderService) {
+    constructor(private _fileReader: FileReaderService, private _http: HttpClient) {
         this.fileContentEmitter = new EventEmitter<Array<DropFile>>();
     }
 
@@ -47,7 +49,13 @@ export class FileUploadComponent implements OnDestroy {
 
     fileDrop(e: DragEvent) {
         this.hoverEnd(e);
-        this.processFiles(e.dataTransfer?.files);
+
+        const linkData = e.dataTransfer?.getData(DescriptiveLinkComponent.DRAG_DATA_KEY);
+        if (linkData) {
+            this.processLinks(linkData);
+        } else {
+            this.processFiles(e.dataTransfer?.files);
+        }
     }
 
     fileSelected(e: Event) {
@@ -60,5 +68,33 @@ export class FileUploadComponent implements OnDestroy {
                 this.fileContentEmitter.emit(result);
             }
         });
+    }
+
+    private processLinks(links: string) {
+        const linkData$: Array<Observable<string | undefined>> = [];
+
+        if (!links.startsWith('[')) {
+            linkData$.push(this.fetchLinkData(links));
+        } else {
+            const parsed = JSON.parse(links) as Array<string>;
+            for (const l of parsed) {
+                linkData$.push(this.fetchLinkData(l));
+            }
+        }
+
+        forkJoin(linkData$).pipe(take(1)).subscribe(results => {
+            this.fileContentEmitter.emit(results.filter(r => !!r).map(r => new DropFile('', r as string)));
+        });
+    }
+
+    private fetchLinkData(link: string): Observable<string | undefined> {
+        return this._http.get(link, {
+            responseType: 'text'
+        }).pipe(
+            catchError(err => {
+                console.error('fetch data error', err);
+                return of(undefined);
+            })
+        );
     }
 }

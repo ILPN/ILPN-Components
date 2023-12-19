@@ -1,10 +1,25 @@
 <div fxLayout="column" fxLayoutAlign="start stretch">
-    <a [href]="anchorConfig | hrefConfig : 'https://www.fernuni-hagen.de/ilovepetrinets/'" [routerLink]="anchorConfig | routerLinkConfig">
-        <h1>I <span class="red">❤</span> Petri Nets</h1>
-    </a>
+
+    <ng-template [ngIf]="(anchorConfig | routerLinkConfig) !== null" [ngIfThen]="routerLogo" [ngIfElse]="hrefLogo"></ng-template>
 
     <ng-content></ng-content>
 
     <hr *ngIf="hrBeforeFooter">
     <ilpn-footer></ilpn-footer>
 </div>
+
+
+<ng-template #hrefLogo>
+    <a [href]="anchorConfig | hrefConfig : 'https://www.fernuni-hagen.de/ilovepetrinets/'">
+        <ng-container *ngTemplateOutlet="logo"></ng-container>
+    </a>
+</ng-template>
+
+<ng-template #routerLogo>
+    <a [routerLink]="anchorConfig | routerLinkConfig">
+        <ng-container *ngTemplateOutlet="logo"></ng-container>
+    </a>
+</ng-template>
+<ng-template #logo>
+    <h1>I <span class="red">❤</span> Petri Nets</h1>
+</ng-template>

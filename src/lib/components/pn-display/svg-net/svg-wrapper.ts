@@ -1,18 +1,25 @@
-import {Identifiable} from '../../../../../utility/get-by-id';
-import {Point} from '../../../../../utility/svg/point';
-import {MouseListener} from '../../../../../models/pn/model/mouse-listener';
+import {Identifiable} from '../../../utility/identifiable';
+import {Point} from '../../../utility/svg/point';
+import {MouseListener} from '../../../utility/svg/mouse-listener';
 import {BehaviorSubject, Observable, Subject, Subscription} from 'rxjs';
-import {TEXT_STYLE} from '../../constants/text-style';
+import {TEXT_STYLE} from '../internals/constants/text-style';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
+import {zoomFactor} from "../internals/zoom-factor";
 
 
 export abstract class SvgWrapper extends Identifiable implements Point, MouseListener {
+
+    protected static readonly CSS_DRAGGABLE = 'draggable';
+    protected static readonly CSS_DRAGGING = 'dragging';
 
     protected readonly TEXT_OFFSET = 20;
 
     protected _center$: BehaviorSubject<Point>;
 
-    private _dragging = false;
+    private _dragging$: BehaviorSubject<boolean>;
     private _lastPoint: Point | undefined;
+    private _isFixed = false;
+    private _isFixedOld = false;
     protected _mainElement: SVGElement | undefined;
     protected _elements: Array<SVGElement> = [];
     private _preDragPosition: Point;
@@ -22,9 +29,10 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
 
     private _subs: Array<Subscription>;
 
-    protected constructor(id?: string) {
+    protected constructor(id?: string, protected readonly _zoomWrapper?: ZoomWrapper) {
         super(id);
         this._center$ = new BehaviorSubject<Point>({x: 0, y: 0});
+        this._dragging$ = new BehaviorSubject<boolean>(false);
         this._preDragPosition = {x: 0, y: 0};
         this._subs = [
             this._center$.subscribe(_ => this.updateMainElementPos())
@@ -59,7 +67,32 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         return 'y';
     }
 
+    get dragging(): boolean {
+        return this._dragging$.value;
+    }
+
+    get isFixed(): boolean {
+        return this._isFixed;
+    }
+
+    set isFixed(value: boolean) {
+        this._isFixed = value;
+        this._isFixedOld = value;
+    }
+
+    public isDragging$(): Observable<boolean> {
+        return this._dragging$.asObservable();
+    }
+
+    public cloneCenter(): Point {
+        return {
+            x: this.x,
+            y: this.y
+        }
+    }
+
     public destroy() {
+        this._dragging$.complete();
         this._subs.forEach(s => s.unsubscribe());
     }
 
@@ -67,9 +100,10 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         return [...this._elements];
     }
 
-    bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>): void {
+    bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>, mouseMovedReactionFactory: (svg: SvgWrapper) => (e: MouseEvent) => void): void {
+        const processMouseMoved = mouseMovedReactionFactory(this);
         this._subs.push(
-            mouseMoved$.asObservable().subscribe(e => this.processMouseMoved(e)),
+            mouseMoved$.asObservable().subscribe(e => processMouseMoved(e)),
             mouseUp$.asObservable().subscribe(() => this.processMouseUp())
         );
     }
@@ -79,29 +113,33 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
             return;
         }
         event.stopPropagation();
-        this._dragging = true;
+        this._dragging$.next(true);
+        this._isFixedOld = this._isFixed;
+        this._isFixed = true;
         this._preDragPosition = this.center;
         this._lastPoint = {x: event.x, y: event.y};
+        this.swapMainElementCssClass(SvgWrapper.CSS_DRAGGABLE, SvgWrapper.CSS_DRAGGING);
     }
 
     public processMouseUp() {
-        if (this._mainElement === undefined || !this._dragging) {
+        if (this._mainElement === undefined || !this.dragging) {
             return;
         }
 
-        this._dragging = false;
+        this._dragging$.next(false);
+        this._isFixed = this._isFixedOld;
         this._lastPoint = undefined;
         this.center = {x: this._preDragPosition.x, y: this._preDragPosition.y}
+        this.swapMainElementCssClass(SvgWrapper.CSS_DRAGGING, SvgWrapper.CSS_DRAGGABLE);
     }
 
-    public processMouseMoved(event: MouseEvent) {
-        if (!this._dragging || this._mainElement === undefined || this._lastPoint === undefined) {
+    public processMouseMovedLayered(event: MouseEvent) {
+        if (!this.dragging || this._mainElement === undefined || this._lastPoint === undefined) {
             return;
         }
 
-        const y = this.y + event.y - this._lastPoint.y;
-        this._lastPoint.x = event.x;
-        this._lastPoint.y = event.y;
+        const y = this.newCoordinates(event).y;
+        this.updateLastPoint(event);
         this.center = {x: this.x, y};
 
         if (this._layerNodes === undefined || this._layerIndex === undefined) {
@@ -121,6 +159,30 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         ) {
             this.swap(neighbourIndex);
         }
+    }
+
+    public processMouseMovedFree(event: MouseEvent) {
+        if (!this.dragging || this._mainElement === undefined || this._lastPoint === undefined) {
+            return;
+        }
+
+        const coords = this.newCoordinates(event);
+        this.updateLastPoint(event);
+        this.center = coords;
+        this._preDragPosition = coords;
+    }
+
+    protected newCoordinates(event: MouseEvent): Point {
+        const factor = this._zoomWrapper ? zoomFactor(this._zoomWrapper.value.zoom) : 1;
+        return {
+            x: this.x + (event.x - this._lastPoint!.x) * factor,
+            y: this.y + (event.y - this._lastPoint!.y) * factor,
+        };
+    }
+
+    protected updateLastPoint(event: MouseEvent) {
+        this._lastPoint!.x = event.x;
+        this._lastPoint!.y = event.y;
     }
 
     public registerMainElement(element: SVGElement) {
@@ -184,5 +246,14 @@ export abstract class SvgWrapper extends Identifiable implements Point, MouseLis
         for (const entry of Object.entries(style)) {
             element.setAttribute(entry[0], entry[1]);
         }
+    }
+
+    private swapMainElementCssClass(remove: string, add: string) {
+        if (this._mainElement === undefined) {
+            return;
+        }
+
+        this._mainElement.classList.remove(remove);
+        this._mainElement.classList.add(add);
     }
 }

@@ -6,3 +6,11 @@ export function iterate<T>(iterable: Iterable<T>, consumer: (value: T) => void) 
         it = iterator.next();
     }
 }
+
+export function iterateMap<C, P>(iterable: Iterable<C>, map: (value: C) => P): Array<P> {
+    const r: Array<P> = [];
+    iterate(iterable, c => {
+        r.push(map(c));
+    })
+    return r;
+}

@@ -1,8 +1,9 @@
 import {SvgWrapper} from './svg-wrapper';
-import {Place} from '../../../../../models/pn/model/place';
-import {PLACE_STYLE} from '../../constants/place-style';
+import {Place} from '../../../models/pn/model/place';
+import {PLACE_STYLE} from '../internals/constants/place-style';
 import {Observable, Subject, Subscription} from 'rxjs';
-import {TOKEN_STYLE} from '../../constants/token-style';
+import {TOKEN_STYLE} from '../internals/constants/token-style';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
 
 
 export class SvgPlace extends SvgWrapper {
@@ -13,11 +14,12 @@ export class SvgPlace extends SvgWrapper {
     private readonly _markingTextEl: SVGElement;
     private readonly _markingTokenEls: Array<SVGElement>;
 
-    constructor(place: Place) {
-        super(place.id);
+    constructor(place: Place, zoomWrapper?: ZoomWrapper) {
+        super(place.id, zoomWrapper);
 
         const placeEl = this.createSvgElement('circle');
         this.applyStyle(placeEl, PLACE_STYLE);
+        placeEl.classList.add(SvgWrapper.CSS_DRAGGABLE);
         this.registerMainElement(placeEl);
         this._clicked$ = new Subject<string>();
         this._mainElement!.onclick = (_) => {
@@ -31,7 +33,7 @@ export class SvgPlace extends SvgWrapper {
                 textEl.setAttribute('y', `${c.y + parseInt(PLACE_STYLE.r) + this.TEXT_OFFSET}`);
             })
         ];
-        this._elements.push(textEl);
+        this._elements.unshift(textEl);
 
         // text for marking > 9
         this._markingTextEl = this.createTextElement();
@@ -42,40 +44,16 @@ export class SvgPlace extends SvgWrapper {
             })
         );
         this._markingTextEl.setAttribute('font-size', '1.5em');
-        this._elements.push(this._markingTextEl);
+        this._elements.unshift(this._markingTextEl);
 
         // circle tokes
         this._markingTokenEls = [];
         for (const offset of [{x: -1, y: 1}, {x: -1, y: -1}, {x: -1, y: 0}, {x: 0, y: -1}]) {
             for (const flip of [1, -1]) {
-                const token = this.createSvgElement('circle');
-                this.applyStyle(token, TOKEN_STYLE);
-                this._markingTokenEls.push(token);
-                this._placeSubs.push(
-                    this.center$.subscribe(c => {
-                        token.setAttribute('cx', `${c.x + 11 * offset.x * flip}`);
-                        token.setAttribute('cy', `${c.y + 11 * offset.y * flip}`);
-                    })
-                );
-                token.onclick = (_) => {
-                    this.processMouseClick();
-                };
-                this._elements.push(token);
+                this.createTokenSvg(11 * offset.x * flip, 11 * offset.y * flip);
             }
         }
-        const token = this.createSvgElement('circle');
-        this.applyStyle(token, TOKEN_STYLE);
-        this._markingTokenEls.push(token);
-        this._placeSubs.push(
-            this.center$.subscribe(c => {
-                token.setAttribute('cx', `${c.x}`);
-                token.setAttribute('cy', `${c.y}`);
-            })
-        );
-        token.onclick = (_) => {
-            this.processMouseClick();
-        };
-        this._elements.push(token);
+        this.createTokenSvg(0,0);
 
         this.updateMarking(place.marking);
     }
@@ -96,6 +74,19 @@ export class SvgPlace extends SvgWrapper {
 
     public get clicked$(): Observable<string> {
         return this._clicked$.asObservable();
+    }
+
+    private createTokenSvg(cxDelta: number, cyDelta: number) {
+        const token = this.createSvgElement('circle');
+        this.applyStyle(token, TOKEN_STYLE);
+        this._markingTokenEls.push(token);
+        this._placeSubs.push(
+            this.center$.subscribe(c => {
+                token.setAttribute('cx', `${c.x + cxDelta}`);
+                token.setAttribute('cy', `${c.y + cyDelta}`);
+            })
+        );
+        this._elements.unshift(token);
     }
 
     public fill(color: string | undefined) {

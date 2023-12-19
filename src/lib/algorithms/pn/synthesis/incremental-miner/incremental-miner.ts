@@ -43,10 +43,15 @@ export class IncrementalMiner {
         }
 
         // prepare initial input
-        const input = this.createMinerInput(domainSubsetIndices);
+        let input = this.createMinerInput(domainSubsetIndices);
         if (input instanceof PetriNet) {
-            // the requested net was cached
-            return of(input);
+            if (domainSubsetIndices.length === 1 && input.hasMoreThanNTransitionsWithTheSameLabel(1)) {
+                // an individual PO with label splitting was retrieved from the cache => we run the synthesis to remove the label splitting
+                input = this.wrapLabelSplitPo(input);
+            } else {
+                // the requested net was cached
+                return of(input);
+            }
         }
 
         const result$ = new ReplaySubject<PetriNet>(1);
@@ -79,22 +84,28 @@ export class IncrementalMiner {
                     });
                 }
             })
-        ).subscribe((result: { result: SynthesisResult, input: IncrementalMinerInput, changed?: boolean }) => {
-            console.debug(`Iteration completed`, result);
+        ).subscribe((context: { result: SynthesisResult, input: IncrementalMinerInput, changed?: boolean }) => {
+            console.debug(`Iteration completed`, context);
 
-            let synthesisedNet = result.result.result;
-            if (result.changed) {
+            let synthesisedNet = context.result.result;
+            if (context.changed) {
+                console.debug('removing implicit places')
+                const start = performance.now();
                 synthesisedNet = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
+                console.debug('elasped', performance.now() - start);
             }
 
-            if (input.hasNoMissingIndices()) {
-                this._cache.put(domainSubsetIndices, synthesisedNet);
+            if (context.input.hasNoMissingIndices()) {
+                console.debug('model synthesis completed. Returning result...');
+                synthesisedNet.containedTraces.push(...context.input.containedTraces);
+                this.cacheNet(domainSubsetIndices, synthesisedNet);
                 minerInput$.complete();
                 result$.next(synthesisedNet);
                 result$.complete();
             } else {
-                this._cache.put(input.containedIndices, synthesisedNet);
-                minerInput$.next(this.addMissingTrace(synthesisedNet, input.containedIndices, input.missingIndices));
+                console.debug('combining intermediate result with next specification');
+                this.cacheNet(context.input.containedIndices, synthesisedNet);
+                minerInput$.next(this.addMissingTrace(synthesisedNet, context.input.containedIndices, context.input.missingIndices));
             }
         });
 
@@ -114,6 +125,20 @@ export class IncrementalMiner {
     private addMissingTrace(model: PetriNet, containedIndices: Array<number>, missing: Array<number>): IncrementalMinerInput {
         const index = missing.shift()!;
         const cached = this._cache.get([index])
-        return new IncrementalMinerInput(model, cached.value, [...containedIndices, index], missing);
+        return new IncrementalMinerInput(model, cached.value, [...containedIndices, index], [...model.containedTraces, ...cached.value.containedTraces], missing);
+    }
+
+    private wrapLabelSplitPo(po: PetriNet): IncrementalMinerInput {
+        return new IncrementalMinerInput(new PetriNet(), po, [], [...po.containedTraces]);
+    }
+
+    private cacheNet(containedIndices: Array<number>, net: PetriNet) {
+        if (containedIndices.length > 1) {
+            this._cache.put(containedIndices, net);
+        }
+    }
+
+    public clearCache() {
+        this._cache.clear();
     }
 }

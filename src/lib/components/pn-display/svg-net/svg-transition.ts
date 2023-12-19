@@ -1,8 +1,9 @@
 import {SvgWrapper} from './svg-wrapper';
-import {Transition} from '../../../../../models/pn/model/transition';
-import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE, TransitionStyle} from '../../constants/transition-style';
+import {Transition} from '../../../models/pn/model/transition';
+import {SILENT_TRANSITION_STYLE, TRANSITION_STYLE, TransitionStyle} from '../internals/constants/transition-style';
 import {Subscription} from 'rxjs';
-import {Point} from '../../../../../utility/svg/point';
+import {Point} from '../../../utility/svg/point';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
 
 
 export class SvgTransition extends SvgWrapper {
@@ -11,13 +12,14 @@ export class SvgTransition extends SvgWrapper {
 
     private readonly _textSub: Subscription;
 
-    constructor(transition: Transition) {
-        super(transition.id);
+    constructor(transition: Transition, zoomWrapper?: ZoomWrapper) {
+        super(transition.id, zoomWrapper);
         this._transition = transition;
 
         const transEl = this.createSvgElement('rect');
         const style = this.resolveTransitionStyle();
         this.applyStyle(transEl, style);
+        transEl.classList.add(SvgWrapper.CSS_DRAGGABLE);
         this.registerMainElement(transEl);
 
         if (transition.isSilent) {
@@ -52,5 +54,9 @@ export class SvgTransition extends SvgWrapper {
 
     public isSilent(): boolean {
         return this._transition.isSilent;
+    }
+
+    public getLabel(): string | undefined {
+        return this._transition.label;
     }
 }

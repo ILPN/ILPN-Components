@@ -1,13 +1,14 @@
 import {SvgWrapper} from './svg-wrapper';
 import {DragPoint} from './drag-point';
-import {computeDeltas, Point} from '../../../../../utility/svg/point';
-import {PLACE_STYLE} from '../../constants/place-style';
+import {computeDeltas, Point} from '../../../utility/svg/point';
+import {PLACE_STYLE} from '../internals/constants/place-style';
 import {SvgPlace} from './svg-place';
 import {SvgTransition} from './svg-transition';
-import {Arc} from '../../../../../models/pn/model/arc';
-import {ARC_END_STYLE, ARC_STYLE} from '../../constants/arc-style';
-import {Subject, Subscription} from 'rxjs';
-import {TransitionStyle} from '../../constants/transition-style';
+import {Arc} from '../../../models/pn/model/arc';
+import {ARC_END_STYLE, ARC_STYLE} from '../internals/constants/arc-style';
+import {Observable, Subject, Subscription} from 'rxjs';
+import {TransitionStyle} from '../internals/constants/transition-style';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
 
 
 interface NewLine {
@@ -31,11 +32,12 @@ export class SvgArc extends SvgWrapper {
 
     private _mouseMoved$?: Subject<MouseEvent>;
     private _mouseUp$?: Subject<MouseEvent>;
+    private _mouseMovedReactionFactory?: (svg: SvgWrapper) => (e: MouseEvent) => void;
 
-    constructor(source: SvgPlace, destination: SvgTransition, arc: Arc);
-    constructor(source: SvgTransition, destination: SvgPlace, arc: Arc);
-    constructor(source: SvgPlace | SvgTransition, destination: SvgTransition | SvgPlace, arc: Arc) {
-        super();
+    constructor(source: SvgPlace, destination: SvgTransition, arc: Arc, zoomWrapper?: ZoomWrapper);
+    constructor(source: SvgTransition, destination: SvgPlace, arc: Arc, zoomWrapper?: ZoomWrapper);
+    constructor(source: SvgPlace | SvgTransition, destination: SvgTransition | SvgPlace, arc: Arc, zoomWrapper?: ZoomWrapper) {
+        super(undefined, zoomWrapper);
         this._arc = arc;
         this._breakpoints = [];
 
@@ -48,6 +50,11 @@ export class SvgArc extends SvgWrapper {
         this._subPoints = [newLine.subs];
 
         this._subWeight = [];
+    }
+
+    override isDragging$(): Observable<boolean> {
+        return super.isDragging$();
+        // TODO include breakpoint dragging
     }
 
     get hasBreakpoints(): boolean {
@@ -63,10 +70,11 @@ export class SvgArc extends SvgWrapper {
         this._subWeight.forEach(s => s.unsubscribe());
     }
 
-    override bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>) {
-        super.bindEvents(mouseMoved$, mouseUp$);
+    override bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>, mouseMovedReactionFactory: (svg: SvgWrapper) => (e: MouseEvent) => void): void {
+        super.bindEvents(mouseMoved$, mouseUp$, mouseMovedReactionFactory);
         this._mouseMoved$ = mouseMoved$;
         this._mouseUp$ = mouseUp$;
+        this._mouseMovedReactionFactory = mouseMovedReactionFactory;
     }
 
     override getElements(): Array<SVGElement> {
@@ -86,7 +94,7 @@ export class SvgArc extends SvgWrapper {
         const updatedSegment = this.addLine(point, this.destination, this._lines[this._lines.length - 1]);
         this._subPoints.push(updatedSegment.subs);
 
-        point.bindEvents(this._mouseMoved$!, this._mouseUp$!);
+        point.bindEvents(this._mouseMoved$!, this._mouseUp$!, this._mouseMovedReactionFactory!);
 
         this._breakpoints.push(point);
     }

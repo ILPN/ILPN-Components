@@ -1,7 +1,9 @@
-export class Marking {
-    private readonly _marking: { [placeId: string]: number };
+export type Markinglike = { [p: string]: number };
 
-    constructor(marking: { [p: string]: number } | Marking = {}) {
+export class Marking {
+    private readonly _marking: Markinglike;
+
+    constructor(marking: Markinglike | Marking = {}) {
         this._marking = Object.assign({}, marking instanceof Marking ? marking._marking : marking);
     }
 
@@ -11,6 +13,14 @@ export class Marking {
 
     public set(placeId: string, tokens: number) {
         this._marking[placeId] = tokens;
+    }
+
+    public delete(placeId: string) {
+        delete this._marking[placeId];
+    }
+
+    public get size(): number {
+        return Object.keys(this._marking).length;
     }
 
     public equals(marking: Marking): boolean {
@@ -75,5 +85,13 @@ export class Marking {
         const myKeys = this.getKeys();
         const otherKeys = new Set(marking.getKeys());
         return [myKeys, otherKeys];
+    }
+
+    public serialise(placeOrdering: Array<string>): string {
+        return placeOrdering.map(pid => this.get(pid)).join(',');
+    }
+
+    public isNSafe(n: number): boolean {
+        return Object.values(this._marking).every(v => v <= n);
     }
 }

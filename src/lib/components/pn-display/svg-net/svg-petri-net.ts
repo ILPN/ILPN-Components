@@ -1,14 +1,15 @@
-import {PetriNet} from '../../../../../models/pn/model/petri-net';
+import {PetriNet} from '../../../models/pn/model/petri-net';
 import {SvgPlace} from './svg-place';
 import {SvgTransition} from './svg-transition';
 import {SvgArc} from './svg-arc';
-import {Place} from '../../../../../models/pn/model/place';
-import {Transition} from '../../../../../models/pn/model/transition';
-import {Arc} from '../../../../../models/pn/model/arc';
-import {Node} from '../../../../../models/pn/model/node';
+import {Place} from '../../../models/pn/model/place';
+import {Transition} from '../../../models/pn/model/transition';
+import {Arc} from '../../../models/pn/model/arc';
+import {Node} from '../../../models/pn/model/node';
 import {SvgWrapper} from './svg-wrapper';
-import {merge, Observable, Subject} from 'rxjs';
-import {Marking} from '../../../../../models/pn/model/marking';
+import {BehaviorSubject, combineLatest, merge, Observable, Subject, Subscription} from 'rxjs';
+import {Marking} from '../../../models/pn/model/marking';
+import {ZoomWrapper} from "../internals/model/zoom-wrapper";
 
 
 export class SvgPetriNet {
@@ -17,20 +18,25 @@ export class SvgPetriNet {
     private readonly _places: Map<string, SvgPlace>;
     private readonly _transition: Map<string, SvgTransition>;
     private readonly _arcs: Map<string, SvgArc>;
+    private readonly _dragging$: BehaviorSubject<boolean>;
+    private readonly _sub: Subscription;
 
-    constructor(net: PetriNet, mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>) {
+    constructor(net: PetriNet, private _zoomWrapper?: ZoomWrapper) {
+        this._dragging$ = new BehaviorSubject<boolean>(false);
+        const observables: Array<Observable<boolean>> = [];
+
         this._net = net;
         this._places = new Map<string, SvgPlace>();
         for (const p of net.getPlaces()) {
-            const svgPlace = new SvgPlace(p);
+            const svgPlace = new SvgPlace(p, this._zoomWrapper);
             this._places.set(p.getId(), svgPlace);
-            svgPlace.bindEvents(mouseMoved$, mouseUp$);
+            observables.push(svgPlace.isDragging$());
         }
         this._transition = new Map<string, SvgTransition>();
         for (const t of net.getTransitions()) {
-            const svgTransition = new SvgTransition(t);
+            const svgTransition = new SvgTransition(t, this._zoomWrapper);
             this._transition.set(t.getId(), svgTransition);
-            svgTransition.bindEvents(mouseMoved$, mouseUp$);
+            observables.push(svgTransition.isDragging$());
         }
         this._arcs = new Map<string, SvgArc>();
         for (const a of net.getArcs()) {
@@ -39,19 +45,26 @@ export class SvgPetriNet {
             if (a.source instanceof Place) {
                 s = this._places.get(a.sourceId)!;
                 d = this._transition.get(a.destinationId)!;
-                svgArc =  new SvgArc(s, d, a);
+                svgArc =  new SvgArc(s, d, a, this._zoomWrapper);
                 this._arcs.set(a.getId(), svgArc);
             } else {
                 s = this._transition.get(a.sourceId!)!;
                 d = this._places.get(a.destinationId)!;
-                svgArc = new SvgArc(s, d, a);
+                svgArc = new SvgArc(s, d, a, this._zoomWrapper);
                 this._arcs.set(a.getId(), svgArc);
             }
-            svgArc.bindEvents(mouseMoved$, mouseUp$);
+            observables.push(svgArc.isDragging$());
         }
+
+        this._sub = combineLatest(observables).subscribe(dragging => {
+            this._dragging$.next(dragging.some(b => b));
+        });
     }
 
     public destroy() {
+        this._sub.unsubscribe();
+        this._dragging$.complete();
+
         for (const p of this._places.values()) {
             p.destroy();
         }
@@ -60,6 +73,22 @@ export class SvgPetriNet {
         }
         for (const a of this._arcs.values()) {
             a.destroy();
+        }
+    }
+
+    public get dragging(): boolean {
+        return this._dragging$.value;
+    }
+
+    public bindEvents(mouseMoved$: Subject<MouseEvent>, mouseUp$: Subject<MouseEvent>, mouseMovedReactionFactory: (svg: SvgWrapper) => (e: MouseEvent) => void) {
+        for (const p of this._places.values()) {
+            p.bindEvents(mouseMoved$, mouseUp$, mouseMovedReactionFactory);
+        }
+        for (const t of this._transition.values()) {
+            t.bindEvents(mouseMoved$, mouseUp$, mouseMovedReactionFactory);
+        }
+        for (const a of this._arcs.values()) {
+            a.bindEvents(mouseMoved$, mouseUp$, mouseMovedReactionFactory);
         }
     }
 
@@ -105,6 +134,10 @@ export class SvgPetriNet {
         return this._arcs.get(arc.getId())!;
     }
 
+    public getMappedArcs(): Array<SvgArc> {
+        return Array.from(this._arcs.values());
+    }
+
     public getInverseMappedPlace(svgPlace: SvgPlace | SvgWrapper): Place | undefined {
         return this._net.getPlace(svgPlace.getId());
     }
@@ -115,6 +148,10 @@ export class SvgPetriNet {
 
     public getInverseMappedNode(wrapper: SvgPlace | SvgTransition | SvgWrapper): Place | Transition | undefined {
         return this.getInverseMappedPlace(wrapper) ?? this.getInverseMappedTransition(wrapper);
+    }
+
+    public getMappedNodes(): Array<SvgTransition | SvgPlace> {
+        return [...this._transition.values(), ...this._places.values()];
     }
 
     public getPlaceClicked$(): Observable<string> {

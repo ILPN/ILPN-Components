@@ -6,6 +6,7 @@ export class Trace implements EditableStringSequence {
     public events: Array<LogEvent> = [];
     public name?: string;
     public description?: string;
+    public frequency?: number;
 
     constructor() {
     }

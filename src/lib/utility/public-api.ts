@@ -1,6 +1,7 @@
 export * from './multiset/public-api';
 export * from './prefix-graphs/public-api';
 export * from './glpk/public-api';
+export * from './svg/public-api';
 
 export * from './incrementing-counter';
 export * from './file-reader.service';
@@ -14,3 +15,6 @@ export * from './map-set';
 export * from './string-sequence';
 export * from './directly-follows-extractor';
 export * from './set-operations';
+export * from './identifiable';
+export * from './bidirectional-map';
+export * from './ordered-pair-set';

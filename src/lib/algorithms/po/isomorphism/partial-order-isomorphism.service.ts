@@ -12,8 +12,19 @@ export class PartialOrderIsomorphismService {
     }
 
     public arePartialOrdersIsomorphic(partialOrderA: PartialOrder, partialOrderB: PartialOrder): boolean {
+        if (partialOrderA.events.length !== partialOrderB.events.length) {
+            return false;
+        }
+
         partialOrderA.determineInitialAndFinalEvents();
         partialOrderB.determineInitialAndFinalEvents();
+
+        if (partialOrderA.initialEvents.size !== partialOrderB.initialEvents.size) {
+            return false;
+        }
+        if (partialOrderA.finalEvents.size !== partialOrderB.finalEvents.size) {
+            return false;
+        }
 
         const unsolved: Array<IsomorphismCandidate> = [];
         for (const initialEvent of partialOrderA.initialEvents) {

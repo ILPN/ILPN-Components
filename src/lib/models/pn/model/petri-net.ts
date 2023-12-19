@@ -2,8 +2,9 @@ import {Place} from './place';
 import {Transition} from './transition';
 import {Arc} from './arc';
 import {createUniqueString, IncrementingCounter} from '../../../utility/incrementing-counter';
-import {getById} from '../../../utility/get-by-id';
+import {getByValueId} from '../../../utility/identifiable';
 import {Marking} from './marking';
+import {Trace} from "../../log/model/trace";
 
 export class PetriNet {
     private readonly _places: Map<string, Place>;
@@ -19,6 +20,8 @@ export class PetriNet {
     private _transitionCounter = new IncrementingCounter();
     private _arcCounter = new IncrementingCounter();
 
+    public readonly containedTraces: Array<Trace>;
+
     constructor() {
         this._places = new Map<string, Place>();
         this._transitions = new Map<string, Transition>();
@@ -26,6 +29,7 @@ export class PetriNet {
         this._inputPlaces = new Set<string>();
         this._outputPlaces = new Set<string>();
         this._labelCount = new Map<string | undefined, number>();
+        this.containedTraces = [];
     }
 
     public static createFromArcSubset(net: PetriNet, arcs: Array<Arc>, placeIdPrefix: string = ''): PetriNet {
@@ -100,7 +104,7 @@ export class PetriNet {
         const newMarking: Marking = new Marking(marking);
 
         for (const inArc of transition.ingoingArcs) {
-            const m = marking.get(inArc.sourceId);
+            const m = newMarking.get(inArc.sourceId);
             if (m === undefined) {
                 throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
             }
@@ -111,7 +115,7 @@ export class PetriNet {
         }
 
         for (const outArc of transition.outgoingArcs) {
-            const m = marking.get(outArc.destinationId);
+            const m = newMarking.get(outArc.destinationId);
             if (m === undefined) {
                 throw new Error(`The transition with id '${transitionId}' has an outgoing arc to a place with id '${outArc.destinationId}' but no such place is defined in the provided marking!`);
             }
@@ -125,7 +129,7 @@ export class PetriNet {
         return net.getTransitions().filter(t => PetriNet.isTransitionEnabledInMarking(net, t.id!, marking));
     }
 
-    public static isTransitionEnabledInMarking(net: PetriNet, transitionId: string, marking: Marking): boolean {
+    public static isTransitionEnabledInMarking(net: PetriNet, transitionId: string, marking: Marking, ignorePlacesWithNoMarking = false): boolean {
         const transition = net.getTransition(transitionId);
         if (transition === undefined) {
             throw new Error(`The given net does not contain a transition with id '${transitionId}'`);
@@ -134,9 +138,10 @@ export class PetriNet {
         for (const inArc of transition.ingoingArcs) {
             const m = marking.get(inArc.sourceId);
             if (m === undefined) {
-                throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
-            }
-            if (m - inArc.weight < 0) {
+                if (!ignorePlacesWithNoMarking) {
+                    throw new Error(`The transition with id '${transitionId}' has an incoming arc from a place with id '${inArc.sourceId}' but no such place is defined in the provided marking!`);
+                }
+            } else if (m - inArc.weight < 0) {
                 return false;
             }
         }
@@ -174,7 +179,7 @@ export class PetriNet {
     }
 
     public removeTransition(transition: Transition | string) {
-        const t = getById(this._transitions, transition);
+        const t = getByValueId(this._transitions, transition);
         if (t === undefined) {
             return;
         }
@@ -221,7 +226,7 @@ export class PetriNet {
     }
 
     public removePlace(place: Place | string) {
-        const p = getById(this._places, place);
+        const p = getByValueId(this._places, place);
         if (p === undefined) {
             return;
         }
@@ -268,7 +273,7 @@ export class PetriNet {
     }
 
     public removeArc(arc: Arc | string) {
-        const a = getById(this._arcs, arc);
+        const a = getByValueId(this._arcs, arc);
         if (a === undefined) {
             return;
         }
@@ -333,12 +338,27 @@ export class PetriNet {
         return new Map<string | undefined, number>(this._labelCount);
     }
 
+    /**
+     * @param n
+     * @returns whether the net contains more than `n` transitions that have the same label (including no label)
+     */
+    public hasMoreThanNTransitionsWithTheSameLabel(n: number): boolean {
+        for (const count of this._labelCount.values()) {
+            if (count > n) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public isEmpty(): boolean {
         return this._places.size === 0 && this._transitions.size === 0;
     }
 
     public clone(placeIdPrefix?: string): PetriNet {
-        return PetriNet.createFromArcSubset(this, this.getArcs(), placeIdPrefix);
+        const pn = PetriNet.createFromArcSubset(this, this.getArcs(), placeIdPrefix);
+        pn.containedTraces.push(...this.containedTraces);
+        return pn;
     }
 
     private getPlacesById(ids: Set<string>): Array<Place> {

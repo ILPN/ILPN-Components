@@ -1,14 +1,16 @@
 import {Injectable} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
 import {Marking} from '../../../models/pn/model/marking';
-import {PetriNetCoverabilityService} from '../reachability/petri-net-coverability.service';
+import {PetriNetReachabilityService} from "../reachability/petri-net-reachability.service";
+import {MarkingWithEnabledTransitions} from "../reachability/model/marking-with-enabled-transitions";
+import {Transition} from "../../../models/pn/model/transition";
 
 @Injectable({
     providedIn: 'root'
 })
 export class ImplicitPlaceRemoverService {
 
-    constructor(protected _coverabilityTreeService: PetriNetCoverabilityService) {
+    constructor(protected _reachabilityService: PetriNetReachabilityService) {
     }
 
     /**
@@ -16,78 +18,79 @@ export class ImplicitPlaceRemoverService {
      * @returns a copy of the input Petri net without the implicit places
      */
     public removeImplicitPlaces(net: PetriNet): PetriNet {
-        const reachableMarkings = this.generateReachableMarkings(net);
+        // const reachableMarkings = this.generateReachableMarkings(net);
+        // return this.removePlacesByMarking(net, Array.from(reachableMarkings.values()));
+        return this.removePlacesByMarking(net, this._reachabilityService.getReachableMarkings(net));
+    }
 
-        const placeOrdering = net.getPlaces().map(p => p.id!);
+    protected removePlacesByMarking(net: PetriNet, markings: Array<MarkingWithEnabledTransitions>): PetriNet {
+        const placeOrdering = net.getPlaces().map(p => p.getId());
         const removedPlaceIds = new Set<string>();
         const result = net.clone();
 
-        p1For:
-        for (const p1 of placeOrdering) {
-            if (removedPlaceIds.has(p1)) {
-                continue;
+        console.debug(`inspecting ${net.getPlaceCount()} places to remove implicit ones based on ${markings.length} reachable markings`);
+
+        const originalMarkingSize = result.getPlaceCount();
+
+        for (const p of placeOrdering) {
+            const inspectedPlace = net.getPlace(p);
+            if (inspectedPlace === undefined) {
+                throw new Error(`Illegal state. Inspected place with id ${p} is not in net!`);
             }
 
-            p2For:
-            for (const p2 of placeOrdering) {
-                if (removedPlaceIds.has(p2)) {
-                    continue;
-                }
-                if (p1 === p2) {
-                    continue;
-                }
+            const postset = inspectedPlace.outgoingArcs.map(a => a.destination) as Array<Transition>;
 
-                let isGreater = false;
-                for (const marking of reachableMarkings.values()) {
-                    if (marking.get(p1)! < marking.get(p2)!) {
-                        continue p2For;
-                    } else if (marking.get(p1)! > marking.get(p2)!) {
-                        isGreater = true;
+            let implicit = true;
+
+            if (postset.length > 0) {
+                forMarkings:
+                    for (const rm of markings) {
+                        this.trimMarking(rm.marking, removedPlaceIds, originalMarkingSize);
+                        if (!rm.evaluatedEnabledTransitions) {
+                            rm.addEnabledTransitions(PetriNet.getAllEnabledTransitions(result, rm.marking));
+                        }
+
+                        const reduced = new Marking(rm.marking);
+                        reduced.delete(p);
+
+                        for (const t of postset) {
+                            if (PetriNet.isTransitionEnabledInMarking(result, t.getId(), reduced, true)
+                                && !rm.enabledTransitions.includes(t.getId())) {
+                                // removing the place would enable a new transition in some marking => NOT implicit
+                                implicit = false;
+                                break forMarkings;
+                            }
+                        }
                     }
+            }
+
+            if (implicit) {
+                const preset = inspectedPlace.ingoingArcs.map(a => a.source) as Array<Transition>;
+                if (preset.some(t => t.outgoingArcWeights.size === 1)) {
+                    // we don't want to delete a place if this is the only place in the postset of some transition
+                    continue;
                 }
 
-                if (isGreater) {
-                    // p1 is > than some other place p2 => p1 is an implicit place and can be removed from the net
-                    removedPlaceIds.add(p1);
-                    result.removePlace(p1);
-                    continue p1For;
-                }
+                result.removePlace(inspectedPlace);
+                removedPlaceIds.add(p);
             }
         }
 
         return result;
     }
 
-    protected generateReachableMarkings(net: PetriNet): Map<string, Marking> {
-        const reachableMarkings = new Map<string, Marking>();
-        const toExplore = [this._coverabilityTreeService.getCoverabilityTree(net)];
-        const placeOrdering = toExplore[0].omegaMarking.getKeys();
-
-        while (toExplore.length > 0) {
-            const next = toExplore.shift()!;
-            toExplore.push(...next.getChildren())
-            const m = next.omegaMarking;
-            reachableMarkings.set(this.stringifyMarking(m, placeOrdering), m);
+    private trimMarking(marking: Marking, removedPlaceIds: Set<string>, originalSize: number) {
+        const expectedSize = originalSize - removedPlaceIds.size;
+        if (marking.size === expectedSize) {
+            return;
         }
-
-        return reachableMarkings;
-    }
-
-    protected getLabelMapping(net: PetriNet): Map<string, string> {
-        const result = new Map<string, string>();
-        for (const t of net.getTransitions()) {
-            if (t.label === undefined) {
-                throw new Error(`Silent transitions are unsupported! The transition with id '${t.id}' has no label`);
+        if (marking.size > expectedSize) {
+            for (const p of removedPlaceIds) {
+                marking.delete(p);
             }
-            if (result.has(t.label!)) {
-                throw new Error(`Label splitting is not supported! The label '${t.label}' is shared by at least two transitions`);
-            }
-            result.set(t.label, t.id!);
+            return;
+        } else {
+            throw new Error('Unexpected state. Marking size is less than expected');
         }
-        return result;
-    }
-
-    protected stringifyMarking(marking: Marking, placeOrdering: Array<string>): string {
-        return placeOrdering.map(pid => marking.get(pid)).join(',');
     }
 }

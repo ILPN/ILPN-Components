@@ -89,7 +89,7 @@ describe('IncrementalMinerCache', () => {
         expect(entry.value).toBe(netLower);
     });
 
-    it('should fins larger subsets with higher indices', () => {
+    it('should find larger subsets with higher indices', () => {
         expect(cache).toBeTruthy();
 
         const netSmaller = new PetriNet();
@@ -101,5 +101,24 @@ describe('IncrementalMinerCache', () => {
         expect(entry).toBeTruthy();
         expect(entry.key).toEqual([1, 2, 3]);
         expect(entry.value).toBe(netLarger);
+    });
+
+    it('should clear cache', () => {
+        expect(cache).toBeTruthy();
+
+        const netCombined = new PetriNet();
+        cache.put([1,2], netCombined);
+
+        let entry = cache.get([1,2]);
+        expect(entry).toBeTruthy();
+        expect(entry.value).toBe(netCombined);
+
+        cache.clear();
+
+        entry = cache.get([1,2]);
+        expect(entry).toBeTruthy();
+        expect(entry.value).not.toBe(netCombined);
+        expect(entry.key).toEqual([1]);
+        expect(entry.value).toBe(nets.B);
     });
 });

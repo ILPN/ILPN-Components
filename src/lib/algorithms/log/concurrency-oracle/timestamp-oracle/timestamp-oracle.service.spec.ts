@@ -19,12 +19,12 @@ describe('TimestampOracleService', () => {
 
     it('should detect wildcard concurrency', () => {
         // |-A-||-B-|
-        let trace = createMockTrace([
+        let trace = createMockTrace(
             {n: 'A', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
             {n: 'B', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE}
-        ]);
+        );
 
         let concurrency = service.determineConcurrency([trace]);
         expect(concurrency).toBeTruthy();
@@ -32,12 +32,12 @@ describe('TimestampOracleService', () => {
 
         // |-A-|
         //   |-B-|
-        trace = createMockTrace([
+        trace = createMockTrace(
             {n: 'A', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
             {n: 'B', p: Lifecycle.COMPLETE}
-        ]);
+        );
 
         concurrency = service.determineConcurrency([trace]);
         expect(concurrency).toBeTruthy();
@@ -46,14 +46,14 @@ describe('TimestampOracleService', () => {
         // |-A-|
         //   |--B--|
         //       |-C-|
-        trace = createMockTrace([
+        trace = createMockTrace(
             {n: 'A', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
             {n: 'C', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE},
             {n: 'C', p: Lifecycle.COMPLETE}
-        ]);
+        );
 
         concurrency = service.determineConcurrency([trace]);
         expect(concurrency).toBeTruthy();
@@ -64,14 +64,14 @@ describe('TimestampOracleService', () => {
         // |-----A-----|
         //   |---B---|
         //     |-C-|
-        trace = createMockTrace([
+        trace = createMockTrace(
             {n: 'A', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.START},
             {n: 'C', p: Lifecycle.START},
             {n: 'C', p: Lifecycle.COMPLETE},
             {n: 'B', p: Lifecycle.COMPLETE},
             {n: 'A', p: Lifecycle.COMPLETE},
-        ]);
+        );
 
         concurrency = service.determineConcurrency([trace]);
         expect(concurrency).toBeTruthy();
@@ -80,22 +80,22 @@ describe('TimestampOracleService', () => {
         expect(concurrency.isConcurrent('A', 'C')).toBeTrue();
 
         // A |-B-|
-        trace = createMockTrace([
+        trace = createMockTrace(
             {n: 'A', p: Lifecycle.COMPLETE},
             {n: 'B', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE}
-        ]);
+        );
 
         concurrency = service.determineConcurrency([trace]);
         expect(concurrency).toBeTruthy();
         expect(concurrency.isConcurrent('A', 'B')).toBeFalse();
 
         // |-A-| B
-        trace = createMockTrace([
+        trace = createMockTrace(
             {n: 'A', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
             {n: 'B', p: Lifecycle.COMPLETE}
-        ]);
+        );
 
         concurrency = service.determineConcurrency([trace]);
         expect(concurrency).toBeTruthy();
@@ -103,11 +103,11 @@ describe('TimestampOracleService', () => {
 
         // |-A-|
         //   B
-        trace = createMockTrace([
+        trace = createMockTrace(
             {n: 'A', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE},
             {n: 'A', p: Lifecycle.COMPLETE}
-        ]);
+        );
 
         concurrency = service.determineConcurrency([trace]);
         expect(concurrency).toBeTruthy();
@@ -118,14 +118,14 @@ describe('TimestampOracleService', () => {
         // |-A-|
         //   |--B--|
         //       |-A-|
-        let trace = createMockTrace([
+        let trace = createMockTrace(
             {n: 'A', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.START},
             {n: 'A', p: Lifecycle.COMPLETE},
             {n: 'A', p: Lifecycle.START},
             {n: 'B', p: Lifecycle.COMPLETE},
             {n: 'A', p: Lifecycle.COMPLETE}
-        ]);
+        );
 
         let concurrency = service.determineConcurrency([trace], {distinguishSameLabels: true});
         expect(concurrency).toBeTruthy();
