@@ -4,7 +4,7 @@ import {Transition} from '../model/transition';
 import {Place} from '../model/place';
 import {Arc} from '../model/arc';
 import {BlockType} from './block-type';
-import {AbstractParser} from '../../../utility/abstract-parser';
+import {AbstractParser} from '../../../utility/parsing/abstract-parser';
 
 @Injectable({
     providedIn: 'root'

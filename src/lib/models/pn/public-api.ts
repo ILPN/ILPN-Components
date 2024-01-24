@@ -7,3 +7,4 @@ export * from './model/partial-order-net-with-contained-traces';
 
 export * from './parser/petri-net-serialisation.service';
 export * from './parser/petri-net-parser.service';
+export * from './parser/plain-petri-net-parser.service';

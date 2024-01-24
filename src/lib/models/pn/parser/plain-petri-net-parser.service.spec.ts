@@ -1,10 +1,10 @@
-import {PetriNetParserService} from './petri-net-parser.service';
+import {PlainPetriNetParserService} from './plain-petri-net-parser.service';
 import {TestBed} from '@angular/core/testing';
 import {expect} from '@angular/flex-layout/_private-utils/testing';
 
 describe('PetriNetParserService', () => {
     let originalLogFunction: (...data: any[]) => void;
-    let service: PetriNetParserService;
+    let service: PlainPetriNetParserService;
     let spy: jasmine.Spy;
 
     beforeEach(() => {
@@ -12,7 +12,7 @@ describe('PetriNetParserService', () => {
         originalLogFunction = console.error;
         spy = jasmine.createSpy('error');
         console.error = spy;
-        service = TestBed.inject(PetriNetParserService);
+        service = TestBed.inject(PlainPetriNetParserService);
     });
 
     afterEach(() => {

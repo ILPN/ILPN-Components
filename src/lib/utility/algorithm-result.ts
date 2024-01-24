@@ -1,4 +1,4 @@
-import {AbstractParser} from './abstract-parser';
+import {AbstractParser} from './parsing/abstract-parser';
 import {DropFile} from './drop-file';
 
 export class AlgorithmResult {

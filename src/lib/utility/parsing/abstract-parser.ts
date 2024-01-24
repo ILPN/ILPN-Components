@@ -1,4 +1,6 @@
-export abstract class AbstractParser<T> {
+import {Parser} from './parser';
+
+export abstract class AbstractParser<T> implements Parser<T> {
 
     public static readonly TYPE_BLOCK = '.type';
 
