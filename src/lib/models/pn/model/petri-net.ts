@@ -351,6 +351,16 @@ export class PetriNet {
         return false;
     }
 
+    public getNodeWithId(id: string): Place | Transition | undefined {
+        const p = this.getPlace(id);
+        const t = this.getTransition(id);
+        if (p !== undefined && t !== undefined) {
+            console.error(`Node ID collision for ID '${id}'`);
+            return undefined;
+        }
+        return p ?? t;
+    }
+
     public isEmpty(): boolean {
         return this._places.size === 0 && this._transitions.size === 0;
     }

@@ -6,6 +6,8 @@
         "@angular/cdk": "^13.3.6",
         "@angular/core": "^13.1.0",
         "@angular/flex-layout": "^13.0.0-beta.36",
+        "client-zip": "~1.5.1",
+        "fast-xml-parser": "^4.3.3",
         "file-saver": "^2.0.5",
         "glpk.js": "^4.0.1",
         "object-hash": "^3.0.0",

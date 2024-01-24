@@ -60,8 +60,8 @@ export class JsonPetriNetParserService implements Parser<PetriNet> {
                     continue;
                 }
 
-                const source = this.getNodeWithId(ids[0], petriNet);
-                const target = this.getNodeWithId(ids[1], petriNet);
+                const source = petriNet.getNodeWithId(ids[0]);
+                const target = petriNet.getNodeWithId(ids[1]);
                 if (!source || !target) {
                     console.warn(`An arc between ${ids[0]} and ${ids[1]} is invalid. Invalid arcs are ignored.`);
                     continue;
@@ -104,15 +104,5 @@ export class JsonPetriNetParserService implements Parser<PetriNet> {
         }
 
         return petriNet;
-    }
-
-    protected getNodeWithId(id: string, net: PetriNet): Place | Transition | undefined {
-        const p = net.getPlace(id);
-        const t = net.getTransition(id);
-        if (p !== undefined && t !== undefined) {
-            console.error(`Node ID collision for ID '${id}'`);
-            return undefined;
-        }
-        return p ?? t;
     }
 }
