@@ -1,4 +1,4 @@
-import {BehaviorSubject, Observable, ReplaySubject, switchMap} from 'rxjs';
+import {BehaviorSubject, config, Observable, ReplaySubject, switchMap} from 'rxjs';
 import {GLPK, LP, Result} from 'glpk.js';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
@@ -8,6 +8,14 @@ import {PetriNetRegion} from './petri-net-region';
 import {RegionsConfiguration} from '../../../../utility/glpk/model/regions-configuration';
 import {TokenTrailIlpSolver} from '../../../../utility/glpk/token-trail-ilp-solver';
 import {Marking} from '../../../../models/pn/model/marking';
+import * as console from "console";
+import * as console from "console";
+import * as console from "console";
+import * as console from "console";
+import * as net from "net";
+import * as console from "console";
+import * as net from "net";
+import * as net from "net";
 
 
 export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
@@ -36,6 +44,14 @@ export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
         });
 
         return regions$.asObservable();
+    }
+
+    protected override createInitialConstraints(nets: Array<PetriNet>, placeVarIds: Array<string>, config: RegionsConfiguration): ConstraintsWithNewVariables {
+        return ConstraintsWithNewVariables.combine(
+            super.createInitialConstraints(nets, placeVarIds, config),
+            // non-zero solutions
+            this.greaterEqualThan(placeVarIds.map(vid => this.variable(vid)), 1)
+        );
     }
 
     private addConstraintsToILP(ps: ProblemSolution): LP {
