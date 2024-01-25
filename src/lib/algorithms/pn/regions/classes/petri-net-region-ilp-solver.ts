@@ -8,14 +8,6 @@ import {PetriNetRegion} from './petri-net-region';
 import {RegionsConfiguration} from '../../../../utility/glpk/model/regions-configuration';
 import {TokenTrailIlpSolver} from '../../../../utility/glpk/token-trail-ilp-solver';
 import {Marking} from '../../../../models/pn/model/marking';
-import * as console from "console";
-import * as console from "console";
-import * as console from "console";
-import * as console from "console";
-import * as net from "net";
-import * as console from "console";
-import * as net from "net";
-import * as net from "net";
 
 
 export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
