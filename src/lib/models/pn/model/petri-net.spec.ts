@@ -34,4 +34,35 @@ a x 1`);
         expect(newMarking).toBeTruthy();
         expect(newMarking.equals(new Marking({'i': 0, 'o': 1, 'x': 1}))).toBeTrue();
     });
+
+    it('label count should update on label change', () => {
+        const net = parserService.parse(`.type pn
+.transitions
+a1 A
+a2 A
+b B
+tau
+x A
+.places
+.arcs`);
+        expect(net).toBeDefined();
+
+        let count = net!.getLabelCount();
+        expect(count.size).toBe(3);
+        expect(count.get('A')).toBe(3);
+        expect(count.get('B')).toBe(1);
+        expect(count.get(undefined)).toBe(1);
+
+        const tx = net?.getTransition('x');
+        expect(tx).toBeDefined();
+
+        tx!.label = 'X';
+
+        count = net!.getLabelCount();
+        expect(count.size).toBe(4);
+        expect(count.get('A')).toBe(2);
+        expect(count.get('B')).toBe(1);
+        expect(count.get(undefined)).toBe(1);
+        expect(count.get('X')).toBe(1);
+    });
 });

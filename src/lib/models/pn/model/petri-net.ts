@@ -5,6 +5,7 @@ import {createUniqueString, IncrementingCounter} from '../../../utility/incremen
 import {getByValueId} from '../../../utility/identifiable';
 import {Marking} from './marking';
 import {Trace} from "../../log/model/trace";
+import {OwnedValue} from "../../../utility/owned-value";
 
 export class PetriNet {
     private readonly _places: Map<string, Place>;
@@ -173,9 +174,9 @@ export class PetriNet {
         if (transition.id === undefined) {
             transition.id = createUniqueString('t', this._transitions, this._transitionCounter);
         }
+        transition.renameCallback = new OwnedValue(this, (o, n) => this.updateLabelCount(o, n));
         this._transitions.set(transition.id, transition);
-        const count = this._labelCount.get(transition.label) ?? 0;
-        this._labelCount.set(transition.label, count + 1);
+        this.updateLabelCount(null, transition.label);
     }
 
     public removeTransition(transition: Transition | string) {
@@ -193,14 +194,31 @@ export class PetriNet {
             this.removeArc(a);
         });
 
-        const count = this._labelCount.get(transition.label) ?? 0;
-        if (count === 0) {
-            throw new Error('Illegal state, transition count mismatch!');
+        if (transition.renameCallback?.owner === this) {
+            transition.renameCallback = undefined;
         }
-        if (count === 1) {
-            this._labelCount.delete(transition.label);
-        } else {
-            this._labelCount.set(transition.label, count - 1);
+
+        // we assume that the passed Transition and the deleted transition have the same label, while in fact they are only guaranteed to have the same id!
+        this.updateLabelCount(transition.label, null);
+    }
+
+    protected updateLabelCount(oldLabel: string | undefined | null, newLabel: string | undefined | null) {
+        // subtract 1 from old (if null there was no old)
+        if (oldLabel !== null) {
+            const count = this._labelCount.get(oldLabel) ?? 0;
+            if (count === 0) {
+                throw new Error('Illegal state, transition count mismatch!');
+            }
+            if (count === 1) {
+                this._labelCount.delete(oldLabel);
+            } else {
+                this._labelCount.set(oldLabel, count - 1);
+            }
+        }
+        // add 1 to new (if null there is no new)
+        if (newLabel !== null) {
+            const count = this._labelCount.get(newLabel) ?? 0;
+            this._labelCount.set(newLabel, count + 1);
         }
     }
 
