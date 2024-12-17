@@ -1,11 +1,13 @@
 <div fxLayout="column" fxLayoutAlign="start stretch">
 
-    <ng-template [ngIf]="(anchorConfig | routerLinkConfig) !== null" [ngIfThen]="routerLogo" [ngIfElse]="hrefLogo"></ng-template>
+    <div fxLayout="row" fxLayoutAlign="center center">
+        <ng-template [ngIf]="(anchorConfig | routerLinkConfig) !== null" [ngIfThen]="routerLogo" [ngIfElse]="hrefLogo"></ng-template>
+    </div>
 
     <ng-content></ng-content>
 
     <hr *ngIf="hrBeforeFooter">
-    <ilpn-footer></ilpn-footer>
+    <ilpn-footer [sourceLink]="sourceLink"></ilpn-footer>
 </div>
 
 
