@@ -70,9 +70,6 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
     protected createInitialConstraints(nets: Array<PetriNet>, placeVarIds: Array<string>, config: RegionsConfiguration): ConstraintsWithNewVariables {
         const result: Array<ConstraintsWithNewVariables> = [];
 
-        // non-zero solutions
-        result.push(this.greaterEqualThan(placeVarIds.map(vid => this.variable(vid)), 1));
-
         // markings have an upper-bound k, so that we can express logical conditions with ILP
         // also prevents an infinite loop in the glpk preprocessor; see https://lists.gnu.org/archive/html/help-glpk/2010-12/msg00055.html
         for (const vid of placeVarIds) {

@@ -1,11 +1,14 @@
 import {Node} from './node';
 import {EditableString} from '../../../utility/string-sequence';
+import {OwnedValue} from "../../../utility/owned-value";
+import {PetriNet} from "./petri-net";
 
 
 export class Transition extends Node implements EditableString {
 
     private _label: string | undefined;
     private _foldedPair?: Transition;
+    private _renameCallback?: OwnedValue<PetriNet, (o:string | undefined, n:string | undefined) => void>;
 
     constructor(label?: string, id?: string) {
         super(id);
@@ -21,6 +24,9 @@ export class Transition extends Node implements EditableString {
     }
 
     set label(value: string | undefined) {
+        if (this._renameCallback !== undefined) {
+            this._renameCallback.value(this._label, value);
+        }
         this._label = value;
     }
 
@@ -30,6 +36,14 @@ export class Transition extends Node implements EditableString {
 
     set foldedPair(value: Transition | undefined) {
         this._foldedPair = value;
+    }
+
+    get renameCallback(): OwnedValue<PetriNet, (o: string | undefined, n: string | undefined) => void> | undefined {
+        return this._renameCallback;
+    }
+
+    set renameCallback(ownedCallback: OwnedValue<PetriNet, (o: string | undefined, n: string | undefined) => void> | undefined) {
+        this._renameCallback = ownedCallback;
     }
 
     getString(): string {

@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {ConcurrencyRelation} from '../model/concurrency-relation';
-import {AbstractParser} from '../../../utility/abstract-parser';
+import {AbstractParser} from '../../../utility/parsing/abstract-parser';
 import {Relabeler} from '../../../utility/relabeler';
 
 
