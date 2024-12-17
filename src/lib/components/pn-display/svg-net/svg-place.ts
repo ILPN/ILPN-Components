@@ -44,7 +44,7 @@ export class SvgPlace extends SvgWrapper {
             })
         );
         this._markingTextEl.setAttribute('font-size', '1.5em');
-        this._elements.unshift(this._markingTextEl);
+        this._elements.push(this._markingTextEl);
 
         // circle tokes
         this._markingTokenEls = [];
@@ -86,7 +86,7 @@ export class SvgPlace extends SvgWrapper {
                 token.setAttribute('cy', `${c.y + cyDelta}`);
             })
         );
-        this._elements.unshift(token);
+        this._elements.push(token);
     }
 
     public fill(color: string | undefined) {

@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {PartialOrder} from '../model/partial-order';
-import {AbstractBlockParser} from '../../../utility/abstract-block-parser';
+import {AbstractBlockParser} from '../../../utility/parsing/abstract-block-parser';
 import {BlockType} from './block-type';
 import {Event} from '../model/event';
 

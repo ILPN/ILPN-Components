@@ -16,4 +16,7 @@ export class PageLayoutComponent {
     @Input()
     public hrBeforeFooter = true;
 
+    @Input()
+    public sourceLink?: string;
+
 }

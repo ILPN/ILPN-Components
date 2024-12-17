@@ -20,6 +20,8 @@ describe('TokenTrailValidatorService', () => {
     let bXorBxbFig13: PetriNet;
     let netFig15b: PetriNet;
     let arcWeightsFig15b: PetriNet;
+    let netAParallelBC: PetriNet;
+    let seqAB: PetriNet;
 
     beforeEach(() => {
         TestBed.configureTestingModule({});
@@ -444,6 +446,43 @@ d c8 1
 c6 x2 1
 x2 c2 1`)!;
         expect(arcWeightsFig15b).toBeTruthy();
+
+        // other models
+        netAParallelBC = parser.parse(`.type pn
+.transitions
+a A
+b B
+c C
+.places
+p1 1
+p2 0
+p3 0
+p4 0
+p5 0
+.arcs
+p1 a
+a p2
+a p3
+p2 b
+b p4
+p3 c
+c p5`)!;
+        expect(netAParallelBC).toBeTruthy();
+
+        seqAB = parser.parse(`.type pn
+.transitions
+a A
+b B
+.places
+p1 1
+p2 0
+p3 0
+.arcs
+p1 a
+a p2
+p2 b
+b p3`)!;
+        expect(seqAB).toBeTruthy();
     });
 
     it('should be created', () => {
@@ -532,6 +571,17 @@ x2 c2 1`)!;
     it('should validate arc weights', (done) => {
         service.validate(netFig15b, arcWeightsFig15b).pipe(take(1)).subscribe(r => {
             expect(r.length).toBe(6);
+            for (const res of r) {
+                expect(res.valid).toBeTrue();
+                expect(res.tokenTrail).toBeTruthy();
+            }
+            done();
+        })
+    });
+
+    it('should validate incomplete sequence', (done) => {
+        service.validate(netAParallelBC, seqAB).pipe(take(1)).subscribe(r => {
+            expect(r.length).toBe(5);
             for (const res of r) {
                 expect(res.valid).toBeTrue();
                 expect(res.tokenTrail).toBeTruthy();

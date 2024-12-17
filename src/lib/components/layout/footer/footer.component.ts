@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, Input} from '@angular/core';
 
 @Component({
     selector: 'ilpn-footer',
@@ -7,7 +7,7 @@ import {Component} from '@angular/core';
 })
 export class FooterComponent {
 
-    constructor() {
-    }
+    @Input()
+    public sourceLink?: string;
 
 }
