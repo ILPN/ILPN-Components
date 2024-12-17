@@ -10,12 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Added
 - `PetriNetParserService` now supports parsing from:
   - .xml files in Petri Net Markup Language (PNML) format
-  - .json files in the format supported by Modules developped in FaPra WiSe 23/24
+  - .json files in the format supported by Modules developed in FaPra WiSe 23/24
   - the original (now legacy) plain text files used by the older ILPN modules
+- The Footer Component now has an optional `[sourceLink]` input. The provided URL string is displayed in the footer next to a GitHub SVG icon as a link to the module source code
 
 ### Changed
 - `TokenTrailIlpSolver` now allows the zero vector as a valid solution
-- `PetriNetRegionIlpSolver` now requires a non zero vector solution in addition to the constrains of the `TokenTrailIlpSolver` super class
+- `PetriNetRegionIlpSolver` now requires a non-zero vector solution in addition to the constraints of the `TokenTrailIlpSolver` super class
 
 ### Fixed
 - calling `getLabelCount()` on a Petri net object after changing the labelling of its transitions now returns the new label count
