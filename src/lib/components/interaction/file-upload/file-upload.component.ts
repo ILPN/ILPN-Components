@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, OnDestroy, Output} from '@angular/core';
 import {FileReaderService} from '../../../utility/file-reader.service';
-import {catchError, forkJoin, Observable, of, take} from 'rxjs';
+import {catchError, forkJoin, map, Observable, of, take} from 'rxjs';
 import {DropFile} from '../../../utility/drop-file';
 import {FileDisplay} from '../../layout/file-display';
 import {DescriptiveLinkComponent} from "../descriptive-link/descriptive-link.component";
@@ -71,7 +71,7 @@ export class FileUploadComponent implements OnDestroy {
     }
 
     private processLinks(links: string) {
-        const linkData$: Array<Observable<string | undefined>> = [];
+        const linkData$: Array<Observable<DropFile | undefined>> = [];
 
         if (!links.startsWith('[')) {
             linkData$.push(this.fetchLinkData(links));
@@ -83,14 +83,18 @@ export class FileUploadComponent implements OnDestroy {
         }
 
         forkJoin(linkData$).pipe(take(1)).subscribe(results => {
-            this.fileContentEmitter.emit(results.filter(r => !!r).map(r => new DropFile('', r as string)));
+            this.fileContentEmitter.emit(results.filter(r => !!r) as Array<DropFile>);
         });
     }
 
-    private fetchLinkData(link: string): Observable<string | undefined> {
+    private fetchLinkData(link: string): Observable<DropFile | undefined> {
         return this._http.get(link, {
             responseType: 'text'
         }).pipe(
+            map((content: string) => {
+                const linkParts = link.split('/');
+                return new DropFile(linkParts[linkParts.length - 1], content);
+            }),
             catchError(err => {
                 console.error('fetch data error', err);
                 return of(undefined);
