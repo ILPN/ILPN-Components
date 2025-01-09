@@ -1,30 +1,22 @@
-import {Component, EventEmitter, Input, OnDestroy, Output} from '@angular/core';
-import {FileReaderService} from '../../../utility/file-reader.service';
+import {Component, EventEmitter, OnDestroy, Output} from '@angular/core';
+import {FileReaderService} from '../../../../utility/file-reader.service';
 import {catchError, forkJoin, map, Observable, of, take} from 'rxjs';
-import {DropFile} from '../../../utility/drop-file';
-import {FileDisplay} from '../../layout/file-display';
-import {DescriptiveLinkComponent} from "../descriptive-link/descriptive-link.component";
+import {DropFile} from '../../../../utility/drop-file';
+import {DescriptiveLinkComponent} from "../../descriptive-link/descriptive-link.component";
 import {HttpClient} from "@angular/common/http";
 
 
 @Component({
-    selector: 'ilpn-file-upload',
-    templateUrl: './file-upload.component.html',
-    styleUrls: ['./file-upload.component.scss']
+    selector: 'ilpn-abstract-file-upload',
+    template: ''
 })
-export class FileUploadComponent implements OnDestroy {
+export abstract class AbstractFileUploadComponent implements OnDestroy {
 
     @Output('fileContent') fileContentEmitter: EventEmitter<Array<DropFile>>;
 
-    @Input() descriptionText: string = '';
-    @Input() squareContent: string | undefined;
-    @Input() showText = true;
-    @Input() fileDisplay: FileDisplay | undefined;
-    @Input() bold: boolean | undefined;
-
     isHovered = false;
 
-    constructor(private _fileReader: FileReaderService, private _http: HttpClient) {
+    protected constructor(protected _fileReader: FileReaderService, protected _http: HttpClient) {
         this.fileContentEmitter = new EventEmitter<Array<DropFile>>();
     }
 
@@ -50,19 +42,23 @@ export class FileUploadComponent implements OnDestroy {
     fileDrop(e: DragEvent) {
         this.hoverEnd(e);
 
-        const linkData = e.dataTransfer?.getData(DescriptiveLinkComponent.DRAG_DATA_KEY);
+        const linkData = this.getLinkDataFromEvent(e);
         if (linkData) {
             this.processLinks(linkData);
         } else {
-            this.processFiles(e.dataTransfer?.files);
+            this.processFiles(this.getFileDataFromEvent(e));
         }
     }
 
-    fileSelected(e: Event) {
-        this.processFiles((e.target as HTMLInputElement)?.files);
+    protected getLinkDataFromEvent(e: DragEvent): string | undefined {
+        return e.dataTransfer?.getData(DescriptiveLinkComponent.DRAG_DATA_KEY);
     }
 
-    private processFiles(files: FileList | undefined | null) {
+    protected getFileDataFromEvent(e: DragEvent): FileList | undefined | null {
+        return e.dataTransfer?.files;
+    }
+
+    protected processFiles(files: FileList | undefined | null) {
         this._fileReader.processFileUpload(files).pipe(take(1)).subscribe(result => {
             if (result.length > 0) {
                 this.fileContentEmitter.emit(result);
@@ -70,7 +66,7 @@ export class FileUploadComponent implements OnDestroy {
         });
     }
 
-    private processLinks(links: string) {
+    protected processLinks(links: string) {
         const linkData$: Array<Observable<DropFile | undefined>> = [];
 
         if (!links.startsWith('[')) {
@@ -87,7 +83,7 @@ export class FileUploadComponent implements OnDestroy {
         });
     }
 
-    private fetchLinkData(link: string): Observable<DropFile | undefined> {
+    protected fetchLinkData(link: string): Observable<DropFile | undefined> {
         return this._http.get(link, {
             responseType: 'text'
         }).pipe(
