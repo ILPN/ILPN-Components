@@ -2,7 +2,7 @@ import {PrefixGraphNode} from './prefix-graph-node';
 import {MultisetEquivalent} from '../multiset/multiset-equivalent';
 import {StringSequence} from '../string-sequence';
 import {MultisetMap} from '../multiset/multiset-map';
-import {addToMultiset, cloneMultiset, Multiset} from '../multiset/multiset';
+import {incrementMultisetMultiplicity, cloneMultiset, Multiset} from '../multiset/multiset';
 
 
 class MultisetEquivalentWrapper<T> extends MultisetEquivalent {
@@ -69,7 +69,7 @@ export class PrefixMultisetStateGraph<T> {
 
     private stepState(currentState: Multiset, step: string): Multiset {
         const clone = cloneMultiset(currentState);
-        addToMultiset(clone, step);
+        incrementMultisetMultiplicity(clone, step);
         return clone;
     }
 

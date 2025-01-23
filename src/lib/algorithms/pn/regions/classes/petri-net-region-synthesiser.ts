@@ -2,6 +2,12 @@ import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
 import {PetriNetRegion} from './petri-net-region';
+import {SynthesisConfiguration} from "./synthesis-configuration";
+import {Flow} from "./flow";
+import {MultisetMap} from "../../../../utility/multiset/multiset-map";
+import {NoopMultisetEquivalent} from "../../../../utility/multiset/noop-multiset-equivalent";
+import {Multiset} from "../../../../utility/multiset/multiset";
+
 
 export class PetriNetRegionSynthesiser {
 
@@ -14,7 +20,7 @@ export class PetriNetRegionSynthesiser {
         this._regions.push(region);
     }
 
-    public synthesise(): PetriNet {
+    public synthesise(config: SynthesisConfiguration = {}): PetriNet {
         if (this._regions.length === 0) {
             throw new Error(`You must provide regions via the 'addRegion' method before you can run the synthesis!`);
         }
@@ -27,6 +33,8 @@ export class PetriNetRegionSynthesiser {
             result.addTransition(this.transition(label));
         }
 
+        const placeMap = new MultisetMap<NoopMultisetEquivalent>()
+
         // extract places and arcs from regions
         for (const region of this._regions) {
             const place = new Place();
@@ -37,11 +45,17 @@ export class PetriNetRegionSynthesiser {
                 place.marking = nm.net.getPlaces().filter(p => p.marking > 0).reduce((acc, p) => acc + p.marking * nm.marking.get(p.getId())!,0);
             }
 
-            if (!this.isEquivalentPlaceInNet(region.rises, result)) {
-                result.addPlace(place);
-                for (const [label, rise] of region.rises) {
-                    this.addArc(label, place, rise, result);
-                }
+            const encoded = this.convertToMultiset(region.rises);
+
+            if (placeMap.get(encoded.multiset)) {
+                // equivalent place is already in the net
+                continue;
+            }
+            placeMap.put(encoded);
+
+            result.addPlace(place);
+            for (const [label, rise] of region.rises) {
+                this.addArc(label, place, rise, result, config);
             }
         }
 
@@ -52,40 +66,38 @@ export class PetriNetRegionSynthesiser {
         return new Transition(label, label);
     }
 
-    private addArc(label: string, place: Place, gradient: number, net: PetriNet) {
-        if (gradient === 0) {
-            return;
+    private convertToMultiset(rises: Map<string, Flow>): NoopMultisetEquivalent {
+        const riseMultiset: Multiset = {};
+
+        for (const [label, rise] of rises) {
+            riseMultiset[label] = rise.outflow - rise.inflow;
         }
 
+        return new NoopMultisetEquivalent(riseMultiset);
+    }
+
+    private addArc(label: string, place: Place, rise: Flow, net: PetriNet, config: SynthesisConfiguration) {
         const transition = <Transition>net.getTransition(label);
 
-        if (gradient > 0) {
-            net.addArc(transition, place, gradient);
-        } else {
-            net.addArc(place, transition, -gradient);
-        }
-    }
+        if (config.noShortLoops) {
+            const gradient = rise.outflow - rise.inflow;
 
-    // TODO improve this
-    private isEquivalentPlaceInNet(rises: Map<string, number>, net: PetriNet): boolean {
-        if (net.getPlaces().length === 0) {
-            return false;
-        }
-        return net.getPlaces().some(existingPlace => {
-            for (const [label, rise] of rises) {
-                if (rise === 0) {
-                    continue;
-                }
-                if (rise < 0) {
-                    if ((existingPlace as Place).outgoingArcWeights.get(label) !== -rise) {
-                        return false;
-                    }
-                } else if ((existingPlace as Place).ingoingArcWeights.get(label) !== rise) {
-                    return false;
-                }
+            if (gradient === 0) {
+                return;
             }
-            return true;
-        });
-    }
 
+            if (gradient > 0) {
+                net.addArc(transition, place, gradient);
+            } else {
+                net.addArc(place, transition, -gradient);
+            }
+        } else {
+            if (rise.inflow > 0) {
+                net.addArc(place, transition, rise.inflow);
+            }
+            if (rise.outflow > 0) {
+                net.addArc(transition, place, rise.outflow);
+            }
+        }
+    }
 }

@@ -1,4 +1,4 @@
-import {BehaviorSubject, config, Observable, ReplaySubject, switchMap} from 'rxjs';
+import {BehaviorSubject, Observable, ReplaySubject, switchMap} from 'rxjs';
 import {GLPK, LP, Result} from 'glpk.js';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
@@ -8,6 +8,7 @@ import {PetriNetRegion} from './petri-net-region';
 import {RegionsConfiguration} from '../../../../utility/glpk/model/regions-configuration';
 import {TokenTrailIlpSolver} from '../../../../utility/glpk/token-trail-ilp-solver';
 import {Marking} from '../../../../models/pn/model/marking';
+import {Flow} from "./flow";
 
 
 export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
@@ -93,18 +94,48 @@ export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
     }
 
     private extractRegionFromSolution(nets: Array<PetriNet>, solution: Result): PetriNetRegion {
-        const rises = new Map<string, number>();
+        const rises = new Map<string, Flow>();
         for (const label of this._transitionLabels) {
             const variables = this._labelRiseVariables.get(label);
             if (variables.length === 0) {
                 console.warn(`label "${label}" has no rise variables defined!`);
                 continue;
             }
-            let sum = 0;
-            for (const v of variables[0]) {
-                sum += v.coef * solution.result.vars[v.name];
+
+            let minInflow = Infinity;
+            let minOutflow = Infinity;
+            for (const vs of variables) {
+                let inflow = 0;
+                let outflow = 0;
+                for (const v of vs) {
+                    const contribution = v.coef * solution.result.vars[v.name];
+                    if (contribution < 0) {
+                        // inflow has a negative sign because it decreases the rise
+                        inflow -= contribution; // sign switched to positive
+                    } else {
+                        outflow += contribution;
+                    }
+                }
+                if (inflow < minInflow) {
+                    minInflow = inflow;
+                    minOutflow = outflow;
+                }
+                if (minInflow === 0) {
+                    // 0 is a global minimum, we can skip the rest
+                    break;
+                }
             }
-            rises.set(label, sum);
+
+            if (variables.length === 0) {
+                // if length is non-zero, minInflow and minOutflow are not Infinity
+                console.warn(`Inflow of transition labelled '${label}' could not be determined. Likely a disconnected transition in the specification!`);
+
+                // inflow and outflow is 0 => disconnected in the result
+                minInflow = 0;
+                minOutflow = 0;
+            }
+
+            rises.set(label, {inflow: minInflow, outflow: minOutflow});
         }
 
         const netAndMarking: Array<{ net: PetriNet, marking: Marking }> = [];

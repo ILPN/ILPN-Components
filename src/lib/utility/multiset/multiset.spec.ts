@@ -1,25 +1,25 @@
-import {addToMultiset, cloneMultiset, Multiset} from './multiset';
+import {incrementMultisetMultiplicity, cloneMultiset, Multiset} from './multiset';
 
 
 describe('Multiset', () => {
-    it('should add', () => {
+    it('should increment', () => {
         const multiset: Multiset = {};
-        addToMultiset(multiset, 'a');
+        incrementMultisetMultiplicity(multiset, 'a');
         expect(multiset['a']).toBe(1);
-        addToMultiset(multiset, 'a');
+        incrementMultisetMultiplicity(multiset, 'a');
         expect(multiset['a']).toBe(2);
-        addToMultiset(multiset, 'b');
+        incrementMultisetMultiplicity(multiset, 'b');
         expect(multiset['a']).toBe(2);
         expect(multiset['b']).toBe(1);
     });
 
     it('should clone', () => {
         const multiset: Multiset = {};
-        addToMultiset(multiset, 'a');
+        incrementMultisetMultiplicity(multiset, 'a');
         expect(multiset['a']).toBe(1);
         const clone = cloneMultiset(multiset);
         expect(multiset !== clone).toBeTrue();
-        addToMultiset(clone, 'a');
+        incrementMultisetMultiplicity(clone, 'a');
         expect(multiset['a']).toBe(1);
         expect(clone['a']).toBe(2);
     });

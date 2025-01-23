@@ -3,14 +3,14 @@ import {MultisetEquivalent} from './multiset-equivalent';
 import {Multiset} from './multiset';
 
 
-export class MultisetMap<T> {
-    private _map: Map<string, Array<T & MultisetEquivalent>>;
+export class MultisetMap<T extends MultisetEquivalent> {
+    private _map: Map<string, Array<T>>;
 
     constructor() {
         this._map = new Map();
     }
 
-    public put(value: T & MultisetEquivalent) {
+    public put(value: T) {
         const hash = this.hashKey(value.multiset);
         const mapped = this._map.get(hash);
         if (mapped === undefined) {
@@ -25,7 +25,7 @@ export class MultisetMap<T> {
         }
     }
 
-    public get(key: Multiset): (T & MultisetEquivalent) | undefined {
+    public get(key: Multiset): (T) | undefined {
         const mapped = this._map.get(this.hashKey(key));
         if (mapped === undefined) {
             return undefined;
@@ -37,7 +37,7 @@ export class MultisetMap<T> {
         return objectHash.sha1(key);
     }
 
-    public values(): Array<T & MultisetEquivalent> {
+    public values(): Array<T> {
         return Array.from(this._map.values()).flat();
     }
 }
