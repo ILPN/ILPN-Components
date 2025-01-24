@@ -306,6 +306,32 @@ a 1 2`)!;
 
         expect(isomorphismService.arePetriNetsIsomorphic(result,expected)).toBeTrue();
     });
+
+    it('should not discard short-loops', () => {
+        const net = parserService.parse(`.type pn
+.transitions
+a A
+b B
+c C
+.places
+1 0
+2 0
+.arcs
+a 1
+1 b
+a 2
+2 c
+c 2
+2 b`)!;
+        expect(net).toBeTruthy();
+
+        synthesiser.addRegion(mockRegion(net, {'1': 1, '2': 0}, {'A': {inflow: 0, outflow: 1}, 'B': {inflow: 1, outflow: 0}, 'C': {inflow: 0, outflow: 0}}));
+        synthesiser.addRegion(mockRegion(net, {'1': 0, '2': 1}, {'A': {inflow: 0, outflow: 1}, 'B': {inflow: 1, outflow: 0}, 'C': {inflow: 1, outflow: 1}}));
+
+        const result = synthesiser.synthesise();
+        expect(result).toBeTruthy();
+        expect(isomorphismService.arePetriNetsIsomorphic(result,net)).toBeTrue();
+    });
 });
 
 

@@ -42,10 +42,10 @@ export class PetriNetRegionSynthesiser {
             // extract initial marking
             if (region.indexWithInitialStates !== undefined) {
                 const nm = region.netAndMarking[region.indexWithInitialStates];
-                place.marking = nm.net.getPlaces().filter(p => p.marking > 0).reduce((acc, p) => acc + p.marking * nm.marking.get(p.getId())!,0);
+                place.marking = nm.net.getPlaces().filter(p => p.marking > 0).reduce((acc, p) => acc + p.marking * nm.marking.get(p.getId())!, 0);
             }
 
-            const encoded = this.convertToMultiset(region.rises);
+            const encoded = this.convertToMultiset(region.rises, config);
 
             if (placeMap.get(encoded.multiset)) {
                 // equivalent place is already in the net
@@ -66,11 +66,16 @@ export class PetriNetRegionSynthesiser {
         return new Transition(label, label);
     }
 
-    private convertToMultiset(rises: Map<string, Flow>): NoopMultisetEquivalent {
+    private convertToMultiset(rises: Map<string, Flow>, config: SynthesisConfiguration): NoopMultisetEquivalent {
         const riseMultiset: Multiset = {};
 
         for (const [label, rise] of rises) {
-            riseMultiset[label] = rise.outflow - rise.inflow;
+            if (config.noShortLoops) {
+                riseMultiset[label] = rise.outflow - rise.inflow;
+            } else {
+                riseMultiset[`in_${label}`] = rise.inflow;
+                riseMultiset[`out_${label}`] = rise.outflow;
+            }
         }
 
         return new NoopMultisetEquivalent(riseMultiset);
