@@ -13,7 +13,9 @@ describe('DuplicatePlaceRemoverService', () => {
         TestBed.configureTestingModule({});
         service = TestBed.inject(DuplicatePlaceRemoverService);
         parser = TestBed.inject(PetriNetParserService);
+        expect(parser).toBeTruthy();
         isomorphism = TestBed.inject(PetriNetIsomorphismService);
+        expect(isomorphism).toBeTruthy();
     });
 
     it('should be created', () => {

@@ -10,6 +10,7 @@ describe('ImplicitPlaceRemoverService', () => {
         TestBed.configureTestingModule({});
         service = TestBed.inject(ImplicitPlaceRemoverService);
         netParser = TestBed.inject(PetriNetParserService);
+        expect(netParser).toBeTruthy();
     });
 
     it('should be created', () => {
