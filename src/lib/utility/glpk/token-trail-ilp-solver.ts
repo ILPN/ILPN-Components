@@ -21,6 +21,7 @@ interface InitialState {
 export abstract class TokenTrailIlpSolver extends IlpSolver {
 
     protected _labelRiseVariables: MapArray<string, Array<Variable>>;
+    protected _labelFlowVariables: MapArray<string, Array<Variable>>;
     protected _placeVariables: Set<string>;
     private _initialStates: Array<InitialState>;
     protected _indexWithInitialStates?: number;
@@ -31,6 +32,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         super(solver$, config);
         this._initialStates = [];
         this._labelRiseVariables = new MapArray<string, Array<Variable>>();
+        this._labelFlowVariables = new MapArray<string, Array<Variable>>();
         this._placeVariables = new Set<string>();
         this._config = config;
     }
@@ -38,6 +40,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
     protected setUpInitialILP(nets: Array<PetriNet> | PetriNet): LP {
         this._initialStates = [];
         this._labelRiseVariables.clear();
+        this._labelFlowVariables.clear();
         this._placeVariables.clear();
         this._indexWithInitialStates = undefined;
 
@@ -154,7 +157,8 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
                 variables.push(...it.t.ingoingArcs.map((a: Arc) => this.variable(this.getPlaceVariableId(it.ni, a.sourceId), -a.weight)));
 
                 // TODO handle transitions with empty pre-/post-set correctly
-                this._labelRiseVariables.push(it.t.label!, this.combineCoefficients(variables));
+                this._labelRiseVariables.push(it.t.label!, this.combineCoefficients(variables)); // sums self-loops
+                this._labelFlowVariables.push(it.t.label!, variables); // keeps self-loops separate
             }
         }
 

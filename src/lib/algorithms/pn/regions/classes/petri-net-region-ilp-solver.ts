@@ -101,7 +101,7 @@ export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
     private extractRegionFromSolution(nets: Array<PetriNet>, solution: Result): PetriNetRegion {
         const rises = new Map<string, Flow>();
         for (const label of this._transitionLabels) {
-            const variables = this._labelRiseVariables.get(label);
+            const variables = this._labelFlowVariables.get(label);
             if (variables.length === 0) {
                 console.warn(`label "${label}" has no rise variables defined!`);
                 continue;
