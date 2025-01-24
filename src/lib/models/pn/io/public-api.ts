@@ -1,4 +1,5 @@
 export * from './model/json-petri-net';
+export * from './model/pn-output-file-format';
 
 export * from './parser/petri-net-parser.service';
 export * from './parser/plain-petri-net-parser.service';
