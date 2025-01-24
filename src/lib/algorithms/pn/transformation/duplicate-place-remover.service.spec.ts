@@ -1,6 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {DuplicatePlaceRemoverService} from './duplicate-place-remover.service';
-import {PetriNetParserService} from '../../../models/pn/parser/petri-net-parser.service';
+import {PetriNetParserService} from '../../../models/pn/io/petri-net-parser.service';
 import {PetriNetIsomorphismService} from '../isomorphism/petri-net-isomorphism.service';
 
 
