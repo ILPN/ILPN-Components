@@ -5,7 +5,7 @@ import {SynthesisResult} from './classes/synthesis-result';
 import {PetriNetRegionSynthesiser} from './classes/petri-net-region-synthesiser';
 import {RegionsConfiguration} from '../../../utility/glpk/model/regions-configuration';
 import {PetriNetRegionsService} from './petri-net-regions.service';
-import {PetriNetSerialisationService} from '../../../models/pn/io/petri-net-serialisation.service';
+import {PetriNetSerialisationService} from '../../../models/pn/io/serialiser/petri-net-serialisation.service';
 import {arraify} from '../../../utility/arraify';
 import {IlpnAlgorithmsModule} from '../../ilpn-algorithms.module';
 import {DebugConfig, ILPN_DEBUG_CONFIG} from '../../configuration/config-token';

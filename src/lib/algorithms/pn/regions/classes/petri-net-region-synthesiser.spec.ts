@@ -1,4 +1,4 @@
-import {PetriNetParserService} from "../../../../models/pn/io/petri-net-parser.service";
+import {PetriNetParserService} from "../../../../models/pn/io/parser/petri-net-parser.service";
 import {TestBed} from "@angular/core/testing";
 import {PetriNetRegionSynthesiser} from "./petri-net-region-synthesiser";
 import {Flow} from "./flow";

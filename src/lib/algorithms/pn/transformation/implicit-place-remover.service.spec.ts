@@ -1,6 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {ImplicitPlaceRemoverService} from './implicit-place-remover.service';
-import {PetriNetParserService} from '../../../models/pn/io/petri-net-parser.service';
+import {PetriNetParserService} from '../../../models/pn/io/parser/petri-net-parser.service';
 
 describe('ImplicitPlaceRemoverService', () => {
     let service: ImplicitPlaceRemoverService;

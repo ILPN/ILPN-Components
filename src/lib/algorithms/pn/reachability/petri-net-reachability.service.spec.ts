@@ -1,7 +1,7 @@
 import {TestBed} from '@angular/core/testing';
 import {PetriNetReachabilityService} from './petri-net-reachability.service';
 import {PetriNet} from "../../../models/pn/model/petri-net";
-import {PetriNetParserService} from "../../../models/pn/io/petri-net-parser.service";
+import {PetriNetParserService} from "../../../models/pn/io/parser/petri-net-parser.service";
 import {MarkingWithEnabledTransitions} from "./model/marking-with-enabled-transitions";
 import {Marking, Markinglike} from "../../../models/pn/model/marking";
 import {Transition} from "../../../models/pn/model/transition";

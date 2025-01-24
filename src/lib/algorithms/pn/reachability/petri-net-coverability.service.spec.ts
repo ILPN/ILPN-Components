@@ -1,6 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {PetriNetCoverabilityService} from './petri-net-coverability.service';
-import {PetriNetParserService} from '../../../models/pn/io/petri-net-parser.service';
+import {PetriNetParserService} from '../../../models/pn/io/parser/petri-net-parser.service';
 import {Marking} from '../../../models/pn/model/marking';
 
 describe('PetriNetCoverabilityService', () => {
