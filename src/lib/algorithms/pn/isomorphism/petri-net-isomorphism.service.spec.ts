@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {PetriNetIsomorphismService} from './petri-net-isomorphism.service';
 import {expect} from '@angular/flex-layout/_private-utils/testing';
 import {PetriNet} from '../../../models/pn/model/petri-net';
-import {PetriNetParserService} from '../../../models/pn/parser/petri-net-parser.service';
+import {PetriNetParserService} from '../../../models/pn/io/parser/petri-net-parser.service';
 
 describe('PetriNetIsomorphismService', () => {
     let isomorphismService: PetriNetIsomorphismService;

@@ -21,20 +21,26 @@ interface InitialState {
 export abstract class TokenTrailIlpSolver extends IlpSolver {
 
     protected _labelRiseVariables: MapArray<string, Array<Variable>>;
+    protected _labelFlowVariables: MapArray<string, Array<Variable>>;
     protected _placeVariables: Set<string>;
     private _initialStates: Array<InitialState>;
     protected _indexWithInitialStates?: number;
 
-    protected constructor(solver$: Observable<GLPK>) {
-        super(solver$);
+    protected override _config: RegionsConfiguration;
+
+    protected constructor(solver$: Observable<GLPK>, config: RegionsConfiguration = {}) {
+        super(solver$, config);
         this._initialStates = [];
         this._labelRiseVariables = new MapArray<string, Array<Variable>>();
+        this._labelFlowVariables = new MapArray<string, Array<Variable>>();
         this._placeVariables = new Set<string>();
+        this._config = config;
     }
 
-    protected setUpInitialILP(nets: Array<PetriNet> | PetriNet, config: RegionsConfiguration = {}): LP {
+    protected setUpInitialILP(nets: Array<PetriNet> | PetriNet): LP {
         this._initialStates = [];
         this._labelRiseVariables.clear();
+        this._labelFlowVariables.clear();
         this._placeVariables.clear();
         this._indexWithInitialStates = undefined;
 
@@ -62,12 +68,12 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             generals: placeVarIds,
             subjectTo: [],
         };
-        this.applyConstraints(initial, this.createInitialConstraints(nets, placeVarIds, config));
+        this.applyConstraints(initial, this.createInitialConstraints(nets, placeVarIds));
 
         return initial;
     }
 
-    protected createInitialConstraints(nets: Array<PetriNet>, placeVarIds: Array<string>, config: RegionsConfiguration): ConstraintsWithNewVariables {
+    protected createInitialConstraints(nets: Array<PetriNet>, placeVarIds: Array<string>): ConstraintsWithNewVariables {
         const result: Array<ConstraintsWithNewVariables> = [];
 
         // markings have an upper-bound k, so that we can express logical conditions with ILP
@@ -106,7 +112,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
         }
 
         // places with no post-set should be empty
-        if (config.noOutputPlaces) {
+        if (this._config.noOutputPlaces) {
             for (let i = 0; i < nets.length; i++) {
                 result.push(...nets[i].getPlaces().filter(p => p.outgoingArcs.length === 0).map(p => this.lessEqualThan(this.variable(this.getPlaceVariableId(i, p)), 0)));
             }
@@ -121,7 +127,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
 
             // TODO review this with new rise variables
             const t1 = indexedTransitions[0];
-            if (config.obtainPartialOrders) {
+            if (this._config.obtainPartialOrders) {
                 // t1 post-set
                 riseSumVariables.push(...this.createVariablesFromPlaceIds(t1.t.outgoingArcs.map((a: Arc) => this.getPlaceVariableId(t1.ni, a.destinationId)), 1));
                 // t1 pre-set
@@ -151,20 +157,23 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
                 variables.push(...it.t.ingoingArcs.map((a: Arc) => this.variable(this.getPlaceVariableId(it.ni, a.sourceId), -a.weight)));
 
                 // TODO handle transitions with empty pre-/post-set correctly
-                this._labelRiseVariables.push(it.t.label!, this.combineCoefficients(variables));
+                this._labelRiseVariables.push(it.t.label!, this.combineCoefficients(variables)); // sums self-loops
+                this._labelFlowVariables.push(it.t.label!, variables); // keeps self-loops separate
             }
         }
 
         // express the rise constraints
         for (const [label, sums] of this._labelRiseVariables.entries()) {
-            console.debug(`rise constraints for '${label}'`);
+            if (this._config.logEquations) {
+                console.debug(`rise constraints for '${label}'`);
+            }
 
             const sum1 = sums[0];
 
             for (let i = 0; i < sums.length; i++) {
                 const sum = sums[i];
 
-                if (config.noArcWeights) {
+                if (this._config.noArcWeights) {
                     // rises and therefore arc weights are constrained to [-1; 1];
                     result.push(
                         this.lessEqualThan(sum, 1),
@@ -190,7 +199,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
 
 
         // TODO review this with new rise variables
-        if (config.obtainPartialOrders) {
+        if (this._config.obtainPartialOrders) {
             /*
                 Sum of rises should be 0 AND Sum of absolute rises should be 2 (internal places)
                 OR

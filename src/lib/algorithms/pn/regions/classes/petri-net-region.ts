@@ -1,5 +1,6 @@
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {Marking} from '../../../../models/pn/model/marking';
+import {Flow} from "./flow";
 
 export interface PetriNetRegion {
     /**
@@ -7,9 +8,9 @@ export interface PetriNetRegion {
      */
     netAndMarking: Array<{ net: PetriNet, marking: Marking }>;
     /**
-     * An assignment of rises to transition labels
+     * The inflow/outflow pair with the minimal inflow for each transition label
      */
-    rises: Map<string, number>;
+    rises: Map<string, Flow>;
     /**
      * Index of the first Petri net, that contains information about the initial state
      */

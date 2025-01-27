@@ -6,7 +6,7 @@ import {RouterModule} from '@angular/router';
 import {HttpClientModule} from "@angular/common/http";
 import {FooterComponent} from './layout/footer/footer.component';
 import {PageLayoutComponent} from './layout/page-layout/page-layout.component';
-import {FileUploadComponent} from './interaction/file-upload/file-upload.component';
+import {FileUploadComponent} from './interaction/file-upload/file-upload/file-upload.component';
 import {FileDownloadComponent} from './interaction/file-download/file-download.component';
 import {DescriptiveLinkComponent} from './interaction/descriptive-link/descriptive-link.component';
 import {InfoCardComponent} from './interaction/info-card/info-card.component';
@@ -14,6 +14,7 @@ import {FileDisplayComponent} from './interaction/file-display/file-display.comp
 import {RouterLinkConfigPipe} from './layout/page-layout/pipes/router-link-config.pipe';
 import {HrefConfigPipe} from './layout/page-layout/pipes/href-config.pipe';
 import {PnDisplayModule} from "./pn-display/pn-display.module";
+import {FileUploadOverlayComponent} from "./interaction/file-upload/file-upload-overlay/file-upload-overlay.component";
 
 
 @NgModule({
@@ -21,6 +22,7 @@ import {PnDisplayModule} from "./pn-display/pn-display.module";
         FooterComponent,
         PageLayoutComponent,
         FileUploadComponent,
+        FileUploadOverlayComponent,
         FileDownloadComponent,
         DescriptiveLinkComponent,
         InfoCardComponent,
@@ -40,6 +42,7 @@ import {PnDisplayModule} from "./pn-display/pn-display.module";
         FooterComponent,
         PageLayoutComponent,
         FileUploadComponent,
+        FileUploadOverlayComponent,
         FileDownloadComponent,
         DescriptiveLinkComponent,
     ]

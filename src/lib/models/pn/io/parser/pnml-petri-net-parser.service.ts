@@ -1,10 +1,10 @@
 import {Injectable} from "@angular/core";
-import {Parser} from "../../../utility/parsing/parser";
-import {PetriNet} from "../model/petri-net";
-import {PnmlPage, PnmlWrapper} from "./model/pnml.type";
+import {Parser} from "../../../../utility/parsing/parser";
+import {PetriNet} from "../../model/petri-net";
+import {PnmlPage, PnmlWrapper} from "../model/pnml.type";
 import {XMLParser} from "fast-xml-parser";
-import {Transition} from "../model/transition";
-import {Place} from "../model/place";
+import {Transition} from "../../model/transition";
+import {Place} from "../../model/place";
 
 @Injectable({
     providedIn: 'root'

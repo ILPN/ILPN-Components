@@ -1,25 +1,26 @@
 import {Injectable} from '@angular/core';
-import {PetriNet} from '../model/petri-net';
-import {Transition} from '../model/transition';
-import {Place} from '../model/place';
-import {Arc} from '../model/arc';
-import {BlockType} from './block-type';
-import {AbstractParser} from '../../../utility/parsing/abstract-parser';
+import {PetriNet} from '../../model/petri-net';
+import {Transition} from '../../model/transition';
+import {Place} from '../../model/place';
+import {Arc} from '../../model/arc';
+import {BlockType} from '../model/block-type';
+import {AbstractParser} from '../../../../utility/parsing/abstract-parser';
+
 
 @Injectable({
     providedIn: 'root'
 })
-export class PetriNetSerialisationService {
+export class PlainPetriNetSerialisationService {
 
     constructor() {
     }
 
     public serialise(net: PetriNet): string {
         return `${AbstractParser.TYPE_BLOCK} pn\n`
-        + this.serialiseFrequency(net.frequency)
-        + this.serialiseTransitions(net.getTransitions())
-        + this.serialisePlaces(net.getPlaces())
-        + this.serialiseArcs(net.getArcs());
+            + this.serialiseFrequency(net.frequency)
+            + this.serialiseTransitions(net.getTransitions())
+            + this.serialisePlaces(net.getPlaces())
+            + this.serialiseArcs(net.getArcs());
     }
 
     private serialiseFrequency(frequency: number | undefined): string {

@@ -5,11 +5,12 @@ import {SynthesisResult} from './classes/synthesis-result';
 import {PetriNetRegionSynthesiser} from './classes/petri-net-region-synthesiser';
 import {RegionsConfiguration} from '../../../utility/glpk/model/regions-configuration';
 import {PetriNetRegionsService} from './petri-net-regions.service';
-import {PetriNetSerialisationService} from '../../../models/pn/parser/petri-net-serialisation.service';
+import {PetriNetSerialisationService} from '../../../models/pn/io/serialiser/petri-net-serialisation.service';
 import {arraify} from '../../../utility/arraify';
 import {IlpnAlgorithmsModule} from '../../ilpn-algorithms.module';
 import {DebugConfig, ILPN_DEBUG_CONFIG} from '../../configuration/config-token';
 import {PetriNetRegion} from './classes/petri-net-region';
+import {SynthesisConfiguration} from "./classes/synthesis-configuration";
 
 
 @Injectable({
@@ -25,7 +26,7 @@ export class PetriNetRegionSynthesisService {
         this._debug = !!debugConfig?.logRegions;
     }
 
-    public synthesise(input: PetriNet | Array<PetriNet>, config: RegionsConfiguration = {}, fileName: string = 'result'): Observable<SynthesisResult> {
+    public synthesise(input: PetriNet | Array<PetriNet>, config: RegionsConfiguration & SynthesisConfiguration = {}, fileName: string = 'result'): Observable<SynthesisResult> {
         const result$ = new ReplaySubject<SynthesisResult>(1);
         const synthesiser = new PetriNetRegionSynthesiser();
 
@@ -39,7 +40,7 @@ export class PetriNetRegionSynthesisService {
                 }
             },
             complete: () => {
-                result$.next(new SynthesisResult(arrayInput, synthesiser.synthesise(), fileName));
+                result$.next(new SynthesisResult(arrayInput, synthesiser.synthesise(config), fileName));
                 result$.complete();
             }
         });

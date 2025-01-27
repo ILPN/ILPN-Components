@@ -1,8 +1,8 @@
 import {Multiset} from './multiset';
-import {MultisetEquivalent} from './multiset-equivalent';
+import {NoopMultisetEquivalent} from "./noop-multiset-equivalent";
 
 
-describe('MultisetEquivalent', () => {
+describe('NoopMultisetEquivalent', () => {
     it('should check equality', () => {
         const m1: Multiset = {
             'a': 1,
@@ -19,21 +19,10 @@ describe('MultisetEquivalent', () => {
             'a': 2,
             'b': 1
         };
-        const eq = new ME(m1);
+        const eq = new NoopMultisetEquivalent(m1);
         expect(eq.equals(m1)).toBeTrue();
         expect(eq.equals(m2)).toBeTrue();
         expect(eq.equals(m3)).toBeFalse();
         expect(eq.equals(m4)).toBeFalse();
     });
 });
-
-class ME extends MultisetEquivalent {
-
-    constructor(multiset: Multiset) {
-        super(multiset);
-    }
-
-    merge(ms: MultisetEquivalent): void {
-    }
-
-}

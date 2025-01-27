@@ -1,10 +1,10 @@
 import {Injectable} from "@angular/core";
-import {Parser} from "../../../utility/parsing/parser";
-import {PetriNet} from "../model/petri-net";
-import {JsonPetriNet} from "./model/json-petri-net";
-import {Transition} from "../model/transition";
-import {Place} from "../model/place";
-import {Arc} from "../model/arc";
+import {Parser} from "../../../../utility/parsing/parser";
+import {PetriNet} from "../../model/petri-net";
+import {JsonPetriNet} from "../model/json-petri-net";
+import {Transition} from "../../model/transition";
+import {Place} from "../../model/place";
+import {Arc} from "../../model/arc";
 
 @Injectable({
     providedIn: 'root'

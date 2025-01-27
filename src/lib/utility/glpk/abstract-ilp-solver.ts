@@ -8,6 +8,7 @@ import {Constraint, MessageLevel} from '../../models/glpk/glpk-constants';
 import {Bound} from '../../models/glpk/bound';
 import {SubjectTo} from '../../models/glpk/subject-to';
 import {ProblemSolution} from '../../models/glpk/problem-solution';
+import {SolverConfiguration} from "./model/solver-configuration";
 
 
 export abstract class IlpSolver {
@@ -21,11 +22,13 @@ export abstract class IlpSolver {
     private readonly _constraintCounter: IncrementingCounter;
     private readonly _variableCounter: IncrementingCounter;
     protected _allVariables: Set<string>;
+    protected _config: SolverConfiguration;
 
-    protected constructor(protected _solver$: Observable<GLPK>) {
+    protected constructor(protected _solver$: Observable<GLPK>, config: SolverConfiguration = {}) {
         this._constraintCounter = new IncrementingCounter();
         this._variableCounter = new IncrementingCounter();
         this._allVariables = new Set<string>();
+        this._config = config;
     }
 
     protected applyConstraints(ilp: LP, constraints: ConstraintsWithNewVariables) {
@@ -343,7 +346,9 @@ export abstract class IlpSolver {
     }
 
     protected equal(variables: Variable | Array<Variable>, value: number): ConstraintsWithNewVariables {
-        console.debug(`${this.formatVariableList(variables)} = ${value}`);
+        if (this._config.logEquations) {
+            console.debug(`${this.formatVariableList(variables)} = ${value}`);
+        }
         return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.FIXED_VARIABLE, ub: value, lb: value}
@@ -351,7 +356,9 @@ export abstract class IlpSolver {
     }
 
     protected greaterEqualThan(variables: Variable | Array<Variable>, lowerBound: number): ConstraintsWithNewVariables {
-        console.debug(`${this.formatVariableList(variables)} >= ${lowerBound}`);
+        if (this._config.logEquations) {
+            console.debug(`${this.formatVariableList(variables)} >= ${lowerBound}`);
+        }
         return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.LOWER_BOUND, ub: 0, lb: lowerBound}
@@ -359,7 +366,9 @@ export abstract class IlpSolver {
     }
 
     protected lessEqualThan(variables: Variable | Array<Variable>, upperBound: number): ConstraintsWithNewVariables {
-        console.debug(`${this.formatVariableList(variables)} <= ${upperBound}`);
+        if (this._config.logEquations) {
+            console.debug(`${this.formatVariableList(variables)} <= ${upperBound}`);
+        }
         return new ConstraintsWithNewVariables(this.constrain(
             arraify(variables),
             {type: Constraint.UPPER_BOUND, ub: upperBound, lb: 0}
