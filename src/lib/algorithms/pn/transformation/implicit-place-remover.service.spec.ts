@@ -1,6 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {ImplicitPlaceRemoverService} from './implicit-place-remover.service';
-import {PetriNetParserService} from '../../../models/pn/parser/petri-net-parser.service';
+import {PetriNetParserService} from '../../../models/pn/io/parser/petri-net-parser.service';
 
 describe('ImplicitPlaceRemoverService', () => {
     let service: ImplicitPlaceRemoverService;
@@ -10,6 +10,7 @@ describe('ImplicitPlaceRemoverService', () => {
         TestBed.configureTestingModule({});
         service = TestBed.inject(ImplicitPlaceRemoverService);
         netParser = TestBed.inject(PetriNetParserService);
+        expect(netParser).toBeTruthy();
     });
 
     it('should be created', () => {

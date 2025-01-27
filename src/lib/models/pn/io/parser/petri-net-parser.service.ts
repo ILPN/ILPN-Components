@@ -1,7 +1,7 @@
 import {Injectable} from "@angular/core";
 import {PlainPetriNetParserService} from "./plain-petri-net-parser.service";
-import {Parser} from "../../../utility/parsing/parser";
-import {PetriNet} from "../model/petri-net";
+import {Parser} from "../../../../utility/parsing/parser";
+import {PetriNet} from "../../model/petri-net";
 import {JsonPetriNetParserService} from "./json-petri-net-parser.service";
 import {PnmlPetriNetParserService} from "./pnml-petri-net-parser.service";
 

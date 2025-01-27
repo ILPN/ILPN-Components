@@ -1,6 +1,6 @@
 export type Multiset = {[k: string]: number};
 
-export function addToMultiset(multiset: Multiset, value: string) {
+export function incrementMultisetMultiplicity(multiset: Multiset, value: string) {
     if (multiset[value] === undefined) {
         multiset[value] = 1;
     } else {

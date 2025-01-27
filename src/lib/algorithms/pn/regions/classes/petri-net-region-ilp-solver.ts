@@ -1,4 +1,4 @@
-import {BehaviorSubject, config, Observable, ReplaySubject, switchMap} from 'rxjs';
+import {BehaviorSubject, Observable, ReplaySubject, switchMap} from 'rxjs';
 import {GLPK, LP, Result} from 'glpk.js';
 import {PetriNet} from '../../../../models/pn/model/petri-net';
 import {ProblemSolution} from '../../../../models/glpk/problem-solution';
@@ -8,23 +8,27 @@ import {PetriNetRegion} from './petri-net-region';
 import {RegionsConfiguration} from '../../../../utility/glpk/model/regions-configuration';
 import {TokenTrailIlpSolver} from '../../../../utility/glpk/token-trail-ilp-solver';
 import {Marking} from '../../../../models/pn/model/marking';
+import {Flow} from "./flow";
 
 
 export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
 
     private readonly _transitionLabels: Set<string>;
 
-    constructor(_solver$: Observable<GLPK>) {
-        super(_solver$);
+    constructor(_solver$: Observable<GLPK>, config: RegionsConfiguration = {}) {
+        super(_solver$, config);
         this._transitionLabels = new Set<string>();
     }
 
-    public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<PetriNetRegion> {
+    public computeRegions(nets: Array<PetriNet>): Observable<PetriNetRegion> {
         this.collectTransitionLabels(nets);
         const regions$ = new ReplaySubject<PetriNetRegion>();
-        const ilp$ = new BehaviorSubject(this.setUpInitialILP(nets, config));
-        ilp$.pipe(switchMap(ilp => this.solveILP(ilp, config.messageLevel))).subscribe((ps: ProblemSolution) => {
+        const ilp$ = new BehaviorSubject(this.setUpInitialILP(nets));
+        ilp$.pipe(switchMap(ilp => this.solveILP(ilp, this._config.messageLevel))).subscribe((ps: ProblemSolution) => {
             if (ps.solution.result.status === Solution.OPTIMAL) {
+                if (!this._config.logEachRegion) {
+                    console.debug('region found'); // show progress
+                }
                 regions$.next(this.extractRegionFromSolution(nets, ps.solution));
                 ilp$.next(this.addConstraintsToILP(ps));
             } else {
@@ -38,9 +42,9 @@ export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
         return regions$.asObservable();
     }
 
-    protected override createInitialConstraints(nets: Array<PetriNet>, placeVarIds: Array<string>, config: RegionsConfiguration): ConstraintsWithNewVariables {
+    protected override createInitialConstraints(nets: Array<PetriNet>, placeVarIds: Array<string>): ConstraintsWithNewVariables {
         return ConstraintsWithNewVariables.combine(
-            super.createInitialConstraints(nets, placeVarIds, config),
+            super.createInitialConstraints(nets, placeVarIds),
             // non-zero solutions
             this.greaterEqualThan(placeVarIds.map(vid => this.variable(vid)), 1)
         );
@@ -73,9 +77,11 @@ export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
         additionalConstraints.push(this.sumGreaterThan(yVariables, 0));
         this.applyConstraints(ilp, ConstraintsWithNewVariables.combine(...additionalConstraints));
 
-        console.debug('solution', ps.solution.result.vars);
-        console.debug('non-zero', regionPlaces);
-        console.debug('additional constraint', ilp.subjectTo[ilp.subjectTo.length - 1]);
+        if (this._config.logEachRegion) {
+            console.debug('solution', ps.solution.result.vars);
+            console.debug('non-zero', regionPlaces);
+            console.debug('additional constraint', ilp.subjectTo[ilp.subjectTo.length - 1]);
+        }
 
         return ilp;
     }
@@ -93,18 +99,48 @@ export class PetriNetRegionIlpSolver extends TokenTrailIlpSolver {
     }
 
     private extractRegionFromSolution(nets: Array<PetriNet>, solution: Result): PetriNetRegion {
-        const rises = new Map<string, number>();
+        const rises = new Map<string, Flow>();
         for (const label of this._transitionLabels) {
-            const variables = this._labelRiseVariables.get(label);
+            const variables = this._labelFlowVariables.get(label);
             if (variables.length === 0) {
                 console.warn(`label "${label}" has no rise variables defined!`);
                 continue;
             }
-            let sum = 0;
-            for (const v of variables[0]) {
-                sum += v.coef * solution.result.vars[v.name];
+
+            let minInflow = Infinity;
+            let minOutflow = Infinity;
+            for (const vs of variables) {
+                let inflow = 0;
+                let outflow = 0;
+                for (const v of vs) {
+                    const contribution = v.coef * solution.result.vars[v.name];
+                    if (contribution < 0) {
+                        // inflow has a negative sign because it decreases the rise
+                        inflow -= contribution; // sign switched to positive
+                    } else {
+                        outflow += contribution;
+                    }
+                }
+                if (inflow < minInflow) {
+                    minInflow = inflow;
+                    minOutflow = outflow;
+                }
+                if (minInflow === 0) {
+                    // 0 is a global minimum, we can skip the rest
+                    break;
+                }
             }
-            rises.set(label, sum);
+
+            if (variables.length === 0) {
+                // if length is non-zero, minInflow and minOutflow are not Infinity
+                console.warn(`Inflow of transition labelled '${label}' could not be determined. Likely a disconnected transition in the specification!`);
+
+                // inflow and outflow is 0 => disconnected in the result
+                minInflow = 0;
+                minOutflow = 0;
+            }
+
+            rises.set(label, {inflow: minInflow, outflow: minOutflow});
         }
 
         const netAndMarking: Array<{ net: PetriNet, marking: Marking }> = [];

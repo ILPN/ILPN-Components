@@ -16,6 +16,6 @@ export class PetriNetRegionsService extends IlpSolverService {
     }
 
     public computeRegions(nets: Array<PetriNet>, config: RegionsConfiguration = {}): Observable<PetriNetRegion> {
-        return new PetriNetRegionIlpSolver(this._solver$.asObservable()).computeRegions(nets, config);
+        return new PetriNetRegionIlpSolver(this._solver$.asObservable(), config).computeRegions(nets);
     }
 }

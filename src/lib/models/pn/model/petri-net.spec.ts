@@ -1,4 +1,4 @@
-import {PetriNetParserService} from "../parser/petri-net-parser.service";
+import {PetriNetParserService} from "../io/parser/petri-net-parser.service";
 import {TestBed} from "@angular/core/testing";
 import {PetriNet} from "./petri-net";
 import {Marking} from "./marking";

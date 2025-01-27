@@ -1,6 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {DuplicatePlaceRemoverService} from './duplicate-place-remover.service';
-import {PetriNetParserService} from '../../../models/pn/parser/petri-net-parser.service';
+import {PetriNetParserService} from '../../../models/pn/io/parser/petri-net-parser.service';
 import {PetriNetIsomorphismService} from '../isomorphism/petri-net-isomorphism.service';
 
 
@@ -13,7 +13,9 @@ describe('DuplicatePlaceRemoverService', () => {
         TestBed.configureTestingModule({});
         service = TestBed.inject(DuplicatePlaceRemoverService);
         parser = TestBed.inject(PetriNetParserService);
+        expect(parser).toBeTruthy();
         isomorphism = TestBed.inject(PetriNetIsomorphismService);
+        expect(isomorphism).toBeTruthy();
     });
 
     it('should be created', () => {

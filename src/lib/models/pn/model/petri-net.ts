@@ -3,7 +3,7 @@ import {Transition} from './transition';
 import {Arc} from './arc';
 import {createUniqueString, IncrementingCounter} from '../../../utility/incrementing-counter';
 import {getByValueId} from '../../../utility/identifiable';
-import {Marking} from './marking';
+import {Marking, Markinglike} from './marking';
 import {Trace} from "../../log/model/trace";
 import {OwnedValue} from "../../../utility/owned-value";
 
@@ -147,6 +147,29 @@ export class PetriNet {
             }
         }
         return true;
+    }
+
+    /**
+     * If the net has an empty initial marking and there are no transitions with an empty pre-set,
+     * changes the initial marking of the net to the set of places with an empty pre-set.
+     * @param net
+     */
+    public static implyInitialMarking(net: PetriNet) {
+        if (!net.getInitialMarking().isNSafe(0)) {
+            return;
+        }
+        for (const t of net.getTransitions()) {
+            if(t.ingoingArcs.length === 0) {
+                return;
+            }
+        }
+        const m: Markinglike = {};
+        for (const p of net.getPlaces()) {
+            if (p.ingoingArcs.length === 0) {
+                m[p.getId()] = 1;
+            }
+        }
+        net.applyMarking(new Marking(m));
     }
 
     private static determineInOut(p: Place, input: Set<string>, output: Set<string>) {

@@ -1,12 +1,12 @@
 import {Injectable} from '@angular/core';
-import {PetriNet} from '../model/petri-net';
-import {Place} from '../model/place';
-import {Transition} from '../model/transition';
-import {Arc} from '../model/arc';
-import {SourceAndDestination} from './source-and-destination';
-import {Node} from '../model/node';
-import {AbstractBlockParser} from '../../../utility/parsing/abstract-block-parser';
-import {BlockType} from './block-type';
+import {PetriNet} from '../../model/petri-net';
+import {Place} from '../../model/place';
+import {Transition} from '../../model/transition';
+import {Arc} from '../../model/arc';
+import {SourceAndDestination} from '../model/source-and-destination';
+import {Node} from '../../model/node';
+import {AbstractBlockParser} from '../../../../utility/parsing/abstract-block-parser';
+import {BlockType} from '../model/block-type';
 
 @Injectable({
     providedIn: 'root'
