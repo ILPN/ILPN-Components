@@ -6,8 +6,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [//]: # (## Unreleased)
 
+## 1.5.0 - 2025-01-27
+
+### Added
+- `PetriNetRegionSynthesiser` now accepts an optional configuration object as a parameter to the `synthesise()` method
+  - the object is of the new type `SynthesisConfiguration`, its optional attribute `noShortLoops` controls whether the Synthesiser generates models without short-loops
+- `DanglingPlaceRemoverService` is a new service that can be used to remove "dangling" places from a Petri net
+  - a place is "dangling" if it has no outgoing arcs, and it is not the only place in the post-set of all the transitions in its pre-set
+- Implementing custom file upload functionality
+  - `FileUploadOverlayComponent` is a new component that simplifies the implementation of custom file upload drag-and-drop functionality
+    - it displays its contents
+    - when a drag event is detected in the windows, it overlays its contents with a transparent border and an information signaling to the user that it accepts a drag-and-dropped file
+    - when a file is dropped, it emits an `@output` event, just like the existing `FileUploadComponent`
+  - `AbstractFileUploadComponent` is a new abstract component class, that factors out common functionality of the existing `FileUploadComponent` and the new `FileUploadOverlayComponent`
+- JSON Petri net support
+  - `JsonPetriNetConverterService` converts a `PetriNet` instance into a plain object with a structure conforming to the existing `JsonPetriNet` interface.
+  - `JsonPetriNetSerialisationService` serialises a `PetriNet` instance into a JSON string
+- a static `implyInitialMarking()` method was added to the `PetriNet` class
+  - if the provided net is not marked, and it contains no transitions with an empty pre-set, it marks all the places with an empty pre-set with a single token
+- better logging control for `IlpSolver` and its subclasses
+  - the configuration property `logEquations` (off by default) can be used to log each equation added to the ILP in a human-readable format
+  - the configuration property `logEachRegion` (off by default) can be used to log the solution of the ILP when a region is found
+- `NoopMultisetEquivalent` implementation of the abstract `MultisetEquivalent` with a no-operation `merge` method implementation
+
+### Changed
+- changed how the configuration object is passed to `IlpSolver` and some of its subclasses
+  - the configuration object is now passed via the constructor instead of as an argument to some method calls
+  - affects:
+    - `IlpSolver`
+    - `TokenTrailIlpSolver`
+    - `PetriNetRegionIlpSolver`
+- `PetriNetRegion` interface changed
+  - the attribute `rises` is no longer a map of transition labels to rise values, instead, it maps labels to an object containing the minimum inflow and outflow of each label
+  - the previous value can be calculated as `outflow - inflow`
+- the configuration object of the `synthesise()` method of the `PetriNetRegionSynthesisService` has been extended with the new `SynthesisConfiguration`
+- `PetriNetSerialisationService` can now serialise a `PetriNet` instance into both a JSON and the legacy `.pn' string
+  - `serialise()` now takes a second argument of type `PnOutputFileFormat`, specifying the desired output format
+    - calling `serialise()` with a single argument produces the legacy `.pn` string
+  - the original service can be used directly via the new `PlainPetriNetSerialisationService`
+- margin of the title in the `PageLayoutComponent` adjusted to provide more forgiving click-boxes ner the top of the page
+- renamed the `addToMultiset` method of the `Multiset` class to `incrementMultisetMultiplicity` to match its implementation (functionality unchanged)
+- bumped dependency version of `glpk.js` from `4.0.1` to `4.0.2`
+
+### Fixed
+- type signature of the `MultisetMap` class was updated from `MultisetMap<T>` to `MultisetMap<T extends MultisetEquivalent>` to better match the reality
+  - should be backwards compatible, as all methods of the class required the type-parameter `T` to extend `MultisetEquivalent` already 
+
 ## 1.4.0 - 2024-02-20
-## Added
+### Added
 - `PetriNetParserService` now supports parsing from:
   - .xml files in Petri Net Markup Language (PNML) format
   - .json files in the format supported by Modules developed in FaPra WiSe 23/24
