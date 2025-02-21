@@ -1,0 +1,57 @@
+import {Component, Input} from '@angular/core';
+import {FileDisplay} from '../../layout/file-display';
+
+@Component({
+    selector: 'ilpn-symbol-square',
+    templateUrl: './symbol-square.component.html',
+    styleUrls: ['./symbol-square.component.scss']
+})
+export class SymbolSquareComponent {
+
+    @Input() bold: boolean | undefined = false;
+    @Input() squareContent: string  | undefined;
+    @Input() fileDisplay: FileDisplay | undefined;
+    @Input() hover: boolean = false;
+    @Input() disabled: boolean = false;
+
+    @Input() set large(value: string | boolean) {
+        if (typeof value === 'boolean') {
+            this.isLarge = value;
+        } else {
+            // valueless attribute is passed as an empty string
+            this.isLarge = value === '' || value === 'true'
+        }
+    }
+
+    public isLarge = false;
+
+    resolveSquareContent(): string {
+        return (this.fileDisplay?.icon ?? this.squareContent) ?? '?';
+    }
+
+    resolveSquareColor(): string {
+        if (this.disabled) {
+            return 'grey';
+        }
+        return this.fileDisplay?.color ?? 'black';
+    }
+
+    resolveFontWeight(): string {
+        let isBold;
+        if (this.fileDisplay !== undefined) {
+            isBold = this.fileDisplay.bold;
+
+        } else {
+            isBold = this.bold;
+        }
+        return isBold ? 'bold' : 'normal';
+    }
+
+    resolveFontSize(): string {
+        let fontSize = this.isLarge ? 50 : 30;
+        if (this.fileDisplay?.fontSizeMultiplier) {
+            fontSize = Math.floor(fontSize * this.fileDisplay.fontSizeMultiplier);
+        }
+        return `${fontSize}px`;
+    }
+}
