@@ -90,7 +90,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             // rise is the diff of the tokens produced by ingoing arc and consumed by outgoing arc
             result.push(...this.createRiseConstraints(transition.label!, inWeight - outWeight));
 
-            // the pre-set must contain enough token for the transition to consume => outWeight tokens in preset
+            // the pre-set must contain enough token for the transition to consume => at least inWeight tokens in preset
             // TODO getByLabel?
             for (const t of specNet.getTransitions()) {
                 if (t.label !== transition.label) {
@@ -98,7 +98,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
                 }
 
                 result.push(
-                    ...this.equal(t.ingoingArcs.map(a => this.variable(this.getPlaceVariableId(0, a.sourceId))), outWeight).constraints,
+                    ...this.greaterEqualThan(t.ingoingArcs.map(a => this.variable(this.getPlaceVariableId(0, a.sourceId))), inWeight).constraints,
                 );
             }
         }
