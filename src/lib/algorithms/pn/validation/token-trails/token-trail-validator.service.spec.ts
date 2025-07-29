@@ -549,7 +549,7 @@ p52 c
 c pc
 pc d
 d pd`)!;
-        expect(net150).toBeTruthy();
+        expect(run5).toBeTruthy();
 
     });
 
@@ -658,7 +658,7 @@ d pd`)!;
         })
     });
 
-    it('should validate run with arc weights, multiple initial tokens, and self-loop', (done) => {
+    it('should validate run of net with arc weights, multiple initial tokens, and self-loop', (done) => {
         service.validate(net150, run5).pipe(take(1)).subscribe(r => {
             expect(r.length).toBe(5);
             for (const res of r) {
