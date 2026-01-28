@@ -111,7 +111,7 @@ export abstract class TokenTrailIlpSolver extends IlpSolver {
             ));
         }
 
-        // places with no post-set should be empty
+        // places with empty post-set should be empty
         if (this._config.noOutputPlaces) {
             for (let i = 0; i < nets.length; i++) {
                 result.push(...nets[i].getPlaces().filter(p => p.outgoingArcs.length === 0).map(p => this.lessEqualThan(this.variable(this.getPlaceVariableId(i, p)), 0)));
