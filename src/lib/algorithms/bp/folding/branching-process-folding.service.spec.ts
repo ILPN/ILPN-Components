@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {BranchingProcessFoldingService} from './branching-process-folding.service';
 import {PetriNetParserService} from '../../../models/pn/io/parser/petri-net-parser.service';
 import {PetriNetIsomorphismService} from '../../pn/isomorphism/petri-net-isomorphism.service';
-import {LogSymbol} from '../../log/log-symbol';
+import {LogSymbol} from '../../log/model/log-symbol';
 
 
 describe('BranchingProcessFoldingService', () => {

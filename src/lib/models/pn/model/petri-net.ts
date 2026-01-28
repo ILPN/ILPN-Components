@@ -56,6 +56,15 @@ export class PetriNet {
         return result;
     }
 
+    /**
+     * @param a
+     * @param b
+     * @param placeBIdPrefix a prefix prepended to the place ids of net B
+     * @returns a new net containing net A as a subnet including ids and
+     * containing net B as a subnet, with place ids prefixed by the optional prefix and
+     * ids of all elements (including places) possibly suffixed by an arbitrary number to achieve uniqueness.
+     * No connections are made between the elements of the two input nets.
+     */
     public static netUnion(a: PetriNet, b: PetriNet, placeBIdPrefix: string = ''): PetriNet {
         const result = a.clone();
 
@@ -92,6 +101,36 @@ export class PetriNet {
                 result.addArc(new Arc(arcId, result.getTransition(transitionMap.get(arc.sourceId) as string) as Transition, result.getPlace(placeMap.get(arc.destinationId) as string) as Place, arc.weight));
             }
         });
+
+        return result;
+    }
+
+    /**
+     * @param nets
+     * @returns a disjoint union of the argument nets containing every input net as a subnet.
+     * The ids in the output net are the ids in the input nets prefixed with their index in the input array (i_id).
+     * No connections are made between the elements of the input nets.
+     */
+    public static multipleNetUnion(...nets: Array<PetriNet>): PetriNet {
+        const result = new PetriNet();
+
+        for (let i = 0; i < nets.length; i++) {
+            const neti = nets[i];
+            for (let [pid, p] of neti._places.entries()) {
+                result.addPlace(new Place(p.marking, `${i}_${pid}`));
+            }
+            for (let [tid, t] of neti._transitions.entries()) {
+                result.addTransition(new Transition(t.label, `${i}_${tid}`));
+            }
+            for (let [aid, a] of neti._arcs.entries()) {
+                result.addArc(new Arc(
+                    `${i}_${aid}`,
+                    result.getNodeWithId(`${i}_${a.sourceId}`)!,
+                    result.getNodeWithId(`${i}_${a.destinationId}`)!,
+                    a.weight
+                ));
+            }
+        }
 
         return result;
     }
@@ -159,7 +198,7 @@ export class PetriNet {
             return;
         }
         for (const t of net.getTransitions()) {
-            if(t.ingoingArcs.length === 0) {
+            if (t.ingoingArcs.length === 0) {
                 return;
             }
         }
@@ -313,13 +352,28 @@ export class PetriNet {
         }
     }
 
-    public removeArc(arc: Arc | string) {
-        const a = getByValueId(this._arcs, arc);
-        if (a === undefined) {
+    public removeArc(arc: Arc): void;
+    public removeArc(id: string): void;
+    public removeArc(source: Transition, destination: Place): void;
+    public removeArc(source: Place, destination: Transition): void;
+    public removeArc(arcIdOrSource: Arc | string | Transition | Place, destination?: Place | Transition) {
+        // find
+        let arc: Arc | undefined = undefined;
+        if (arcIdOrSource instanceof Transition || arcIdOrSource instanceof Place) {
+            for (let a of this._arcs.values()) {
+                if (a.sourceId === arcIdOrSource.getId() && a.destinationId === destination?.getId()) {
+                    arc = a;
+                    break;
+                }
+            }
+        } else {
+            arc = getByValueId(this._arcs, arcIdOrSource);
+        }
+        if (arc === undefined) {
             return;
         }
-        arc = a;
 
+        // remove
         this._arcs.delete(arc.getId());
         arc.source.removeArc(arc);
         arc.destination.removeArc(arc);
