@@ -74,9 +74,9 @@ export class LogToSequenceNetTransformerService {
 
     protected convertToStandaloneNets(traces: Array<Trace>, config: LogToSequenceNetTransformerConfiguration, omitIO = false): Array<[net: PetriNet, tI: Transition, tO: Transition]> {
         return traces.map(tr => {
-            const [pn, tI, tO] = this.convertTraceToSequenceNet(tr, omitIO);
+            let [pn, tI, tO] = this.convertTraceToSequenceNet(tr, omitIO);
             if (config.addStartStopEvent) {
-                this.addStartStopTransitions(pn, tI, tO);
+                [tI, tO] = this.addStartStopTransitions(pn, tI, tO);
             }
             return [pn, tI, tO];
         });
@@ -125,7 +125,7 @@ export class LogToSequenceNetTransformerService {
         return [result, tI!, tO!];
     }
 
-    protected addStartStopTransitions(net: PetriNet, tI: Transition, tO: Transition): void {
+    protected addStartStopTransitions(net: PetriNet, tI: Transition, tO: Transition): [tStart: Transition, tStop: Transition] {
         const pI = net.getPlace('i');
         const pO = net.getPlace('o');
         if (pI && pO) {
@@ -152,6 +152,8 @@ export class LogToSequenceNetTransformerService {
         net.addPlace(p);
         net.addArc(tO, p);
         net.addArc(p, tStop);
+
+        return [tStart, tStop];
     }
 
     protected addPlacesIO(net: PetriNet): [pI: Place, pO: Place] {

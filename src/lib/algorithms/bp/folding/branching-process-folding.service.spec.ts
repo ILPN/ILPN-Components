@@ -537,8 +537,7 @@ f 8
         expect(isomorphism.arePetriNetsIsomorphic(folded, result)).toBeTrue();
     });
 
-    // TODO the isomorphism is even worse than I thought....
-    xit(`two conflicting parallel branches should fold correctly`, () => {
+    it(`two conflicting parallel branches should fold correctly`, () => {
         expect(service).toBeTruthy();
         const once = parser.parse(`.type pn
 .transitions
