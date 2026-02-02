@@ -48,9 +48,8 @@ export const FD_TRANSITION_SYSTEM: FileDisplay = {
 export const FD_LOG: FileDisplay = {
     icon: '★',
     color: 'black',
-    fontSizeMultiplierSmall: 1.6,
     fontSizeMultiplierLarge: 0.7,
-    topOffsetSmall: -3
+    topOffsetSmall: -2
 }
 
 export const FD_CONCURRENCY: FileDisplay = {
