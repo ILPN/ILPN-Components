@@ -49,9 +49,16 @@ export class SymbolSquareComponent {
 
     resolveFontSize(): string {
         let fontSize = this.isLarge ? 50 : 30;
-        if (this.fileDisplay?.fontSizeMultiplier) {
-            fontSize = Math.floor(fontSize * this.fileDisplay.fontSizeMultiplier);
+        const multiplier = (this.isLarge ? this.fileDisplay?.fontSizeMultiplierLarge : this.fileDisplay?.fontSizeMultiplierSmall) ?? 1;
+
+        if (multiplier) {
+            fontSize = Math.floor(fontSize * multiplier);
         }
         return `${fontSize}px`;
+    }
+
+    resolveTopOffset(): string {
+        const offset = (this.isLarge ? this.fileDisplay?.topOffsetLarge : this.fileDisplay?.topOffsetSmall) ?? 0;
+        return `${offset}px`;
     }
 }

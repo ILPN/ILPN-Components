@@ -3,5 +3,5 @@
      fxLayoutAlign="center center"
      [ngStyle]="{'color': resolveSquareColor(), 'font-weight': resolveFontWeight(), 'font-size': resolveFontSize()}"
      [ngClass]="{'hover': hover, 'large': isLarge, 'small': !isLarge}">
-    {{ resolveSquareContent() }}
+    <span class="text" [ngStyle]="{'top': resolveTopOffset()}">{{ resolveSquareContent() }}</span>
 </div>
