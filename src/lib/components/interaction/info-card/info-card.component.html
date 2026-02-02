@@ -1,7 +1,5 @@
 <div class="border" [ngClass]="{'border-enabled': !disabled}" fxLayout="row" fxLayoutAlign="start top">
-    <div class="square" [ngStyle]="{'color': resolveSquareColor(), 'border-color': resolveBorderColor()}" fxLayout="row" fxLayoutAlign="center center" fxFlex="nogrow">
-        {{resolveSquareContent()}}
-    </div>
+    <ilpn-symbol-square  class="square" [disabled]='disabled' [fileDisplay]="fileDisplay" [squareContent]="squareContent"></ilpn-symbol-square>
     <div class="description" fxLayout="column" fxLayoutAlign="top center" fxFlex>
         <span>{{title}}</span>
         <hr class="width100">

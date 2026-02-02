@@ -1,0 +1,7 @@
+<div class="square"
+     fxLayout="row"
+     fxLayoutAlign="center center"
+     [ngStyle]="{'color': resolveSquareColor(), 'font-weight': resolveFontWeight(), 'font-size': resolveFontSize()}"
+     [ngClass]="{'hover': hover, 'large': isLarge, 'small': !isLarge}">
+    {{ resolveSquareContent() }}
+</div>

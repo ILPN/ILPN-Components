@@ -10,7 +10,7 @@ import {FileUploadComponent} from './interaction/file-upload/file-upload/file-up
 import {FileDownloadComponent} from './interaction/file-download/file-download.component';
 import {DescriptiveLinkComponent} from './interaction/descriptive-link/descriptive-link.component';
 import {InfoCardComponent} from './interaction/info-card/info-card.component';
-import {FileDisplayComponent} from './interaction/file-display/file-display.component';
+import {SymbolSquareComponent} from './interaction/symbol-square/symbol-square.component';
 import {RouterLinkConfigPipe} from './layout/page-layout/pipes/router-link-config.pipe';
 import {HrefConfigPipe} from './layout/page-layout/pipes/href-config.pipe';
 import {PnDisplayModule} from "./pn-display/pn-display.module";
@@ -26,7 +26,7 @@ import {FileUploadOverlayComponent} from "./interaction/file-upload/file-upload-
         FileDownloadComponent,
         DescriptiveLinkComponent,
         InfoCardComponent,
-        FileDisplayComponent,
+        SymbolSquareComponent,
         HrefConfigPipe,
         RouterLinkConfigPipe
     ],

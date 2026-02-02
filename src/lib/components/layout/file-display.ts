@@ -2,6 +2,7 @@ export interface FileDisplay {
     icon: string;
     color: string;
     bold?: boolean;
+    fontSizeMultiplier?: number;
 }
 
 export const FD_PETRI_NET: FileDisplay = {
@@ -31,7 +32,8 @@ export const FD_TRANSITION_SYSTEM: FileDisplay = {
 
 export const FD_LOG: FileDisplay = {
     icon: '★',
-    color: 'black'
+    color: 'black',
+    fontSizeMultiplier: 0.7
 }
 
 export const FD_CONCURRENCY: FileDisplay = {
