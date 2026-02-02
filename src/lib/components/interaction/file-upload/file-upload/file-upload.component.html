@@ -1,22 +1,23 @@
 <div fxLayout="column" fxLayoutAlign="start center" class="bottom-margin">
     <span [class.hidden]="!showText && !isHovered">{{descriptionText}}</span>
-    <ilpn-file-display class="cursor"
-                       [hover]="isHovered"
-                       [fileDisplay]="fileDisplay"
-                       [squareContent]="squareContent"
-                       [bold]="bold"
-                       (drag)="prevent($event)"
-                       (dragstart)="prevent($event)"
-                       (dragover)="hoverStart($event)"
-                       (dragenter)="hoverStart($event)"
-                       (dragleave)="hoverEnd($event)"
-                       (dragend)="hoverEnd($event)"
-                       (drop)="fileDrop($event)"
-                       (mouseenter)="hoverStart($event)"
-                       (mouseover)="hoverStart($event)"
-                       (mouseout)="hoverEnd($event)"
-                       (mouseleave)="hoverEnd($event)"
-                       (click)="fileInput.click()">
-    </ilpn-file-display>
+    <ilpn-symbol-square large
+                        class="cursor"
+                        [hover]="isHovered"
+                        [fileDisplay]="fileDisplay"
+                        [squareContent]="squareContent"
+                        [bold]="bold"
+                        (drag)="prevent($event)"
+                        (dragstart)="prevent($event)"
+                        (dragover)="hoverStart($event)"
+                        (dragenter)="hoverStart($event)"
+                        (dragleave)="hoverEnd($event)"
+                        (dragend)="hoverEnd($event)"
+                        (drop)="fileDrop($event)"
+                        (mouseenter)="hoverStart($event)"
+                        (mouseover)="hoverStart($event)"
+                        (mouseout)="hoverEnd($event)"
+                        (mouseleave)="hoverEnd($event)"
+                        (click)="fileInput.click()">
+    </ilpn-symbol-square>
     <input #fileInput type="file" class="hidden-input" multiple (change)="fileSelected($event)">
 </div>
