@@ -9,7 +9,7 @@ import {Transition} from '../../../../models/pn/model/transition';
 import {Place} from '../../../../models/pn/model/place';
 import {VariableType} from '../../../../utility/glpk/model/variable-type';
 import {DuplicatePlaceRemoverService} from '../../transformation/duplicate-place-remover.service';
-import {LogSymbol} from '../../../log/log-symbol';
+import {LogSymbol} from '../../../log/model/log-symbol';
 import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 
 
