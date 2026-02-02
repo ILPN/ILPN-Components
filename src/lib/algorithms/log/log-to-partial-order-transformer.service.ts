@@ -4,20 +4,16 @@ import {ConcurrencyRelation} from '../../models/concurrency/model/concurrency-re
 import {MapSet} from '../../utility/map-set';
 import {EditableStringSequenceWrapper} from '../../utility/string-sequence';
 import {cleanLog} from './clean-log';
-import {LogSymbol} from './log-symbol';
+import {LogSymbol} from './model/log-symbol';
 import {filterUniqueTraces} from "./unique-traces";
 import {PartialOrder} from "../../models/po/model/partial-order";
 import {Event} from "../../models/po/model/event";
 import {iterateMap} from "../../utility/iterate";
 import {PartialOrderIsomorphismService} from "../po/isomorphism/partial-order-isomorphism.service";
+import {LogTransformerConfiguration} from "./model/log-transformer-configuration";
 
 
 
-export interface LogToPartialOrderTransformerConfiguration {
-    cleanLog?: boolean;
-    addStartStopEvent?: boolean;
-    discardPrefixes?: boolean;
-}
 
 @Injectable({
     providedIn: 'root'
@@ -27,7 +23,7 @@ export class LogToPartialOrderTransformerService {
     constructor(protected _poIsomorphismService: PartialOrderIsomorphismService) {
     }
 
-    public transformToPartialOrders(log: Array<Trace>, concurrencyRelation: ConcurrencyRelation, config: LogToPartialOrderTransformerConfiguration = {}): Array<PartialOrder> {
+    public transformToPartialOrders(log: Array<Trace>, concurrencyRelation: ConcurrencyRelation, config: LogTransformerConfiguration = {}): Array<PartialOrder> {
         if (log.length === 0) {
             return [];
         }

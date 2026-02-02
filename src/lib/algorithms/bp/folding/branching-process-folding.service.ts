@@ -4,7 +4,7 @@ import {Place} from '../../../models/pn/model/place';
 import {Transition} from '../../../models/pn/model/transition';
 import {ConflictingPlace} from './model/conflicting-place';
 import {FoldingStatus} from './model/folding-status';
-import {LogSymbol} from '../../log/log-symbol';
+import {LogSymbol} from '../../log/model/log-symbol';
 
 
 @Injectable({

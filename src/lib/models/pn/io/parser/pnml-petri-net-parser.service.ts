@@ -21,6 +21,11 @@ export class PnmlPetriNetParserService implements Parser<PetriNet> {
         });
 
         const pnml: PnmlWrapper = parser.parse(text);
+        if (pnml?.pnml?.net === undefined) {
+            console.warn('Petri net parsing unsuccessful. Could not recognise PNML structure in the provided text.', text);
+            return undefined;
+        }
+
         const page: PnmlPage = pnml.pnml.net.page ?? pnml.pnml.net;
 
         const petriNet = new PetriNet();

@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 [//]: # (## Unreleased)
 
+## 2.0.0 - 2026-02-02
+
+### Angular
+- updated Angular dependency from v13 to v17
+
+### Added
+
+- `LogToSequenceNetTransformerService` is a new service that can be used to transform a collection of Traces into labelled Petri nets. 
+  - configurable with a `LogToSequenceNetTransformerConfiguration` object.
+  - transforms a collection of Traces into either a collection of individual Petri nets or a single Petri net trace model (the individual trace nets are placed in conflict with each other and there is a xor-join on their end states).
+- Added documentation to the `LogTransformerConfiguration` interface
+- `PetriNetRegionSynthesisService` now provides a second method `synthesiseWithUpdates()` that sends a notification object in the returned Observable whenever it finds a new region.
+  - the original `synthesise()` method remains available and unchanged.
+  - the notification `SynthesisUpdate` object is empty and currently carries no data.
+- `PostPlaceAdderService` is a new service that adds a new place to the post-set of every transition with an empty post-set. It returns the result as a new Petri net object.
+- `SymbolSquareComponent` replaces the `FileDisplayComponent`
+  - the old component had a misleading name as it only displays a square with a symbol. The components used for providing interaction with files (`FileDownloadComponent`, `FileUploadComponent`, `InfoCardComponent`) remain available and unchanged.
+  - the new version unifies the display implementation across all components that use the symbol in a square. However, this might cause slight differences in how the component renders across browsers.
+  - the `FileDisplay` interface now offers more configuration options regarding the font size and vertical positioning of the symbol in the square.
+- `PetriNet` now offers a new static constructor `multipleNetUnion()`. If you have multiple Petri net objects and want to combine them into a single net without any interaction of their elements this is the method.
+  - the existing `netUnion()` remains unchanged. The differences in the two methods (how they handle the ids of elements in the input nets) are described in their new documentation.
+
+### Changed
+
+- slightly improved the runtime of the `PetriNetIsomorphismService`.
+- `PnmlPetriNetParserService` is now more robust and returns `undefined` if it cannot recognise the XML text as PNML. It also logs a warning if this happens.
+- `PetriNet.removeArc()` is now overloaded and offers more ways to identify the arc to be removed.
+- `RegionsConfiguration` and `SolverConfiguration` now accept `null` in addition to `undefined` to specify an unspecified configuration option.
+
+### Fixed
+
+- the formating of symbols in squares now no longer depends on the host application font.
+
+### Deprecated
+
+- The `LogToPartialOrderTransformerConfiguration` interface has been renamed to `LogTransformerConfiguration`. The old interface still exists as a type alias and will be removed in a future release.
+
+### Removed
+
+- `FileDisplayComponent` has been removed
+  - replaced by the new `SymbolSquareComponent`
+
+
 ## 1.5.1 - 2025-07-29
 
 ### Fixed

@@ -4,7 +4,8 @@ This project contains an Angular library containing components, services and oth
 
 This project is not meant to be used as a standalone project, as it contains only the library source code.
 [The Module project](https://github.com/ILPN/ILPN-Module), should be used to develop new modules and make changes to this project via git-submodules.
-The library is NOT published to NPM and is built and linked locally.
+
+The library is currently **NOT** published to NPM package registry and is built and linked only locally.
 
 If you encounter a problem with the library, or have some ideas for improvements. Feel free to create a new issue and/or open a pull request.
 
