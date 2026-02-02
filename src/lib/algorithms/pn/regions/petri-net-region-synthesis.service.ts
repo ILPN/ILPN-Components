@@ -1,6 +1,6 @@
 import {Inject, Injectable, Optional} from '@angular/core';
 import {PetriNet} from '../../../models/pn/model/petri-net';
-import {Observable, ReplaySubject} from 'rxjs';
+import {filter, Observable, ReplaySubject} from 'rxjs';
 import {SynthesisResult} from './classes/synthesis-result';
 import {PetriNetRegionSynthesiser} from './classes/petri-net-region-synthesiser';
 import {RegionsConfiguration} from '../../../utility/glpk/model/regions-configuration';
@@ -11,6 +11,7 @@ import {IlpnAlgorithmsModule} from '../../ilpn-algorithms.module';
 import {DebugConfig, ILPN_DEBUG_CONFIG} from '../../configuration/config-token';
 import {PetriNetRegion} from './classes/petri-net-region';
 import {SynthesisConfiguration} from "./classes/synthesis-configuration";
+import {SynthesisUpdate} from "./classes/synthesis-update";
 
 
 @Injectable({
@@ -26,8 +27,28 @@ export class PetriNetRegionSynthesisService {
         this._debug = !!debugConfig?.logRegions;
     }
 
+    /**
+     * @param input a set of labelled Petri nets to synthesise an unlabeled Petri net from
+     * @param config
+     * @param fileName attribute value passed to the final `SynthesisResult` object
+     *
+     * @returns the Observable emits a new `SynthesisResult` object containing the synthesised Petri net before completing.
+     */
     public synthesise(input: PetriNet | Array<PetriNet>, config: RegionsConfiguration & SynthesisConfiguration = {}, fileName: string = 'result'): Observable<SynthesisResult> {
-        const result$ = new ReplaySubject<SynthesisResult>(1);
+        return this.synthesiseWithUpdates(input, config, fileName).pipe(
+            filter(uor => uor instanceof SynthesisResult)
+        ) as Observable<SynthesisResult>;
+    }
+
+    /**
+     * @param input a set of labelled Petri nets to synthesise an unlabeled Petri net from
+     * @param config
+     * @param fileName attribute value passed to the final `SynthesisResult` object
+     *
+     * @returns the Observable emits a new `SynthesisUpdate` object every time a new region is found. The Observable emits a new `SynthesisResult` object containing the synthesised Petri net before completing.
+     */
+    public synthesiseWithUpdates(input: PetriNet | Array<PetriNet>, config: RegionsConfiguration & SynthesisConfiguration = {}, fileName: string = 'result'): Observable<SynthesisUpdate | SynthesisResult> {
+        const result$ = new ReplaySubject<SynthesisUpdate | SynthesisResult>(1);
         const synthesiser = new PetriNetRegionSynthesiser();
 
         const arrayInput = arraify(input);
@@ -38,6 +59,7 @@ export class PetriNetRegionSynthesisService {
                 if (this._debug) {
                     this.logRegion(region);
                 }
+                result$.next(new SynthesisUpdate());
             },
             complete: () => {
                 result$.next(new SynthesisResult(arrayInput, synthesiser.synthesise(config), fileName));
