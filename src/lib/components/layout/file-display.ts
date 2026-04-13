@@ -1,7 +1,8 @@
 export interface FileDisplay {
     icon: string;
-    color: string;
+    color?: string;
     bold?: boolean;
+    fontFamily?: string;
     /**
      * a multiplier of the symbol text's default font size in a small square
      */
