@@ -9,7 +9,7 @@ import {FileDisplay} from '../../layout/file-display';
 export class SymbolSquareComponent {
 
     @Input() bold: boolean | undefined = false;
-    @Input() squareContent: string  | undefined;
+    @Input() squareContent: string | undefined;
     @Input() fileDisplay: FileDisplay | undefined;
     @Input() hover: boolean = false;
     @Input() disabled: boolean = false;
@@ -45,6 +45,10 @@ export class SymbolSquareComponent {
             isBold = this.bold;
         }
         return isBold ? 'bold' : 'normal';
+    }
+
+    resolveFontFamily(): string {
+        return this.fileDisplay?.fontFamily ?? `'Courier New', emoji, 'Symbola', 'BabelStonePseudographica', monospace, serif`;
     }
 
     resolveFontSize(): string {

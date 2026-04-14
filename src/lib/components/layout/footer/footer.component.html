@@ -2,8 +2,28 @@
     ...and I know you do too!
     <br>
     <br>
-    <a href="https://www.fernuni-hagen.de/mi/fakultaet/lehrende/bergenthum/index.shtml">Robin Bergenthum</a> and <a href="https://www.fernuni-hagen.de/ps/team/Jakub.Kovar.shtml">Jakub Kovář</a>
-    <br>
+    <ng-template [ngIf]="isDefined()">
+        <ng-template [ngIf]="isSingular()" [ngIfElse]="elsePlural">
+            <ng-template [ngIf]="person?.link !== undefined" [ngIfElse]="elseSingularPlain">
+                <a [href]="person?.link">{{person?.name}}</a>
+            </ng-template>
+            <ng-template #elseSingularPlain>
+                {{person?.name}}
+            </ng-template>
+        </ng-template>
+        <ng-template #elsePlural>
+            <ng-template ngFor let-pers [ngForOf]="peopleArr" let-first="first" let-last="last" [ngForTrackBy]="trackByName">
+                <span>{{(!first && !last ? ", " : (last ? " and " : ""))}}</span>
+                <ng-template [ngIf]="pers?.link !== undefined" [ngIfElse]="elsePluralPlain">
+                    <a [href]="pers?.link">{{pers?.name}}</a>
+                </ng-template>
+                <ng-template #elsePluralPlain>
+                    <span>{{pers?.name}}</span>
+                </ng-template>
+            </ng-template>
+        </ng-template>
+        <br>
+    </ng-template>
     Fakultät für Mathematik und Informatik
     <br>
     Fernuni in Hagen, Germany
