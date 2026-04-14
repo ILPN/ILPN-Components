@@ -1,5 +1,6 @@
 import {Component, Input} from '@angular/core';
 import {AnchorType, HeadingAnchorConfig} from './heading-anchor-config';
+import {Person} from "../person";
 
 @Component({
     selector: 'ilpn-page-layout',
@@ -18,5 +19,8 @@ export class PageLayoutComponent {
 
     @Input()
     public sourceLink?: string;
+
+    @Input()
+    public footerPeople?: Person | Array<Person>;
 
 }
