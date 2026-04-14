@@ -13,12 +13,12 @@
         </ng-template>
         <ng-template #elsePlural>
             <ng-template ngFor let-pers [ngForOf]="peopleArr" let-first="first" let-last="last" [ngForTrackBy]="trackByName">
-                <span>{{(!first && !last ? ", " : (last ? "and " : ""))}}</span>
+                <span>{{(!first && !last ? ", " : (last ? " and " : ""))}}</span>
                 <ng-template [ngIf]="pers?.link !== undefined" [ngIfElse]="elsePluralPlain">
                     <a [href]="pers?.link">{{pers?.name}}</a>
                 </ng-template>
                 <ng-template #elsePluralPlain>
-                    {{pers?.name}}
+                    <span>{{pers?.name}}</span>
                 </ng-template>
             </ng-template>
         </ng-template>
