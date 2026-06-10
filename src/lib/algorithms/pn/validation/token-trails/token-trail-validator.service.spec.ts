@@ -24,6 +24,10 @@ describe('TokenTrailValidatorService', () => {
     let seqAB: PetriNet;
     let net150: PetriNet;
     let run5: PetriNet;
+    let netShort2: PetriNet;
+    let word2seq: PetriNet;
+    let netShort1_2: PetriNet;
+    let wordA: PetriNet;
 
     beforeEach(() => {
         TestBed.configureTestingModule({});
@@ -551,6 +555,48 @@ pc d
 d pd`)!;
         expect(run5).toBeTruthy();
 
+        netShort2 = parser.parse(`.type pn
+.transitions
+a A
+.places
+p 2
+.arcs
+p a 2
+a p 2`)!;
+        expect(netShort2).toBeTruthy();
+
+        word2seq = parser.parse(`.type pn
+.transitions
+a A
+.places
+p1 2
+p2 0
+.arcs
+p1 a 2
+a p2`)!;
+        expect(word2seq).toBeTruthy();
+
+        netShort1_2 = parser.parse(`.type pn
+.transitions
+a A
+.places
+p 1
+.arcs
+p a
+a p 2`)!;
+        expect(netShort1_2).toBeTruthy();
+
+        wordA = parser.parse(`.type pn
+.transitions
+a A
+.places
+p1 1
+p2 0
+.arcs
+p1 a
+a p2`)!;
+        expect(wordA).toBeTruthy();
+
     });
 
     it('should be created', () => {
@@ -661,6 +707,28 @@ d pd`)!;
     it('should validate run of net with arc weights, multiple initial tokens, and self-loop', (done) => {
         service.validate(net150, run5).pipe(take(1)).subscribe(r => {
             expect(r.length).toBe(5);
+            for (const res of r) {
+                expect(res.valid).toBeTrue();
+                expect(res.tokenTrail).toBeTruthy();
+            }
+            done();
+        })
+    });
+
+    it('should validate weighted self-loop', (done) => {
+        service.validate(netShort2, word2seq).pipe(take(1)).subscribe(r => {
+            expect(r.length).toBe(1);
+            for (const res of r) {
+                expect(res.valid).toBeTrue();
+                expect(res.tokenTrail).toBeTruthy();
+            }
+            done();
+        })
+    });
+
+    it('should validate unbalanced weighted self-loop', (done) => {
+        service.validate(netShort1_2, wordA).pipe(take(1)).subscribe(r => {
+            expect(r.length).toBe(1);
             for (const res of r) {
                 expect(res.valid).toBeTrue();
                 expect(res.tokenTrail).toBeTruthy();
