@@ -10,6 +10,7 @@ import {ProblemSolution} from '../../../../models/glpk/problem-solution';
 import {Solution} from '../../../../models/glpk/glpk-constants';
 import {SolverConfiguration} from '../../../../utility/glpk/model/solver-configuration';
 import {Marking} from '../../../../models/pn/model/marking';
+import {Variable} from "../../../../models/glpk/variable";
 
 
 export class TokenTrailValidator extends TokenTrailIlpSolver {
@@ -80,25 +81,26 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
             result.push(...this.createRiseConstraints(transition.label!, weight));
         }
 
-        for (const [tid, [inWeight, outWeight]] of selfLoops.entries()) {
+        // weights are from the perspective of the place and thus swapped
+        for (const [tid, [tOutWeight, tInWeight]] of selfLoops.entries()) {
             const transition = this._model.getTransition(tid)!;
             unusedTransitionLabels.delete(transition.label!);
             if (!this.definesRiseOfLabel(transition.label!)) {
                 continue;
             }
 
-            // rise is the diff of the tokens produced by ingoing arc and consumed by outgoing arc
-            result.push(...this.createRiseConstraints(transition.label!, inWeight - outWeight));
+            // rise is the diff of the tokens flowing out and flowing in
+            result.push(...this.createRiseConstraints(transition.label!, tOutWeight - tInWeight));
 
-            // the pre-set must contain enough token for the transition to consume => at least inWeight tokens in preset
-            // TODO getByLabel?
-            for (const t of specNet.getTransitions()) {
-                if (t.label !== transition.label) {
-                    continue;
-                }
+            // TODO handle labeled transitions with empty pre-/post-set correctly
+            // the pre-set must contain enough token for the transition to consume => at least tInWeight tokens in preset
+            const inflowVariables: Array<Array<Variable>> = this._labelFlowVariables.get(transition.label!)
+                // for each labeled transition filter only the pre-set variables (they have negative coefficients) and flip their weights to positive
+                .map(specTVars => specTVars.filter(v => v.coef < 0).map(v => ({name: v.name, coef: -v.coef})));
 
+            for (const tInflows of inflowVariables) {
                 result.push(
-                    ...this.greaterEqualThan(t.ingoingArcs.map(a => this.variable(this.getPlaceVariableId(0, a.sourceId))), inWeight).constraints,
+                    ...this.greaterEqualThan(tInflows, tInWeight).constraints,
                 );
             }
         }
@@ -135,7 +137,7 @@ export class TokenTrailValidator extends TokenTrailIlpSolver {
     }
 
     private createRiseConstraints(label: string, rise: number): Array<SubjectTo> {
-        // TODO handle transitions with empty pre-/post-set correctly
+        // TODO handle labeled transitions with empty pre-/post-set correctly
         const result: Array<SubjectTo> = [];
         const riseSums = this._labelRiseVariables.get(label);
         for (const sum of riseSums) {
