@@ -7,9 +7,6 @@ import {PetriNetIsomorphismService} from '../../isomorphism/petri-net-isomorphis
 import {ImplicitPlaceRemoverService} from '../../transformation/implicit-place-remover.service';
 import {PrimeMinerInput} from './prime-miner-input';
 import {LpoFireValidator} from '../../validation/lpo-fire-validator';
-import {
-    PetriNetToPartialOrderTransformerService
-} from '../../transformation/petri-net-to-partial-order-transformer.service';
 import {SynthesisResult} from '../../regions/classes/synthesis-result';
 import {Trace} from '../../../../models/log/model/trace';
 import {PrimeMinerConfiguration} from './prime-miner-configuration';
@@ -28,7 +25,6 @@ export class PrimeMinerService {
     constructor(protected _synthesisService: PetriNetRegionSynthesisService,
                 protected _isomorphismService: PetriNetIsomorphismService,
                 protected _implicitPlaceRemover: ImplicitPlaceRemoverService,
-                protected _pnToPoTransformer: PetriNetToPartialOrderTransformerService,
                 protected _poToPnTransformer: PartialOrderToPetriNetTransformerService) {
     }
 
@@ -79,6 +75,9 @@ export class PrimeMinerService {
                 const r: Array<PrimeMinerResult> = []; // an empty array can be filtered out, without adding undefined to the content of the observable
 
                 let changed = !result.unchanged;
+                if (!changed) {
+                    bestResult.supportedPoIndices.splice(bestResult.supportedPoIndices.length,0,nextInputIndex);
+                }
                 if (changed && (config.skipConnectivityCheck || this.isConnected(synthesisedNet))) {
                     let noImplicit = this._implicitPlaceRemover.removeImplicitPlaces(synthesisedNet);
 
