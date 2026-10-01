@@ -3,17 +3,17 @@ import {Trace} from "../../log/model/trace";
 
 export class PartialOrder {
     public frequency?: number;
-    public readonly containedTraces: Array<Trace>;
 
     private readonly _events: Map<string, Event>;
     private readonly _initialEvents: Set<Event>;
     private readonly _finalEvents: Set<Event>;
+    private readonly _containedTraces: Array<Trace>;
 
     constructor() {
         this._events = new Map<string, Event>();
         this._initialEvents = new Set<Event>();
         this._finalEvents = new Set<Event>();
-        this.containedTraces = [];
+        this._containedTraces = [];
     }
 
     get initialEvents(): Set<Event> {
@@ -26,6 +26,10 @@ export class PartialOrder {
 
     get events(): Array<Event> {
         return Array.from(this._events.values());
+    }
+
+    get containedTraces(): Array<Trace> {
+        return [...this._containedTraces];
     }
 
     public getEvent(id: string): Event | undefined {
@@ -65,5 +69,12 @@ export class PartialOrder {
         }
         result.determineInitialAndFinalEvents();
         return result;
+    }
+
+    /**
+     * Adds input traces to the current `containedTraces`
+     */
+    public addContainedTrace(...trace: Array<Trace>): void {
+        this._containedTraces.splice(this._containedTraces.length, 0, ...trace);
     }
 }

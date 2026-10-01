@@ -58,6 +58,8 @@ export class LogToPartialOrderTransformerService {
         return traces.map((seq, i) => {
             const po = this.constructTransitiveClosure(seq, concurrencyRelation, i);
             this.performTransitiveReduction(po);
+            po.addContainedTrace(seq);
+            po.frequency = seq.frequency;
             return po;
         });
     }
@@ -164,7 +166,7 @@ export class LogToPartialOrderTransformerService {
                 if (this._poIsomorphismService.arePartialOrdersIsomorphic(uncheckedOrder, uniqueOrder)) {
                     discard = true;
                     uniqueOrder.frequency = uniqueOrder.frequency! + uncheckedOrder.frequency!;
-                    uniqueOrder.containedTraces.push(...uncheckedOrder.containedTraces);
+                    uniqueOrder.addContainedTrace(...uncheckedOrder.containedTraces);
                     break;
                 }
             }
