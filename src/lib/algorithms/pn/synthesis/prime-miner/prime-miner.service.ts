@@ -5,7 +5,6 @@ import {PetriNetRegionSynthesisService} from '../../regions/petri-net-region-syn
 import {PrimeMinerResult} from './prime-miner-result';
 import {PetriNetIsomorphismService} from '../../isomorphism/petri-net-isomorphism.service';
 import {ImplicitPlaceRemoverService} from '../../transformation/implicit-place-remover.service';
-import {PartialOrderNetWithContainedTraces} from '../../../../models/pn/model/partial-order-net-with-contained-traces';
 import {PrimeMinerInput} from './prime-miner-input';
 import {LpoFireValidator} from '../../validation/lpo-fire-validator';
 import {
@@ -15,6 +14,10 @@ import {SynthesisResult} from '../../regions/classes/synthesis-result';
 import {Trace} from '../../../../models/log/model/trace';
 import {PrimeMinerConfiguration} from './prime-miner-configuration';
 import {IlpnAlgorithmsModule} from '../../../ilpn-algorithms.module';
+import {PartialOrder} from "../../../../models/po/model/partial-order";
+import {
+    PartialOrderToPetriNetTransformerService
+} from "../../../po/transformation/partial-order-to-petri-net-transformer.service";
 
 
 @Injectable({
@@ -25,26 +28,27 @@ export class PrimeMinerService {
     constructor(protected _synthesisService: PetriNetRegionSynthesisService,
                 protected _isomorphismService: PetriNetIsomorphismService,
                 protected _implicitPlaceRemover: ImplicitPlaceRemoverService,
-                protected _pnToPoTransformer: PetriNetToPartialOrderTransformerService) {
+                protected _pnToPoTransformer: PetriNetToPartialOrderTransformerService,
+                protected _poToPnTransformer: PartialOrderToPetriNetTransformerService) {
     }
 
-    public mine(minerInputs: Array<PartialOrderNetWithContainedTraces>, config: PrimeMinerConfiguration = {}): Observable<PrimeMinerResult> {
+    public mine(minerInputs: Array<PartialOrder>, config: PrimeMinerConfiguration = {}): Observable<PrimeMinerResult> {
         if (minerInputs.length === 0) {
             console.error('Miner input must be non empty');
             return EMPTY;
         }
 
-        minerInputs.sort((a, b) => (b.net?.frequency ?? 0) - (a.net?.frequency ?? 0));
+        minerInputs.sort((a, b) => (b.frequency ?? 0) - (a.frequency ?? 0));
 
         let bestResult = new PrimeMinerResult(new PetriNet(), [], []);
         let nextInputIndex = 1;
 
-        const minerInput$ = new BehaviorSubject<PrimeMinerInput>(PrimeMinerInput.fromPartialOrder(minerInputs[0], true));
+        const minerInput$ = new BehaviorSubject<PrimeMinerInput>(new PrimeMinerInput(minerInputs[0], true));
         return minerInput$.pipe(
             concatMap(nextInput => {
                 let mustSynthesise = nextInput.lastIterationChangedModel;
                 if (!nextInput.lastIterationChangedModel) {
-                    const po = this._pnToPoTransformer.transform(nextInput.net);
+                    const po = nextInput.partialOrder;
                     try {
                         const validator = new LpoFireValidator(bestResult.net, po);
                         mustSynthesise = validator.validate().some(r => !r.valid);
@@ -54,10 +58,10 @@ export class PrimeMinerService {
                 }
 
                 if (mustSynthesise) {
-                    return this._synthesisService.synthesise([bestResult.net, nextInput.net], config).pipe(map(
+                    return this._synthesisService.synthesise([bestResult.net, this._poToPnTransformer.transform(nextInput.partialOrder)], config).pipe(map(
                         result => ({
                             result,
-                            containedTraces: [...bestResult.containedTraces, ...nextInput.containedTraces]
+                            containedTraces: [...bestResult.containedTraces, ...nextInput.partialOrder.containedTraces]
                         })
                     ));
                 } else {
@@ -91,7 +95,7 @@ export class PrimeMinerService {
                 }
 
                 if (nextInputIndex < minerInputs.length) {
-                    minerInput$.next(PrimeMinerInput.fromPartialOrder(minerInputs[nextInputIndex], changed));
+                    minerInput$.next(new PrimeMinerInput(minerInputs[nextInputIndex], changed));
                     nextInputIndex++;
                 } else {
                     minerInput$.complete();
