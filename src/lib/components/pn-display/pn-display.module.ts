@@ -1,4 +1,5 @@
 import {NgModule} from "@angular/core";
+import {CommonModule} from "@angular/common";
 import {PnDisplayComponent} from "./pn-display.component";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 import {PetriNetLayoutManagerFactoryService} from "./services/petri-net-layout.manager";
@@ -13,7 +14,8 @@ import {
         ViewBoxPipe,
     ],
     imports: [
-        BrowserAnimationsModule
+        BrowserAnimationsModule,
+        CommonModule,
     ],
     exports: [
         PnDisplayComponent,
