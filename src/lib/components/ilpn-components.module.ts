@@ -4,7 +4,6 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {ReactiveFormsModule} from '@angular/forms';
 import {RouterModule} from '@angular/router';
 import {HttpClientModule} from "@angular/common/http";
-import {CommonModule} from "@angular/common";
 import {FooterComponent} from './layout/footer/footer.component';
 import {PageLayoutComponent} from './layout/page-layout/page-layout.component';
 import {FileUploadComponent} from './interaction/file-upload/file-upload/file-upload.component';
@@ -38,7 +37,6 @@ import {FileUploadOverlayComponent} from "./interaction/file-upload/file-upload-
         RouterModule,
         PnDisplayModule,
         HttpClientModule,
-        CommonModule,
     ],
     exports: [
         FooterComponent,
